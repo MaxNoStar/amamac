@@ -1,0 +1,33 @@
+import Foundation
+
+/// Command-line options used for automation (`make snapshot`, self tests).
+struct LaunchOptions {
+    var snapshotDir: URL?
+    var dataDir: URL?
+    var dumpLayout: URL?
+    var selfTestDecoders = false
+    var canaryDir: URL?
+
+    static let current = LaunchOptions(arguments: CommandLine.arguments)
+
+    init(arguments: [String]) {
+        var i = 1
+        func value() -> String? {
+            i += 1
+            return i < arguments.count ? arguments[i] : nil
+        }
+        while i < arguments.count {
+            switch arguments[i] {
+            case "--snapshot": snapshotDir = value().map { URL(fileURLWithPath: $0) }
+            case "--data-dir": dataDir = value().map { URL(fileURLWithPath: $0) }
+            case "--dump-layout": dumpLayout = value().map { URL(fileURLWithPath: $0) }
+            case "--selftest-decoders": selfTestDecoders = true
+            case "--canary": canaryDir = value().map { URL(fileURLWithPath: $0) }
+            default: break
+            }
+            i += 1
+        }
+    }
+
+    var isAutomation: Bool { snapshotDir != nil || selfTestDecoders || canaryDir != nil }
+}
