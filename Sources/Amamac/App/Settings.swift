@@ -1,5 +1,7 @@
+import AmamacDatabase
+import AmamacPlayback
+import AmamacPlaylist
 import AppKit
-import AmamacCore
 
 /// Typed access to user defaults. Every key is registered here with its default.
 @MainActor

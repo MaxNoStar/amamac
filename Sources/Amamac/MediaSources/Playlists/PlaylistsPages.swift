@@ -1,7 +1,11 @@
+import AmamacBase
+import AmamacDatabase
+import AmamacDynamic
+import AmamacModels
+import AmamacPlaylist
 import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
-import AmamacCore
 
 /// Media Sources › Playlists: Saved Playlists, Dynamic Playlists, Automated Playlist Generator.
 final class PlaylistsBrowserPage: NSViewController, MediaSourcePage {

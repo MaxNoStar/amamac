@@ -1,6 +1,8 @@
+import AmamacBase
+import AmamacModels
+import AmamacPlayback
 import AppKit
 import SwiftUI
-import AmamacCore
 
 /// The Settings window: one toolbar tab per page, each a SwiftUI form.
 enum SettingsPane: String, CaseIterable {

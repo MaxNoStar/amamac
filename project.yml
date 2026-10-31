@@ -71,7 +71,27 @@ targets:
       - Resources
     dependencies:
       - package: AmamacKit
-        product: AmamacCore
+        product: AmamacBase
+      - package: AmamacKit
+        product: AmamacModels
+      - package: AmamacKit
+        product: AmamacQuery
+      - package: AmamacKit
+        product: AmamacDatabase
+      - package: AmamacKit
+        product: AmamacLibrary
+      - package: AmamacKit
+        product: AmamacPlaylist
+      - package: AmamacKit
+        product: AmamacDynamic
+      - package: AmamacKit
+        product: AmamacPlayback
+      - package: AmamacKit
+        product: AmamacWeb
+      - package: AmamacKit
+        product: AmamacPodcasts
+      - package: AmamacKit
+        product: AmamacTestSupport
       - package: GRDB
       - package: KeyboardShortcuts
       # SFBAudioEngine's codec libraries are dynamic binary frameworks reached only through the
@@ -140,17 +160,37 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         LD_RUNPATH_SEARCH_PATHS: ["$(inherited)", "@executable_path/../Frameworks"]
         COMBINE_HIDPI_IMAGES: YES
-  AmamacCoreTests:
+  AmamacKitTests:
     type: bundle.unit-test
     platform: macOS
     sources:
-      - Tests/AmamacCoreTests
+      - Tests/AmamacKitTests
       - path: Tests/Fixtures
         type: folder
         buildPhase: resources
     dependencies:
       - package: AmamacKit
-        product: AmamacCore
+        product: AmamacBase
+      - package: AmamacKit
+        product: AmamacModels
+      - package: AmamacKit
+        product: AmamacQuery
+      - package: AmamacKit
+        product: AmamacDatabase
+      - package: AmamacKit
+        product: AmamacLibrary
+      - package: AmamacKit
+        product: AmamacPlaylist
+      - package: AmamacKit
+        product: AmamacDynamic
+      - package: AmamacKit
+        product: AmamacPlayback
+      - package: AmamacKit
+        product: AmamacWeb
+      - package: AmamacKit
+        product: AmamacPodcasts
+      - package: AmamacKit
+        product: AmamacTestSupport
       - package: GRDB
     settings:
       base:
@@ -163,11 +203,11 @@ schemes:
     build:
       targets:
         Amamac: all
-        AmamacCoreTests: [test]
+        AmamacKitTests: [test]
     run:
       config: Debug
     test:
       config: Debug
       gatherCoverageData: false
       targets:
-        - AmamacCoreTests
+        - AmamacKitTests

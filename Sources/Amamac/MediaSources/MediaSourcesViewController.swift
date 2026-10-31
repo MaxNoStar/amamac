@@ -1,6 +1,7 @@
+import AmamacModels
+import AmamacPlaylist
 import AppKit
 import SwiftUI
-import AmamacCore
 
 /// A page shown inside Media Sources (a category browser or one of its sub-levels).
 protocol MediaSourcePage: NSViewController {

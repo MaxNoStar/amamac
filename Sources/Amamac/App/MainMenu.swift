@@ -1,5 +1,8 @@
+import AmamacBase
+import AmamacModels
+import AmamacPlayback
+import AmamacPlaylist
 import AppKit
-import AmamacCore
 
 /// Builds the menu bar: Amamac, Edit, View, Playback, Playlist, Tools, Window, Help.
 @MainActor

@@ -1,6 +1,7 @@
+import AmamacBase
+import AmamacPodcasts
 import AppKit
 import SwiftUI
-import AmamacCore
 
 /// Media Sources › Podcasts: subscriptions with their episodes, downloads and an info pane.
 final class PodcastBrowserPage: NSViewController, MediaSourcePage {

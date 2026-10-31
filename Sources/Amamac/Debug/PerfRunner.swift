@@ -1,5 +1,8 @@
+import AmamacDatabase
+import AmamacPlaylist
+import AmamacQuery
+import AmamacTestSupport
 import AppKit
-import AmamacCore
 
 /// `--perf FILE --data-dir DIR`: fills the collection with 20,000 synthetic tracks and times the
 /// operations a large library stresses, through the real window. Results go to FILE and stdout.

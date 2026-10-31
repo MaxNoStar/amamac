@@ -1,6 +1,10 @@
+import AmamacBase
+import AmamacDatabase
+import AmamacLibrary
+import AmamacModels
+import AmamacWeb
 import AppKit
 import SwiftUI
-import AmamacCore
 
 /// "Edit Track Details": Summary, Tags, Lyrics and Labels for one or many tracks. With several
 /// tracks, fields edit all of them unless "Per Track" is on.

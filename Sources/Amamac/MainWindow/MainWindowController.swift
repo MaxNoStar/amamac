@@ -1,5 +1,7 @@
+import AmamacBase
+import AmamacModels
+import AmamacPlaylist
 import AppKit
-import AmamacCore
 
 /// Identifiers of the three dockable panes.
 enum Pane: String, CaseIterable {

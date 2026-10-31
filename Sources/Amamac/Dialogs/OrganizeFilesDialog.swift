@@ -1,6 +1,7 @@
+import AmamacLibrary
+import AmamacModels
 import AppKit
 import SwiftUI
-import AmamacCore
 
 /// Organize Files: pick a collection folder and naming pattern, preview, then move.
 @MainActor

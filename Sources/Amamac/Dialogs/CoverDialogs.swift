@@ -1,6 +1,8 @@
+import AmamacBase
+import AmamacDatabase
+import AmamacWeb
 import AppKit
 import SwiftUI
-import AmamacCore
 
 /// Searches Cover Art Archive and iTunes for an album and lets the user pick a cover.
 struct CoverFetchView: View {

@@ -1,6 +1,5 @@
 import AppKit
 import SwiftUI
-import AmamacCore
 
 /// The middle "Context" pane: a scrolling column of applets, the applet tab bar with
 /// "Configure Applets", and the Pop-Up Dropper overlay.

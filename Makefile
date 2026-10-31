@@ -30,13 +30,13 @@ build: project
 
 test: project
 	@mkdir -p build
-	@$(XCB) test -skip-testing:AmamacCoreTests/EngineTests > build/last-test.log 2>&1 \
+	@$(XCB) test -skip-testing:AmamacKitTests/EngineTests > build/last-test.log 2>&1 \
 		|| (grep -E "error:|failed|Fail|issue|✘" build/last-test.log | sort -u | head -80; exit 1)
 	@grep -E "Test run with|passed after|Executed" build/last-test.log | tail -3
 
 test-engine: project
 	@mkdir -p build
-	@$(XCB) test -only-testing:AmamacCoreTests/EngineTests > build/last-test-engine.log 2>&1 \
+	@$(XCB) test -only-testing:AmamacKitTests/EngineTests > build/last-test-engine.log 2>&1 \
 		|| (grep -E "error:|failed|Fail|issue|✘" build/last-test-engine.log | sort -u | head -60; exit 1)
 	@grep -E "Test run with|passed after|Executed" build/last-test-engine.log | tail -3
 

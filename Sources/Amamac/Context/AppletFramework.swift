@@ -1,6 +1,6 @@
+import AmamacModels
 import AppKit
 import SwiftUI
-import AmamacCore
 
 /// The applets the Context pane can show.
 enum AppletKind: String, CaseIterable {

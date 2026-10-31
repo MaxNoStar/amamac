@@ -1,7 +1,8 @@
+import AmamacModels
+import AmamacWeb
 import AppKit
 import SwiftUI
 import WebKit
-import AmamacCore
 
 /// Wikipedia articles for the current artist, composer, album or track. Article links open inside
 /// the applet (with Back / Forward); other links open in the browser.

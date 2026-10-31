@@ -1,6 +1,6 @@
+import AmamacQuery
 import AppKit
 import SwiftUI
-import AmamacCore
 
 /// Builds a collection filter from attribute conditions (Amarok's "Edit Filter" dialog). The
 /// result is ordinary filter text, so it can also be typed or refined by hand.

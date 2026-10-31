@@ -1,5 +1,4 @@
 import AppKit
-import AmamacCore
 
 /// Amarok's "Slim Toolbar": Prev / Play-Pause / Stop / Next, title, progress and a volume popup.
 final class SlimToolbarView: NSView {

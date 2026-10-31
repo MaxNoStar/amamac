@@ -1,5 +1,11 @@
+import AmamacBase
+import AmamacDatabase
+import AmamacDynamic
+import AmamacModels
+import AmamacPlaylist
+import AmamacQuery
+import AmamacTestSupport
 import AppKit
-import AmamacCore
 
 /// `--snapshot DIR`: builds the fixture library inside the data directory, scans it, fills the
 /// playlist, renders the main window and each pane to PNGs and exits. No audio is played.

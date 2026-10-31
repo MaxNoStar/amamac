@@ -1,6 +1,7 @@
+import AmamacDatabase
+import AmamacDynamic
 import AppKit
 import SwiftUI
-import AmamacCore
 
 /// Dynamic mode: the playlist keeps a few played tracks before the current one and tops itself
 /// up with tracks chosen by the active dynamic playlist's biases.

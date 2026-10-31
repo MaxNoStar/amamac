@@ -1,5 +1,6 @@
+import AmamacModels
+import AmamacPlaylist
 import AppKit
-import AmamacCore
 
 /// "Sort: › Album ↑ › Title ↓ › +" above the playlist. The root crumb clears sorting; clicking a
 /// level flips its direction; its menu changes or removes it; "+" adds a level.

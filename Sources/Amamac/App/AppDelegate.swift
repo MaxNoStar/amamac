@@ -1,5 +1,9 @@
+import AmamacBase
+import AmamacLibrary
+import AmamacModels
+import AmamacPlayback
+import AmamacPlaylist
 import AppKit
-import AmamacCore
 import UniformTypeIdentifiers
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {

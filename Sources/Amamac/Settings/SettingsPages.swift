@@ -1,7 +1,8 @@
+import AmamacBase
+import AmamacDatabase
 import AppKit
 import KeyboardShortcuts
 import SwiftUI
-import AmamacCore
 
 // MARK: - General
 

@@ -1,5 +1,7 @@
+import AmamacBase
+import AmamacLibrary
+import AmamacTestSupport
 import Foundation
-import AmamacCore
 
 /// `Amamac --selftest-decoders`: generates one file per format, decodes it and reads its tags.
 enum SelfTest {

@@ -1,6 +1,6 @@
+import AmamacPlayback
 import AppKit
 import SwiftUI
-import AmamacCore
 
 /// The equalizer state: on/off, the selected preset, preamp and band gains. Every change is saved
 /// and applied to the engine at once.

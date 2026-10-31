@@ -1,7 +1,7 @@
+import AmamacPodcasts
 import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
-import AmamacCore
 
 /// App-side podcast state: subscriptions, new-episode counts, running downloads and the
 /// automatic update timer.

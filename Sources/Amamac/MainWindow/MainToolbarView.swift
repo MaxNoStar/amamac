@@ -1,5 +1,5 @@
+import AmamacModels
 import AppKit
-import AmamacCore
 
 /// Previous / current / next track labels. The side labels are dimmed and skip when clicked;
 /// dragging past a fifth of the width skips; track changes slide in.

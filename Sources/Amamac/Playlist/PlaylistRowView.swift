@@ -1,5 +1,6 @@
+import AmamacModels
+import AmamacPlaylist
 import AppKit
-import AmamacCore
 
 /// What kind of row a playlist entry renders as.
 enum PlaylistRowKind: Equatable {

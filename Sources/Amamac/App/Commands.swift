@@ -1,5 +1,7 @@
+import AmamacDatabase
+import AmamacModels
+import AmamacPlaylist
 import AppKit
-import AmamacCore
 
 /// Actions shared by menus, browsers, the playlist and the Pop-Up Dropper.
 @MainActor

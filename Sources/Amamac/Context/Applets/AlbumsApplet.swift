@@ -1,7 +1,9 @@
+import AmamacBase
+import AmamacDatabase
+import AmamacQuery
 import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
-import AmamacCore
 
 final class AlbumsAppletController: Applet {
     let kind = AppletKind.albums

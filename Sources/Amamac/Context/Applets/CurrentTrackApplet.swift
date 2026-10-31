@@ -1,6 +1,9 @@
+import AmamacBase
+import AmamacDatabase
+import AmamacModels
+import AmamacQuery
 import AppKit
 import SwiftUI
-import AmamacCore
 
 final class CurrentTrackAppletController: Applet {
     let kind = AppletKind.currentTrack

@@ -1,7 +1,8 @@
+import AmamacBase
+import AmamacPlayback
 import AppKit
-import SwiftUI
-import AmamacCore
 import GRDB
+import SwiftUI
 
 enum AboutPanel {
     static func show() {

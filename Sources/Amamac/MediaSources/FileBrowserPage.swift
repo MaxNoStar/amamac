@@ -1,6 +1,8 @@
+import AmamacBase
+import AmamacLibrary
+import AmamacModels
 import AppKit
 import SwiftUI
-import AmamacCore
 
 /// Media Sources › Files: browse folders and add audio or playlist files.
 final class FileBrowserPage: NSViewController, MediaSourcePage {

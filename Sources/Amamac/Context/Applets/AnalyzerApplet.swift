@@ -1,6 +1,6 @@
+import AmamacPlayback
 import AppKit
 import SwiftUI
-import AmamacCore
 
 /// Block spectrum analyzer with falling peak ("fade") bars. The output tap is installed only
 /// while the applet is shown.

@@ -1,6 +1,8 @@
+import AmamacBase
+import AmamacModels
+import AmamacPlaylist
 import AppKit
 import SwiftUI
-import AmamacCore
 
 extension NSPasteboard.PasteboardType {
     /// A playlist item UUID string (one per dragged row; internal reordering).

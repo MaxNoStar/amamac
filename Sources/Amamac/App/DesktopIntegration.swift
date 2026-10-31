@@ -1,9 +1,10 @@
+import AmamacBase
+import AmamacModels
 import AppKit
 import IOKit.pwr_mgt
 import KeyboardShortcuts
 import SwiftUI
 import UserNotifications
-import AmamacCore
 
 /// Everything outside the main window: the on-screen display, the menu bar item, global
 /// shortcuts, system notifications and sleep handling. Created once at launch.

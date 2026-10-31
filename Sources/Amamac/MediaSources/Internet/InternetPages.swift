@@ -1,6 +1,9 @@
+import AmamacBase
+import AmamacModels
+import AmamacPodcasts
+import AmamacWeb
 import AppKit
 import SwiftUI
-import AmamacCore
 
 /// Media Sources › Internet: Internet Radio and the Podcast Directory.
 final class InternetBrowserPage: NSViewController, MediaSourcePage {

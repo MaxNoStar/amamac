@@ -1,6 +1,6 @@
+import AmamacModels
 import AppKit
 import SwiftUI
-import AmamacCore
 
 final class LyricsAppletController: Applet {
     let kind = AppletKind.lyrics

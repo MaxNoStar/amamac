@@ -1,5 +1,9 @@
+import AmamacBase
+import AmamacDatabase
+import AmamacLibrary
+import AmamacPlaylist
+import AmamacWeb
 import AppKit
-import AmamacCore
 import GRDB
 
 /// Shared services for the app (one per process).

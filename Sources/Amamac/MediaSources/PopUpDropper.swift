@@ -1,5 +1,4 @@
 import AppKit
-import AmamacCore
 
 /// Amarok's Pop-Up Dropper: while tracks are dragged out of Media Sources, large drop targets
 /// appear over the Context pane (Append, Replace, Queue, Append and Play).
