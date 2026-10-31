@@ -90,7 +90,7 @@ public actor CollectionScanner {
                 continue
             }
             reachableRoots.append(folder)
-            let roots = onlyPaths?.filter { $0.hasPrefix(folder.path) } ?? [folder.path]
+            let roots = onlyPaths?.filter { Paths.isInside($0, folder: folder.path) } ?? [folder.path]
             for root in roots {
                 let (audio, playlists) = Self.enumerate(root: root, recursive: folder.recursive)
                 found.append(contentsOf: audio)
@@ -103,9 +103,11 @@ public actor CollectionScanner {
         let existing: [String: Existing] = try await database.writer.read { db in
             var map: [String: Existing] = [:]
             for scope in scopes {
+                // A case-sensitive range ("/Music/" ≤ path < "/Music0"): LIKE ignores case, so it
+                // would also take tracks in a sibling "/music" folder and drop them as missing.
                 let prefix = scope.hasSuffix("/") ? scope : scope + "/"
-                let rows = try Row.fetchAll(db, sql: "SELECT id, path, mtime, fileSize, uniqueId FROM track WHERE path LIKE ? ESCAPE '\\'",
-                                            arguments: [TextFolding.likeEscaped(prefix) + "%"])
+                let rows = try Row.fetchAll(db, sql: "SELECT id, path, mtime, fileSize, uniqueId FROM track WHERE path >= ? AND path < ?",
+                                            arguments: [prefix, String(prefix.dropLast()) + "0"])
                 for row in rows {
                     map[row["path"]] = Existing(id: row["id"], mtime: row["mtime"], size: row["fileSize"], uniqueId: row["uniqueId"])
                 }

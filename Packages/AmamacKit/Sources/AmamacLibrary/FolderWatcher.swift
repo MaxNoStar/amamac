@@ -1,3 +1,4 @@
+import AmamacBase
 import AmamacModels
 import CoreServices
 import Foundation
@@ -11,6 +12,7 @@ public final class FolderWatcher: @unchecked Sendable {
     private var pending = Set<String>()
     private var debounce: DispatchWorkItem?
     private var ignored: [String: Date] = [:]
+    private var roots: [String] = []
     private let latency: TimeInterval
     private let handler: Handler
 
@@ -24,6 +26,7 @@ public final class FolderWatcher: @unchecked Sendable {
     public func watch(paths: [String]) {
         queue.async { [self] in
             stopSync()
+            roots = paths
             guard !paths.isEmpty else { return }
             var context = FSEventStreamContext(version: 0, info: Unmanaged.passUnretained(self).toOpaque(),
                                                retain: nil, release: nil, copyDescription: nil)
@@ -58,6 +61,13 @@ public final class FolderWatcher: @unchecked Sendable {
         stream = nil
     }
 
+    /// Whether any part of `path` below the watched folder holding it starts with a dot. Full scans
+    /// skip such folders, so changes inside them are ignored too.
+    static func isHidden(_ path: String, below roots: [String]) -> Bool {
+        let root = roots.filter { Paths.isInside(path, folder: $0) }.max { $0.count < $1.count } ?? ""
+        return path.dropFirst(root.count).split(separator: "/").contains { $0.hasPrefix(".") }
+    }
+
     private func received(_ paths: [String]) {
         let now = Date()
         ignored = ignored.filter { $0.value > now }
@@ -65,7 +75,7 @@ public final class FolderWatcher: @unchecked Sendable {
             if ignored[path] != nil { continue }
             let ext = (path as NSString).pathExtension.lowercased()
             let isRelevant = ext.isEmpty || AudioFileTypes.extensions.contains(ext) || PlaylistFileFormat(rawValue: ext) != nil
-            guard isRelevant, !(path as NSString).lastPathComponent.hasPrefix(".") else { continue }
+            guard isRelevant, !Self.isHidden(path, below: roots) else { continue }
             pending.insert(ext.isEmpty ? path : (path as NSString).deletingLastPathComponent)
         }
         guard !pending.isEmpty else { return }

@@ -34,6 +34,15 @@ struct SafeInputTests {
         #expect(PathComponent.sanitized("Björk: Vespertine") == "Björk: Vespertine")
     }
 
+    @Test func pathsCompareWholeComponents() {
+        #expect(Paths.normalized("/Music/./a/../b//c/") == "/Music/b/c")
+        #expect(Paths.normalized("/../../etc") == "/etc")
+        #expect(Paths.isInside("/Music/Band/a.mp3", folder: "/Music"))
+        #expect(Paths.isInside("/Music", folder: "/Music/"))
+        #expect(!Paths.isInside("/Music Old/a.mp3", folder: "/Music"))
+        #expect(!Paths.isInside("/Music/../Documents/a", folder: "/Music"))
+    }
+
     @Test func onlyHttpAndHttpsAreWebURLs() {
         #expect(URL(string: "https://example.org")!.isWebURL)
         #expect(URL(string: "HTTP://example.org")!.isWebURL)

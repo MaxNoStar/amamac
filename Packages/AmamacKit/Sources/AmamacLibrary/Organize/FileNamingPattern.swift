@@ -1,3 +1,4 @@
+import AmamacBase
 import AmamacModels
 import Foundation
 
@@ -58,7 +59,8 @@ public struct FileNamingPattern: Sendable, Equatable {
             guard options.ignoreThe, s.lowercased().hasPrefix("the "), s.count > 4 else { return s }
             return String(s.dropFirst(4)) + ", " + String(s.prefix(3))
         }
-        func safe(_ s: String) -> String { s.replacingOccurrences(of: "/", with: "-") }
+        // Tag values may not add folders; scalar by scalar so a combining mark can't hide a "/".
+        func safe(_ s: String) -> String { PathComponent.withoutSeparators(s) }
         let artist = t.artist.isEmpty ? TrackText.unknownArtist : t.artist
         let albumArtist = t.compilation ? TrackText.variousArtists : (t.albumArtist.isEmpty ? artist : t.albumArtist)
         let initialSource = theMoved(albumArtist)
@@ -78,7 +80,7 @@ public struct FileNamingPattern: Sendable, Equatable {
             "discnumber": t.discNumber > 0 ? String(t.discNumber) : "",
             "folder": safe((t.directory as NSString).lastPathComponent),
             "filetype": (t.path as NSString).pathExtension.lowercased(),
-            "initial": initial,
+            "initial": safe(initial),
             "collectionroot": collectionRoot,
         ]
     }
@@ -135,7 +137,10 @@ public struct FileNamingPattern: Sendable, Equatable {
             while s.hasSuffix(".") || s.hasSuffix(" ") { s.removeLast() }
         }
         if options.replaceSpaces { s = s.replacingOccurrences(of: " ", with: "_") }
+        // Last, after every transform that could have produced them: no separators or control
+        // characters, no surrounding spaces, and no leading dot (hidden, "." or "..").
+        s = PathComponent.withoutSeparators(s).trimmingCharacters(in: .whitespaces)
         if s.hasPrefix(".") { s = "_" + s.dropFirst() }
-        return s.trimmingCharacters(in: .whitespaces)
+        return s
     }
 }

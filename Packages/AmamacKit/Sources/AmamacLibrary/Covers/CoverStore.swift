@@ -125,17 +125,32 @@ public actor CoverStore {
         for sample in samples {
             let dir = (sample.path as NSString).deletingLastPathComponent
             guard checkedDirs.insert(dir).inserted else { continue }
-            if let url = Self.folderImage(in: URL(fileURLWithPath: dir)), let data = try? Data(contentsOf: url) { return data }
+            if let url = Self.folderImage(in: URL(fileURLWithPath: dir)), let data = Self.readImage(url) { return data }
         }
         return nil
     }
 
+    /// Largest folder image read; real covers are a few megabytes at most.
+    static let maxFolderImageBytes = 20 * 1024 * 1024
+
+    /// The image's data, if it is a regular file (not a link to a device or pipe) of sane size.
+    static func readImage(_ url: URL) -> Data? {
+        guard let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey]),
+              values.isRegularFile == true, values.isSymbolicLink != true,
+              (values.fileSize ?? 0) <= maxFolderImageBytes else { return nil }
+        return try? Data(contentsOf: url)
+    }
+
     /// Finds cover.jpg / folder.png etc. (case-insensitive), falling back to the only image in the
-    /// folder.
+    /// folder. Only regular files count.
     public static func folderImage(in directory: URL) -> URL? {
-        guard let files = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil,
+        guard let files = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey],
                                                                        options: [.skipsHiddenFiles]) else { return nil }
-        let images = files.filter { imageExtensions.contains($0.pathExtension.lowercased()) }
+        let images = files.filter { file in
+            guard imageExtensions.contains(file.pathExtension.lowercased()),
+                  let values = try? file.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey]) else { return false }
+            return values.isRegularFile == true && values.isSymbolicLink != true
+        }
         for name in folderImageNames {
             if let match = images.first(where: { $0.deletingPathExtension().lastPathComponent.lowercased() == name }) {
                 return match

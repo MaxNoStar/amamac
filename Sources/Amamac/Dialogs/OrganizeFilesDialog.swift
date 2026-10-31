@@ -113,17 +113,19 @@ struct OrganizeFilesView: View {
                 TableColumn("Current") { move in Text((move.source as NSString).lastPathComponent).lineLimit(1).help(move.source) }
                 TableColumn("New location") { move in
                     Text(move.destination.hasPrefix(model.root) ? String(move.destination.dropFirst(model.root.count + 1)) : move.destination)
-                        .foregroundStyle(move.conflict ? Color.red : (move.unchanged ? Color.secondary : Color.primary))
+                        .foregroundStyle(move.conflict || move.refused != nil ? Color.red : (move.unchanged ? Color.secondary : Color.primary))
                         .lineLimit(1)
-                        .help(move.conflict ? "A file already exists here" : move.destination)
+                        .help(move.refused ?? (move.conflict ? "A file already exists here" : move.destination))
                 }
             }
             .frame(minHeight: 180)
             HStack {
-                let changing = plan.filter { !$0.unchanged }.count
+                let changing = plan.filter { !$0.unchanged && $0.refused == nil }.count
                 let conflicts = plan.filter(\.conflict).count
-                Text("\(changing) of \(plan.count) files will move" + (conflicts > 0 ? ", \(conflicts) conflict(s)" : ""))
-                    .font(.caption).foregroundStyle(conflicts > 0 && !model.options.overwrite ? .red : .secondary)
+                let refused = plan.filter { $0.refused != nil }.count
+                Text("\(changing) of \(plan.count) files will move" + (conflicts > 0 ? ", \(conflicts) conflict(s)" : "")
+                     + (refused > 0 ? ", \(refused) would leave the collection folder" : ""))
+                    .font(.caption).foregroundStyle((conflicts > 0 && !model.options.overwrite) || refused > 0 ? .red : .secondary)
                 if let message = model.resultMessage { Text(message).font(.caption).foregroundStyle(.red).lineLimit(2) }
                 Spacer()
                 if model.running { ProgressView().controlSize(.small) }

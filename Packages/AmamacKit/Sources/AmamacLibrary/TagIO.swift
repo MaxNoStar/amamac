@@ -59,10 +59,11 @@ public enum TagReader {
         t.rgAlbumGain = meta.replayGainAlbumGain
         t.rgAlbumPeak = meta.replayGainAlbumPeak
 
-        t.durationMs = Int(((props.duration ?? 0) * 1000).rounded())
-        t.sampleRate = Int(props.sampleRate ?? 0)
+        // Properties come from the file, so a crafted one may claim NaN or infinite values.
+        t.durationMs = SafeNumbers.milliseconds(seconds: props.duration ?? 0) ?? 0
+        t.sampleRate = SafeNumbers.int(props.sampleRate ?? 0) ?? 0
         t.channels = Int(props.channelCount ?? 0)
-        t.bitrate = Int((props.bitrate ?? 0).rounded())
+        t.bitrate = SafeNumbers.int(props.bitrate ?? 0) ?? 0
         t.format = formatName(props.formatName, url: url)
         t.fileSize = (attributes?[.size] as? NSNumber)?.int64Value ?? 0
         t.mtime = (attributes?[.modificationDate] as? Date) ?? Date()
@@ -188,8 +189,10 @@ public enum TagWriter {
     }
 
     /// Writes tags. The file is copied, modified and swapped in with `replaceItemAt` so a decoder
-    /// that has the original open keeps reading valid data.
+    /// that has the original open keeps reading valid data. A symbolic link is followed first:
+    /// copying the link itself would write through it to the real file, in place.
     public static func write(_ changes: TagChanges, to url: URL) throws {
+        let url = url.resolvingSymlinksInPath()
         let fm = FileManager.default
         let tempDir = try fm.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: url, create: true)
         let tempURL = tempDir.appendingPathComponent(url.lastPathComponent)
