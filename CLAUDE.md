@@ -43,6 +43,13 @@ DerivedData lives in `~/Library/Developer/Xcode/DerivedData/Amamac-cli` (not ins
 - `Tests/AmamacKitTests` — Swift Testing, `@testable import` per module; fixtures are generated
   under `$TMPDIR` at test time.
 
+## Working rules (all future work stays modular)
+- A new feature gets its own file or folder; one main type per file, no grab-bag files.
+- Logic that needs no UI goes into the matching AmamacKit module, with tests in
+  `Tests/AmamacKitTests`; the app keeps only views, controllers and wiring.
+- Split a file along its type boundaries once it grows past ~400 lines.
+- Plan changes layer by layer (core module → app feature folder → docs), one commit per layer.
+
 ## App structure rules
 - The app never runs SQL or imports GRDB: database work goes through `LibraryDatabase` methods and
   the stores (`StatisticsStore`, `BookmarkStore`, …), which `AppEnvironment` builds once.
