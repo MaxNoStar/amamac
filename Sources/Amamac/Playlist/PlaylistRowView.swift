@@ -87,7 +87,7 @@ final class PlaylistRowView: NSTableRowView {
         }
         if model.isActive {
             let rect = track.insetBy(dx: 2, dy: 1)
-            NSColor.controlAccentColor.withAlphaComponent(0.22).setFill()
+            NSColor.amamacAccent.withAlphaComponent(0.22).setFill()
             NSBezierPath(roundedRect: rect, xRadius: 4, yRadius: 4).fill()
         }
         if model.isSearchMatch {
@@ -235,7 +235,7 @@ final class PlaylistRowView: NSTableRowView {
             return
         }
         var symbol: String?
-        var tint = NSColor.controlAccentColor
+        var tint = NSColor.amamacAccent
         if model.isStopAfter {
             symbol = "stop.circle.fill"
             tint = .systemRed

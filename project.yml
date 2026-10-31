@@ -156,6 +156,7 @@ targets:
         PRODUCT_NAME: Amamac
         SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         LD_RUNPATH_SEARCH_PATHS: ["$(inherited)", "@executable_path/../Frameworks"]
         COMBINE_HIDPI_IMAGES: YES
   AmamacCoreTests:

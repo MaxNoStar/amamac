@@ -39,6 +39,13 @@ make app          # copy Amamac.app to build/
 Release builds: `make app CONFIG=Release`. The app is signed ad hoc ("Sign to Run Locally"), so
 macOS may ask again for access to Music, Documents or external drives after each rebuild.
 
+## Installing
+
+`make dmg` builds Release and writes `build/Amamac-<version>.dmg`. Open it and drag Amamac onto
+Applications. A disk image built on your own Mac opens without warnings; copied to another Mac, the
+ad-hoc signature means Gatekeeper blocks the first launch until you allow it in System Settings ›
+Privacy & Security.
+
 ## Testing
 
 ```bash

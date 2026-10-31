@@ -163,6 +163,9 @@ Plan: Amarok 2/3 feature parity in milestones M0–M8 (see CLAUDE.md for command
   "keep the playing track in view" and "fetch missing covers" now do what they say.
 - App icon drawn by `scripts/make-icon.swift`: an original loudspeaker on coral, chosen from six designs
   (`make icon`; `swift scripts/make-icon.swift --preview DIR` renders all of them side by side).
+- Neon-orange accent (`AccentColor` asset, also the global accent colour; `NSColor.amamacAccent` for
+  custom drawing): play button, seek bar, volume dial, playing row, Analyzer and highlights.
+- `make dmg`: Release build in a compressed disk image with an Applications shortcut and volume icon.
 - About panel, Help window (layout, filter syntax, keys), Diagnostics (copyable report) and
   Acknowledgements; THIRD_PARTY_NOTICES.md generated from the packages' license files
   (`make notices`) and bundled in the app; README.md.

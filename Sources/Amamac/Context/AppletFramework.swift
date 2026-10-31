@@ -388,8 +388,8 @@ struct AppletStrip: View {
                                 .multilineTextAlignment(.center).lineLimit(2)
                         }
                         .frame(width: 130, height: 76)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(on ? Color.accentColor.opacity(0.18) : Color.secondary.opacity(0.08)))
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(on ? Color.accentColor : Color.secondary.opacity(0.3)))
+                        .background(RoundedRectangle(cornerRadius: 8).fill(on ? Color.amamacAccent.opacity(0.18) : Color.secondary.opacity(0.08)))
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(on ? Color.amamacAccent : Color.secondary.opacity(0.3)))
                     }
                     .buttonStyle(.plain)
                     .help(on ? "Remove \(kind.title)" : "Add \(kind.title)")

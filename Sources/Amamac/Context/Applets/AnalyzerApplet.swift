@@ -92,7 +92,7 @@ struct AnalyzerApplet: View {
                 let usable = size.height - 16
                 let blocks = max(1, Int(usable / (blockHeight + blockGap)))
                 let x0 = (size.width - CGFloat(bands) * (barWidth + gap) + gap) / 2
-                let low = Color.accentColor
+                let low = Color.amamacAccent
                 for i in 0..<min(bands, state.levels.count) {
                     let x = x0 + CGFloat(i) * (barWidth + gap)
                     let lit = Int((CGFloat(state.levels[i]) * CGFloat(blocks)).rounded())
@@ -100,7 +100,7 @@ struct AnalyzerApplet: View {
                         let y = size.height - 8 - CGFloat(b + 1) * (blockHeight + blockGap)
                         let t = Double(b) / Double(blocks)
                         context.fill(Path(CGRect(x: x, y: y, width: barWidth, height: blockHeight)),
-                                     with: .color(t > 0.8 ? .orange : low.opacity(0.55 + 0.45 * t)))
+                                     with: .color(t > 0.8 ? .yellow : low.opacity(0.55 + 0.45 * t)))
                     }
                     if state.showFadebars {
                         let peakBlock = Int((CGFloat(state.peaks[i]) * CGFloat(blocks)).rounded())

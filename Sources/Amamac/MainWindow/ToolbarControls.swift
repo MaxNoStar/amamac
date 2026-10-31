@@ -20,7 +20,7 @@ final class PlayPauseButton: NSControl {
     override func draw(_ dirtyRect: NSRect) {
         let rect = bounds.insetBy(dx: 2, dy: 2)
         let circle = NSBezierPath(ovalIn: rect)
-        let accent = NSColor.controlAccentColor
+        let accent = NSColor.amamacAccent
         let top = accent.blended(withFraction: pressed ? 0.25 : 0.0, of: .black) ?? accent
         let bottom = accent.blended(withFraction: pressed ? 0.45 : 0.25, of: .black) ?? accent
         NSGradient(starting: top, ending: bottom)?.draw(in: circle, angle: -90)
@@ -95,7 +95,7 @@ final class VolumeDial: NSControl {
             fill.appendArc(withCenter: center, radius: radius, startAngle: Self.startAngle, endAngle: end, clockwise: true)
             fill.lineWidth = 4
             fill.lineCapStyle = .round
-            (isMuted ? NSColor.secondaryLabelColor : NSColor.controlAccentColor).setStroke()
+            (isMuted ? NSColor.secondaryLabelColor : NSColor.amamacAccent).setStroke()
             fill.stroke()
         }
         let symbol = isMuted || volume == 0 ? "speaker.slash.fill" : (volume < 34 ? "speaker.wave.1.fill" : (volume < 67 ? "speaker.wave.2.fill" : "speaker.wave.3.fill"))
@@ -198,7 +198,7 @@ final class SeekSlider: NSView {
         if active {
             var filled = track
             filled.size.width = x(for: pos) - track.minX
-            NSColor.controlAccentColor.setFill()
+            NSColor.amamacAccent.setFill()
             NSBezierPath(roundedRect: filled, xRadius: 3, yRadius: 3).fill()
         }
         // Position markers (bookmarks) as small triangles above the track.

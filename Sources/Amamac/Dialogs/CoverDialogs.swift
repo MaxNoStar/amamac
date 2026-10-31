@@ -62,7 +62,7 @@ struct CoverFetchView: View {
                 .font(.caption2).foregroundStyle(.secondary)
         }
         .padding(6)
-        .background(RoundedRectangle(cornerRadius: 8).stroke(selected == c.imageURL ? Color.accentColor : .clear, lineWidth: 2))
+        .background(RoundedRectangle(cornerRadius: 8).stroke(selected == c.imageURL ? Color.amamacAccent : .clear, lineWidth: 2))
         .contentShape(Rectangle())
         .onTapGesture { selected = c.imageURL }
         .onTapGesture(count: 2) { selected = c.imageURL; choose() }

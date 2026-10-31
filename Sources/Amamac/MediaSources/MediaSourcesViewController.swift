@@ -348,7 +348,7 @@ private struct CategoryListView: View {
                         }
                         .padding(10)
                         .contentShape(Rectangle())
-                        .background(RoundedRectangle(cornerRadius: 8).fill(hovered == category ? Color.accentColor.opacity(0.12) : Color.clear))
+                        .background(RoundedRectangle(cornerRadius: 8).fill(hovered == category ? Color.amamacAccent.opacity(0.12) : Color.clear))
                     }
                     .buttonStyle(.plain)
                     .onHover { hovered = $0 ? category : (hovered == category ? nil : hovered) }

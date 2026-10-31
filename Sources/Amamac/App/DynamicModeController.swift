@@ -139,7 +139,7 @@ struct DynamicModeBanner: View {
             .lineLimit(1)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(Color.accentColor.opacity(0.12))
+            .background(Color.amamacAccent.opacity(0.12))
             .accessibilityIdentifier("dynamicModeBanner")
         }
     }

@@ -375,7 +375,7 @@ struct DynamicPlaylistsView: View {
                 ForEach(model.playlists) { p in
                     HStack {
                         Image(systemName: mode.active?.id == p.id ? "dice.fill" : "dice")
-                            .foregroundStyle(mode.active?.id == p.id ? Color.accentColor : Color.secondary)
+                            .foregroundStyle(mode.active?.id == p.id ? Color.amamacAccent : Color.secondary)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(p.name)
                             Text(p.bias.summary).font(.caption).foregroundStyle(.secondary).lineLimit(1)

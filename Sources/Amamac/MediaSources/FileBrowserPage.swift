@@ -221,7 +221,7 @@ struct FileBrowserView: View {
     private func row(_ entry: FileBrowserModel.Entry) -> some View {
         HStack(spacing: 6) {
             Image(systemName: entry.kind == .folder ? "folder.fill" : entry.kind == .playlist ? "music.note.list" : "music.note")
-                .foregroundStyle(entry.kind == .folder ? Color.accentColor : Color.secondary)
+                .foregroundStyle(entry.kind == .folder ? Color.amamacAccent : Color.secondary)
                 .frame(width: 16)
             Text(entry.url.lastPathComponent).lineLimit(1).truncationMode(.middle)
         }

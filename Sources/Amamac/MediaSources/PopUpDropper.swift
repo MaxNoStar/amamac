@@ -94,7 +94,7 @@ final class PopUpDropperItem: NSView {
     override func draw(_ dirtyRect: NSRect) {
         let rect = bounds.insetBy(dx: 1, dy: 1)
         let path = NSBezierPath(roundedRect: rect, xRadius: 12, yRadius: 12)
-        (highlighted ? NSColor.controlAccentColor : NSColor.controlBackgroundColor).setFill()
+        (highlighted ? NSColor.amamacAccent : NSColor.controlBackgroundColor).setFill()
         path.fill()
         NSColor.separatorColor.setStroke()
         path.lineWidth = 1

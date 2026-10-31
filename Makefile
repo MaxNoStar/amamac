@@ -10,7 +10,7 @@ RESOLVED_SRC := Package.resolved
 RESOLVED_DST := Amamac.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 SNAPSHOT_DIR ?= $(TMPDIR)amamac-snapshot
 
-.PHONY: project resolve build test test-engine run app snapshot perf icon notices clean
+.PHONY: project resolve build test test-engine run app dmg snapshot perf icon notices clean
 
 project:
 	@xcodegen generate --quiet
@@ -45,6 +45,11 @@ run: build
 
 app: build
 	@rm -rf build/Amamac.app && cp -R "$(APP)" build/Amamac.app && echo "build/Amamac.app"
+
+# Always a Release build, whatever CONFIG says.
+dmg:
+	@$(MAKE) --no-print-directory app CONFIG=Release
+	@scripts/make-dmg.sh build/Amamac.app build
 
 snapshot: build
 	@rm -rf "$(SNAPSHOT_DIR)" && mkdir -p "$(SNAPSHOT_DIR)"

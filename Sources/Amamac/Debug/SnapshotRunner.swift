@@ -122,7 +122,7 @@ final class SnapshotRunner {
 
     func run() {
         Snapshotter.startWatchdog(seconds: 120)
-        NSApp.appearance = NSAppearance(named: .aqua)
+        NSApp.appearance = NSAppearance(named: ProcessInfo.processInfo.environment["AMAMAC_SNAPSHOT_DARK"] == nil ? .aqua : .darkAqua)
         Task { await perform() }
     }
 

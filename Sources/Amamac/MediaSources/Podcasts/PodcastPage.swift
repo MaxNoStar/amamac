@@ -255,7 +255,7 @@ struct ChannelRow: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 1)
-                    .background(Capsule().fill(Color.accentColor))
+                    .background(Capsule().fill(Color.amamacAccent))
                     .help("\(newCount) new episode\(newCount == 1 ? "" : "s")")
             }
         }
@@ -274,7 +274,7 @@ struct EpisodeRow: View {
                 } else if episode.isDownloaded {
                     Image(systemName: "arrow.down.circle.fill").foregroundStyle(.tint).help("Downloaded")
                 } else if episode.isNew {
-                    Circle().fill(Color.accentColor).frame(width: 7, height: 7).help("New")
+                    Circle().fill(Color.amamacAccent).frame(width: 7, height: 7).help("New")
                 } else if episode.isPlayed {
                     Image(systemName: "checkmark").font(.caption).foregroundStyle(.tertiary).help("Played")
                 } else {
