@@ -54,7 +54,7 @@ final class EngineBridge: NSObject, AudioPlayer.Delegate, @unchecked Sendable {
             register(nextDecoder, item: next.itemID, gain: next.gainDB)
             try audioPlayer.enqueue(nextDecoder)
         } catch {
-            log.error("Gapless enqueue failed for \(next.url.path, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            log.error("Gapless enqueue failed for \(next.url.path, privacy: .private): \(error.localizedDescription, privacy: .public)")
             continuation.yield(.error(error.localizedDescription, next.itemID))
         }
     }

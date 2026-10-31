@@ -321,7 +321,9 @@ final class PlaylistPaneController: NSViewController, NSTableViewDataSource, NST
             env.actions.addToPlaylist(tracks, mode: .append, at: destination)
             return true
         }
-        if let urls = pb.readObjects(forClasses: [NSURL.self], options: nil) as? [URL], !urls.isEmpty {
+        // Files and web streams only: a drag from another app can carry any kind of URL.
+        if let urls = (pb.readObjects(forClasses: [NSURL.self], options: nil) as? [URL])?.filter({ $0.isFileURL || $0.isWebURL }),
+           !urls.isEmpty {
             env.actions.addURLs(urls, mode: .append, at: destination)
             return true
         }

@@ -13,6 +13,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     private var nowPlaying: NowPlayingController?
     /// Written once at launch on the main thread; read there by the Objective-C runtime.
     nonisolated(unsafe) private var commandTargets: [NSObject] = []
+    /// Files and links that open Amamac arrive before `applicationDidFinishLaunching`; they wait
+    /// here until the environment exists and the saved playlist is back.
+    private var pendingURLs: [URL]? = []
 
     // MARK: Launch
 
@@ -70,8 +73,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         tools.desktop = desktop
         nowPlaying = NowPlayingController(env: env)
         session.observe()
-        session.restore()
+        session.restore { [weak self] in
+            guard let self, let urls = pendingURLs else { return }
+            pendingURLs = nil
+            if !urls.isEmpty { application(NSApp, open: urls) }
+        }
         env.podcasts.startAutoUpdate()
+        Task.detached(priority: .background) { [http = env.http] in http.pruneCache() }
         if env.collectionFolders.isEmpty && !env.settings.bool(AppSettings.Key.firstRunDone) {
             DispatchQueue.main.async { setup.runFirstRunSetup() }
         } else {
@@ -92,6 +100,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
+        if pendingURLs != nil {
+            pendingURLs?.append(contentsOf: urls)
+            return
+        }
         let files = urls.filter(\.isFileURL)
         if !files.isEmpty { env.actions.addURLs(files, mode: .appendAndPlay) }
         for url in urls where url.scheme?.lowercased() == "amamac" { LinkHandler.open(url, env: env) }

@@ -223,7 +223,7 @@ struct PodcastsView: View {
             }
             Button("Settings…") { model.editing = channel }
             Divider()
-            if let link = channel.link.flatMap(URL.init(string:)), link.scheme?.hasPrefix("http") == true {
+            if let link = channel.link.flatMap(URL.init(string:)), link.isWebURL {
                 Button("Open Website") { NSWorkspace.shared.open(link) }
             }
             Button("Copy Feed Address") {

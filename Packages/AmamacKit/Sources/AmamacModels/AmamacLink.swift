@@ -18,7 +18,9 @@ public enum AmamacLink: Equatable, Sendable {
         switch target {
         case "position":
             guard let id = query["track"].flatMap(Int64.init) else { return nil }
-            self = .position(trackId: id, seconds: query["pos"].flatMap(Double.init) ?? 0)
+            // Links come from other apps and web pages, so the position must be a real one.
+            let seconds = query["pos"].flatMap(Double.init).flatMap { $0.isFinite && $0 >= 0 ? $0 : nil } ?? 0
+            self = .position(trackId: id, seconds: seconds)
         case "collection", "localMusic":
             let levels = (query["levels"] ?? "").split(separator: "-").map(String.init)
             self = .collection(filter: query["filter"] ?? "", levels: levels)

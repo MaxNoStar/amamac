@@ -34,10 +34,15 @@ final class SessionController {
         try? PlaylistLoader.saveSession(session, database: env.database)
     }
 
-    func restore() {
-        guard let session = PlaylistLoader.loadSession(database: env.database), !session.entries.isEmpty else { return }
+    /// Restores the saved playlist, then calls `completion` (also when there was nothing to restore).
+    func restore(then completion: @escaping () -> Void = {}) {
+        guard let session = PlaylistLoader.loadSession(database: env.database), !session.entries.isEmpty else {
+            completion()
+            return
+        }
         let database = env.database
         Task {
+            defer { completion() }
             let items = await PlaylistLoader.items(for: session, database: database)
             env.playlist.restore(items: items, activeID: session.activeID.map(PlaylistItemID.init(rawValue:)),
                                  queue: session.queue.map(PlaylistItemID.init(rawValue:)),

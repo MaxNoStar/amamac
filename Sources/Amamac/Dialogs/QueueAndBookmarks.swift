@@ -281,7 +281,16 @@ enum LinkHandler {
                 return
             }
             let page = router.showMediaSources(category)
-            if let path, let files = page as? FileBrowserPage { files.model.go(to: URL(fileURLWithPath: path)) }
+            guard let path, let files = page as? FileBrowserPage else { return }
+            var isDirectory: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory), isDirectory.boolValue else {
+                env.status.showMessage("The folder “\(path)” does not exist.")
+                return
+            }
+            // A link shows the folder once; it doesn't become where Files opens next time.
+            let startFolder = env.settings.string(AppSettings.Key.fileBrowserFolder)
+            files.model.go(to: URL(fileURLWithPath: path))
+            env.settings.set(startFolder, AppSettings.Key.fileBrowserFolder)
         }
     }
 }

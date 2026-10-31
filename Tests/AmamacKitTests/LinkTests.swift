@@ -16,6 +16,13 @@ struct LinkTests {
         #expect(AmamacLink(url: URL(string: "https://navigate/position?track=1")!) == nil)
     }
 
+    /// Links come from other apps and web pages; a position that isn't a real one starts at 0.
+    @Test func badPositionsStartAtTheBeginning() {
+        for pos in ["nan", "-inf", "inf", "1e400", "-5"] {
+            #expect(AmamacLink(url: URL(string: "amamac://navigate/position?track=7&pos=\(pos)")!) == .position(trackId: 7, seconds: 0), "\(pos)")
+        }
+    }
+
     @Test func storesViewBookmarks() throws {
         let db = try LibraryDatabase.inMemory()
         let store = BookmarkStore(database: db)

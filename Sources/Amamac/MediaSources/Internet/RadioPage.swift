@@ -263,7 +263,7 @@ struct RadioStationList: View {
                     Divider()
                     if let first = stations.first {
                         Button(model.isFavorite(first) ? "Remove from Favorites" : "Add to Favorites") { model.toggleFavorite(first) }
-                        if let homepage = first.homepage.flatMap(URL.init(string:)), homepage.scheme?.hasPrefix("http") == true {
+                        if let homepage = first.homepage.flatMap(URL.init(string:)), homepage.isWebURL {
                             Button("Open Homepage") { NSWorkspace.shared.open(homepage) }
                         }
                         Button("Copy Stream Address") {

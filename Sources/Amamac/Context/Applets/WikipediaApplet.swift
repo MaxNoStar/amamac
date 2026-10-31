@@ -31,6 +31,8 @@ final class WikipediaAppletController: NSObject, Applet, WKNavigationDelegate {
         self.env = env
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .nonPersistent()
+        // Articles are static HTML; scripts from a page would only be risk.
+        config.defaultWebpagePreferences.allowsContentJavaScript = false
         web = WKWebView(frame: .zero, configuration: config)
         let root = NSView()
         contentView = root
@@ -204,17 +206,24 @@ final class WikipediaAppletController: NSObject, Applet, WKNavigationDelegate {
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
                  decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void) {
         guard navigationAction.navigationType == .linkActivated, let url = navigationAction.request.url else {
-            decisionHandler(.allow)
+            // Only the applet's own loads (`loadHTMLString` with a Wikipedia base URL) go through;
+            // anything a page starts by itself, such as a refresh or a form, is cancelled.
+            decisionHandler(Self.isOwnLoad(navigationAction) ? .allow : .cancel)
             return
         }
         decisionHandler(.cancel)
         if let title = Self.articleTitle(from: url, language: env.wikipedia().language) {
             load(.push) { try await $0.page(title: title) }
-        } else if url.fragment != nil && url.host() == nil {
+        } else if url.fragment != nil && (url.host() == nil || url.path() == "/wiki/") {
             return
-        } else if let scheme = url.scheme, ["http", "https"].contains(scheme) {
+        } else if url.isWebURL {
             NSWorkspace.shared.open(url)
         }
+    }
+
+    static func isOwnLoad(_ action: WKNavigationAction) -> Bool {
+        guard action.navigationType == .other, action.targetFrame?.isMainFrame != false, let url = action.request.url else { return false }
+        return url.absoluteString == "about:blank" || (url.host()?.hasSuffix(".wikipedia.org") == true && url.path() == "/wiki/")
     }
 
     /// Article title for links to ordinary articles in the same language edition.
