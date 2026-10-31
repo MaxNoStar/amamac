@@ -8,8 +8,8 @@ final class AnalyzerAppletController: Applet {
     let kind = AppletKind.analyzer
     let contentView: NSView
     private let env: AppEnvironment
-    private let tap = SpectrumTap()
-    private let state: AnalyzerState
+    let tap = SpectrumTap()
+    let state: AnalyzerState
 
     init(env: AppEnvironment) {
         self.env = env
@@ -36,7 +36,9 @@ final class AnalyzerState {
     let player: PlayerController
     private(set) var levels: [Float] = []
     private(set) var peaks: [Float] = []
-    private var peakAge: [Int] = []
+    /// Seconds since each peak was last pushed up.
+    private var peakAge: [Double] = []
+    private var lastUpdate: Date?
 
     init(tap: SpectrumTap, defaults: UserDefaults, player: PlayerController) {
         self.tap = tap
@@ -47,9 +49,13 @@ final class AnalyzerState {
     var barWidth: CGFloat { CGFloat(max(3, defaults.double(forKey: AppSettings.Key.analyzerBarWidth))) }
     var showFadebars: Bool { defaults.bool(forKey: AppSettings.Key.analyzerShowFadebars) }
 
-    func update(bands: Int) {
+    /// Advances the bars to `date`. Falling is scaled by the time since the last frame, so the bars
+    /// drop at the same speed whatever the frame rate.
+    func update(bands: Int, at date: Date) {
+        let elapsed = lastUpdate.map { min(0.25, max(0, date.timeIntervalSince($0))) } ?? 0
+        lastUpdate = date
         let playing = player.state == .playing
-        let fall = Float(max(1, min(5, defaults.integer(forKey: AppSettings.Key.analyzerFallSpeed)))) * 0.012
+        let fall = Float(max(1, min(5, defaults.integer(forKey: AppSettings.Key.analyzerFallSpeed)))) * 0.36 * Float(elapsed)
         var target = [Float](repeating: 0, count: bands)
         if playing {
             target = tap.spectrum(bands: bands, sampleSize: max(512, defaults.integer(forKey: AppSettings.Key.analyzerSampleSize)),
@@ -60,7 +66,7 @@ final class AnalyzerState {
         if levels.count != bands {
             levels = target
             peaks = target
-            peakAge = [Int](repeating: 0, count: bands)
+            peakAge = [Double](repeating: 0, count: bands)
             return
         }
         for i in 0..<bands {
@@ -69,9 +75,9 @@ final class AnalyzerState {
                 peaks[i] = levels[i]
                 peakAge[i] = 0
             } else {
-                peakAge[i] += 1
-                // Hold briefly, then fall faster than the bars.
-                if peakAge[i] > 12 { peaks[i] = max(levels[i], peaks[i] - fall * 0.6) }
+                peakAge[i] += elapsed
+                // Hold briefly, then fall slower than the bars.
+                if peakAge[i] > 0.4 { peaks[i] = max(levels[i], peaks[i] - fall * 0.6) }
             }
         }
     }
@@ -81,12 +87,14 @@ struct AnalyzerApplet: View {
     let state: AnalyzerState
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 30)) { _ in
+        TimelineView(.animation(minimumInterval: 1 / 30)) { timeline in
+            // The canvas must read the timeline's date: a renderer that doesn't is never redrawn,
+            // which left the bars frozen at their first (empty) frame.
             Canvas { context, size in
                 let gap: CGFloat = 2
                 let barWidth = state.barWidth
                 let bands = max(4, Int((size.width - 16 + gap) / (barWidth + gap)))
-                state.update(bands: bands)
+                state.update(bands: bands, at: timeline.date)
                 let blockHeight: CGFloat = 4
                 let blockGap: CGFloat = 1
                 let usable = size.height - 16

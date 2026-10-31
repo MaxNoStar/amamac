@@ -91,7 +91,7 @@ final class ContextPaneController: NSViewController {
 
     // MARK: Applets
 
-    private func applet(_ kind: AppletKind) -> Applet {
+    func applet(_ kind: AppletKind) -> Applet {
         if let existing = applets[kind] { return existing }
         let made = kind.make(env: env)
         applets[kind] = made
@@ -131,7 +131,7 @@ final class ContextPaneController: NSViewController {
         strip.rootView = makeStrip()
     }
 
-    private func setEnabled(_ kinds: [AppletKind]) {
+    func setEnabled(_ kinds: [AppletKind]) {
         env.settings.enabledApplets = kinds.map(\.rawValue)
         rebuild()
     }
