@@ -262,3 +262,22 @@ let outside data run code or read files, but these were fixed, each with a test:
 - Tests: `CrossfadeTests` (policy, fade length, curve); engine tests for overlap timing, steady
   loudness, pause, seek, stop, gapless fallback and stale tracks; a snapshot crossfade check
   through the player. `PlaybackSettingsView` moved to its own file.
+
+## 0.1.6 — First public release
+- **License**: Amamac is MIT-licensed (`LICENSE`, "The Amamac contributors"). The app bundles the
+  license, Help › Acknowledgements shows it above the third-party notices, and the About panel
+  says so. `make notices` adds an intro line and strips CR line endings from upstream licenses.
+- **MC Chops**, the mascot: a pink rock-and-roll pig with a handlebar mustache and an electric
+  guitar, hand-written SVG in `docs/images/mascot/` (full body, dark-background variant, round
+  badge). `make mascot` renders the PNGs and the 1280×640 social preview with macOS's own SVG
+  renderer. He isn't in the app.
+- **README** for GitHub: header, light/dark screenshots, features, install and build notes.
+  `make screenshots` renders them from `ShowcaseLibrary` (AmamacTestSupport): six made-up albums
+  with drawn covers and silent tracks, played in snapshot mode with `AMAMAC_SNAPSHOT_SHOWCASE=1`.
+- **Snapshot mode**: the appearance is set before the main window exists (dark captures had
+  light header bands), visual-effect areas are flattened onto the window colour, and web views
+  are clipped to their visible part.
+- **Engine**: a released `Deck` keeps its player alive for a second, since SFBAudioEngine's event
+  thread can hold the last reference and a player destroyed on its own event thread aborts
+  (`make test-engine` crashed in about half of its runs; the app keeps one engine and wasn't hit).
+- **Repo**: `.gitignore` covers SwiftPM, editor and scratch files; a bug report issue form.
