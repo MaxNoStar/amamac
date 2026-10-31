@@ -1,0 +1,97 @@
+import AppKit
+import AmamacCore
+
+/// `--snapshot DIR`: builds the fixture library inside the data directory, scans it, fills the
+/// playlist, renders the main window and each pane to PNGs and exits. No audio is played.
+@MainActor
+final class SnapshotRunner {
+    let env: AppEnvironment
+    let window: MainWindowController
+    let output: URL
+    let layoutDump: URL?
+
+    init(env: AppEnvironment, window: MainWindowController, output: URL, layoutDump: URL?) {
+        self.env = env
+        self.window = window
+        self.output = output
+        self.layoutDump = layoutDump
+    }
+
+    func run() {
+        Snapshotter.startWatchdog(seconds: 120)
+        NSApp.appearance = NSAppearance(named: .aqua)
+        Task { await perform() }
+    }
+
+    private func perform() async {
+        let music = env.dataDirectory.appendingPathComponent("Music")
+        try? FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        do {
+            if !FileManager.default.fileExists(atPath: music.path) {
+                try await Task.detached { _ = try AudioFixtures.buildStandardLibrary(at: music) }.value
+            }
+            env.setCollectionFolders([music.path])
+            while try await env.scanner.scan().skipped { try await Task.sleep(for: .milliseconds(200)) }
+        } catch {
+            fail("fixture library: \(error)")
+        }
+        NotificationCenter.default.post(name: AppEnvironment.collectionChanged, object: nil)
+
+        let tracks = (try? await env.database.writer.read {
+            try CollectionQueries.tracks($0, constraints: [], filter: CollectionQuery(groups: []), limit: nil)
+        }) ?? []
+        guard !tracks.isEmpty else { fail("scan produced no tracks") }
+        env.playlist.replace(with: tracks.map { $0.playlistItem() })
+        if let second = env.playlist.order.dropFirst().first { env.playlist.setActive(second) }
+        if env.playlist.count > 4 { env.playlist.enqueue([env.playlist.order[4]]) }
+
+        guard let win = window.window else { fail("no window") }
+        win.setFrame(NSRect(x: 40, y: 40, width: 1440, height: 900), display: true)
+        win.orderFrontRegardless()
+        window.resetPaneWidths()
+        window.refreshTrackInfo()
+        // Covers and the collection outline load asynchronously.
+        try? await Task.sleep(for: .seconds(1))
+        await checkPlayback()
+        win.contentView?.layoutSubtreeIfNeeded()
+        win.displayIfNeeded()
+
+        if let root = win.contentView {
+            await Snapshotter.capture(root, to: output.appendingPathComponent("window.png"))
+        }
+        for pane in Pane.allCases {
+            if let view = window.panes[pane]?.view {
+                await Snapshotter.capture(view, to: output.appendingPathComponent("pane-\(pane.rawValue).png"))
+            }
+        }
+        await Snapshotter.capture(window.toolbar, to: output.appendingPathComponent("toolbar.png"))
+        if let layoutDump { Snapshotter.dumpLayout(of: win, to: layoutDump) }
+        env.player.stop()
+        print("snapshot: wrote \(output.path)")
+        exit(0)
+    }
+
+    /// Plays silently through PlayerController and checks state, position and Next. The window is
+    /// captured while playing so the snapshot shows the playing state.
+    private func checkPlayback() async {
+        let player = env.player
+        player.local.setVolume(0)
+        player.stream.setVolume(0)
+        guard let first = env.playlist.activeID else { fail("no active item") }
+        player.play(first)
+        await Snapshotter.waitUntil(timeout: 5) { player.currentTime > 0.6 }
+        guard player.state == .playing, player.currentItem?.id == first, player.currentTime > 0.6 else {
+            fail("playback did not start (state \(player.state), time \(player.currentTime))")
+        }
+        let expectedNext = env.navigator.peekNext()
+        player.next()
+        await Snapshotter.waitUntil(timeout: 3) { player.currentItem?.id == expectedNext && player.currentTime > 0.2 }
+        guard let expectedNext, player.currentItem?.id == expectedNext else { fail("Next did not advance") }
+        print("snapshot: playback check passed")
+    }
+
+    private func fail(_ message: String) -> Never {
+        FileHandle.standardError.write("snapshot failed: \(message)\n".data(using: .utf8)!)
+        exit(1)
+    }
+}

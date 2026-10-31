@@ -85,6 +85,10 @@ public final class LibraryDatabase: Sendable {
                 t.column("rgAlbumPeak", .double)
                 t.column("hasEmbeddedArt", .boolean).notNull()
                 t.column("searchFolded", .text).notNull()
+                t.column("artistKey", .text).notNull().indexed()
+                t.column("albumArtistKey", .text).notNull().indexed()
+                t.column("genreKey", .text).notNull()
+                t.column("composerKey", .text).notNull()
             }
             try db.create(index: "track_album", on: "track", columns: ["albumKey", "discNumber", "trackNumber"])
             try db.create(table: "statistics") { t in

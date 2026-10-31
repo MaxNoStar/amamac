@@ -30,12 +30,16 @@ public enum CollectionLevel: String, CaseIterable, Sendable, Codable {
         }
     }
 
-    /// SQL expression identifying a node at this level.
+    /// SQL expression identifying a node at this level (pre-folded, indexed columns).
     var keyExpression: String {
         switch self {
+        case .albumArtist: "t.albumArtistKey"
+        case .artist: "t.artistKey"
         case .album: "t.albumKey"
+        case .genre: "t.genreKey"
+        case .composer: "t.composerKey"
         case .year: "t.year"
-        default: "amamac_fold(\(valueExpression))"
+        case .label: "amamac_fold(COALESCE(l.name, ''))"
         }
     }
 
@@ -146,7 +150,7 @@ public enum CollectionQueries {
         case .artist: sortExpr = "MIN(t.artistSort)"
         case .album: sortExpr = sortAlbumsByYear ? "printf('%04d', MAX(t.year)) || MIN(t.albumSort)" : "MIN(t.albumSort)"
         case .year: sortExpr = "MAX(t.year)"
-        default: sortExpr = "MIN(amamac_fold(\(level.valueExpression)))"
+        default: sortExpr = "MIN(\(level.keyExpression))"
         }
         let sql = """
             SELECT \(level.keyExpression) AS k, MIN(\(level.valueExpression)) AS name, COUNT(DISTINCT t.id) AS n,
@@ -211,6 +215,20 @@ public enum CollectionQueries {
         return ids.compactMap { byId[$0] }
     }
 
+    /// Collection tracks for the given file paths, keyed by path (missing paths are absent).
+    public static func tracks(_ db: Database, paths: [String]) throws -> [String: TrackWithStatistics] {
+        var result: [String: TrackWithStatistics] = [:]
+        for chunk in stride(from: 0, to: paths.count, by: 500).map({ Array(paths[$0..<min($0 + 500, paths.count)]) }) {
+            let placeholders = Array(repeating: "?", count: chunk.count).joined(separator: ",")
+            let rows = try TrackWithStatistics.fetchAll(db, sql: """
+                SELECT t.*, \(TrackWithStatistics.statisticsColumns)
+                FROM track t LEFT JOIN statistics s ON s.trackId = t.id WHERE t.path IN (\(placeholders))
+                """, arguments: StatementArguments(chunk))
+            for row in rows { result[row.track.path] = row }
+        }
+        return result
+    }
+
     public static func track(_ db: Database, path: String) throws -> TrackWithStatistics? {
         try TrackWithStatistics.fetchOne(db, sql: """
             SELECT t.*, \(TrackWithStatistics.statisticsColumns)
@@ -226,7 +244,7 @@ public enum CollectionQueries {
                    MAX(t.compilation) AS compilation,
                    MIN(CASE WHEN t.compilation THEN '\(TrackText.variousArtists)' WHEN t.albumArtist = '' THEN t.artist ELSE t.albumArtist END) AS albumArtist
             FROM track t
-            WHERE amamac_fold(t.artist) = ? OR amamac_fold(t.albumArtist) = ?
+            WHERE t.artistKey = ? OR t.albumArtistKey = ?
             GROUP BY t.albumKey ORDER BY MAX(t.year) DESC, MIN(t.albumSort)
             """, arguments: [folded, folded])
         return rows.map { row in
@@ -287,7 +305,7 @@ public enum CollectionQueries {
 
     /// Collection-wide totals for the status area.
     public static func totals(_ db: Database) throws -> (tracks: Int, albums: Int, artists: Int, durationMs: Int) {
-        let row = try Row.fetchOne(db, sql: "SELECT COUNT(*) AS n, COUNT(DISTINCT albumKey) AS a, COUNT(DISTINCT amamac_fold(artist)) AS r, COALESCE(SUM(durationMs), 0) AS d FROM track")!
+        let row = try Row.fetchOne(db, sql: "SELECT COUNT(*) AS n, COUNT(DISTINCT albumKey) AS a, COUNT(DISTINCT artistKey) AS r, COALESCE(SUM(durationMs), 0) AS d FROM track")!
         return (row["n"], row["a"], row["r"], row["d"])
     }
 }

@@ -45,6 +45,11 @@ public struct Track: Codable, Sendable, Hashable, Identifiable {
     public var rgAlbumPeak: Double?
     public var hasEmbeddedArt: Bool
     public var searchFolded: String
+    /// Folded grouping keys (indexed) so collection queries don't fold per row.
+    public var artistKey: String = ""
+    public var albumArtistKey: String = ""
+    public var genreKey: String = ""
+    public var composerKey: String = ""
 
     public init(id: Int64? = nil, path: String, folderId: Int64? = nil, uniqueId: String = "",
                 title: String = "", titleSort: String = "", artist: String = "", artistSort: String = "",
@@ -125,6 +130,10 @@ public struct Track: Codable, Sendable, Hashable, Identifiable {
         if albumArtistSort.isEmpty { albumArtistSort = TextFolding.sortKey(effectiveAlbumArtist) }
         if albumSort.isEmpty { albumSort = TextFolding.sortKey(album) }
         albumKey = Track.albumKey(album: album, albumArtist: albumArtist, artist: artist, compilation: compilation)
+        artistKey = TextFolding.fold(artist)
+        albumArtistKey = TextFolding.fold(effectiveAlbumArtist)
+        genreKey = TextFolding.fold(genre)
+        composerKey = TextFolding.fold(composer)
         searchFolded = TextFolding.fold([title, artist, albumArtist, album, composer, genre,
                                          year > 0 ? String(year) : "", fileName].joined(separator: "\u{1F}"))
     }

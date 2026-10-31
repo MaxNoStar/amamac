@@ -185,12 +185,31 @@ extension QueryTerm {
             return SQLFragment(Self.lyricsExists, [.text(likePattern(value))])
         }
         let column = textColumn(field)!
+        // Pre-folded columns avoid calling the fold function per row.
+        let foldedColumn: String? = switch field {
+        case .artist: "t.artistKey"
+        case .genre: "t.genreKey"
+        case .composer: "t.composerKey"
+        default: nil
+        }
+        if let foldedColumn { return comparisonFolded(foldedColumn) }
         if field == .albumartist {
             // Album artist filters also match the artist when no album artist is set.
             let expr = "(CASE WHEN t.albumArtist = '' THEN t.artist ELSE t.albumArtist END)"
             return comparisonText(expr)
         }
         return comparisonText(column)
+    }
+
+    private func comparisonFolded(_ column: String) -> SQLFragment {
+        switch op {
+        case .equals: return SQLFragment("\(column) = ?", [.text(TextFolding.fold(value))])
+        case .greater: return SQLFragment("\(column) > ?", [.text(TextFolding.fold(value))])
+        case .less: return SQLFragment("\(column) < ?", [.text(TextFolding.fold(value))])
+        case .contains:
+            if value.isEmpty { return .alwaysTrue }
+            return SQLFragment("\(column) LIKE ? ESCAPE '\\'", [.text(likePattern(value))])
+        }
     }
 
     private func comparisonText(_ expr: String) -> SQLFragment {
