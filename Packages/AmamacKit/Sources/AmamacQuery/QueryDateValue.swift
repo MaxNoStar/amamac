@@ -24,6 +24,11 @@ public enum QueryDateValue: Equatable, Sendable {
         return nil
     }
 
+    /// The most an age may add up to in any one field (700 000 days is about 1900 years). Larger
+    /// ages aren't dates, rather than numbers that overflow: `added:2000000000000000000w` can
+    /// arrive in links and saved filters.
+    static let maxAmount = 700_000
+
     /// Units (case sensitive, as in Amarok): y years, m months, w weeks, d days, h hours,
     /// M minutes, s seconds. Units can be combined: `1y2m`.
     static func parseAge(_ s: String, now: Date, calendar: Calendar) -> Date? {
@@ -35,19 +40,24 @@ public enum QueryDateValue: Equatable, Sendable {
                 number.append(ch)
                 continue
             }
-            guard let n = Int(number) else { return nil }
+            guard let n = Int(number), n <= Self.maxAmount else { return nil }
             number = ""
             sawUnit = true
+            let field: WritableKeyPath<DateComponents, Int?>
+            var amount = n
             switch ch {
-            case "y": components.year = (components.year ?? 0) - n
-            case "m": components.month = (components.month ?? 0) - n
-            case "w": components.day = (components.day ?? 0) - 7 * n
-            case "d": components.day = (components.day ?? 0) - n
-            case "h": components.hour = (components.hour ?? 0) - n
-            case "M": components.minute = (components.minute ?? 0) - n
-            case "s": components.second = (components.second ?? 0) - n
+            case "y": field = \.year
+            case "m": field = \.month
+            case "w": field = \.day; amount = 7 * n
+            case "d": field = \.day
+            case "h": field = \.hour
+            case "M": field = \.minute
+            case "s": field = \.second
             default: return nil
             }
+            let total = (components[keyPath: field] ?? 0) - amount
+            guard total >= -Self.maxAmount else { return nil }
+            components[keyPath: field] = total
         }
         guard sawUnit, number.isEmpty else { return nil }
         return calendar.date(byAdding: components, to: now)
@@ -74,6 +84,8 @@ public enum QueryDateValue: Equatable, Sendable {
         case (2, true): c.day = parts[0]; c.month = parts[1]; c.year = year
         default: return nil
         }
+        guard let day = c.day, (1...31).contains(day), let month = c.month, (1...12).contains(month),
+              let y = c.year, (1...9999).contains(y) else { return nil }
         guard let date = calendar.date(from: c) else { return nil }
         return calendar.startOfDay(for: date)
     }

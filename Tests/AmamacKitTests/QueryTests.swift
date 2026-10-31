@@ -49,6 +49,18 @@ struct QueryParsingTests {
         #expect(QueryDateValue.parse("2x", now: now) == nil)
         guard case .day = QueryDateValue.parse("1.2.2020", now: now) else { Issue.record("not a day"); return }
     }
+
+    /// Ages and days too large for the calendar are not dates; they used to trap on overflow, and
+    /// `amamac://` links can carry them.
+    @Test func hugeDatesAreRejectedInsteadOfOverflowing() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        for raw in ["2000000000000000000w", "9223372036854775807y9y", "700001d", "100000w1w",
+                    "1.1.9223372036854775807", "99.99.2020", "0.0.0"] {
+            #expect(QueryDateValue.parse(raw, now: now) == nil, "\(raw)")
+        }
+        #expect(QueryDateValue.parse("100000w", now: now) != nil)
+        #expect(!CollectionQuery.parse("added:<2000000000000000000w").matches(makeTrack("Song", artist: "Band"), statistics: nil))
+    }
 }
 
 struct QueryMatchingTests {
