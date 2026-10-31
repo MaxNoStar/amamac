@@ -216,3 +216,30 @@ Plan: Amarok 2/3 feature parity in milestones M0–M8 (see CLAUDE.md for command
 - The snapshot checks that every style's bars rise and fall with a playing tone, then captures each
   style from a made-up music-like spectrum (`context-analyzer-<style>.png`, 2×) and the settings
   (`context-analyzer-settings.png`).
+
+## 0.1.4 — Security review
+A review of everything that reads outside data (network, files, links) and of the build. Nothing
+let outside data run code or read files, but these were fixed, each with a test:
+- **Crashes**: a session holding one collection track twice crashed every launch;
+  `Retry-After: nan` from any server trapped in `Task.sleep`; huge numbers in date filters (which
+  `amamac://` links carry), M3U/PLS durations, feed and tag durations overflowed; a file or link
+  that launched Amamac arrived before the environment existed.
+- **Organize Files** can no longer move files outside the collection folder (a slash hidden
+  behind a combining mark, `%initial%`, `%folder%`, symbolic links); case-only renames and
+  duplicate names no longer trash files; emptied folders stop at the collection root.
+- **Podcasts**: only http(s) enclosures; downloads keep a media extension, are quarantined, never
+  replace an existing file and are size-limited.
+- **HTTP**: no https→http redirects, 16 MB responses / 4 GB downloads, two-minute request limit,
+  URLs built from server values can't crash, expired cache entries pruned at launch.
+- **Playlists**: nested playlists read once (a self-listing playlist multiplied into millions of
+  reads), 16 MB / 50 000 entry limits, linear ASX parsing, only audio files and http(s) streams,
+  single-line M3U/PLS export, XML-safe XSPF/ASX.
+- **App**: Wikipedia view without JavaScript and without self-started navigations; drops, links
+  and "Open Website" accept only http(s) or files; a `files` link no longer changes the start
+  folder; folder covers must be regular files; the watcher skips hidden folders; the scanner
+  matches roots case-sensitively.
+- **Build**: hardened runtime with one entitlement, `disable-library-validation` (the codec
+  frameworks are ad-hoc signed without a Team ID, which library validation rejects at launch);
+  Release without `get-task-allow`; builds use only the versions in `Package.resolved`. New helpers in AmamacBase: `SafeNumbers`, `PathComponent`, `Paths`,
+  `URL.isWebURL`, `String.singleLine`.
+- Not done: App Sandbox (needs security-scoped bookmarks for every folder; its own project).

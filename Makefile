@@ -3,8 +3,10 @@ SHELL := /bin/bash
 
 DERIVED := $(HOME)/Library/Developer/Xcode/DerivedData/Amamac-cli
 CONFIG ?= Debug
-XCB := xcodebuild -project Amamac.xcodeproj -scheme Amamac -configuration $(CONFIG) \
+XCB_BASE := xcodebuild -project Amamac.xcodeproj -scheme Amamac -configuration $(CONFIG) \
 	-derivedDataPath $(DERIVED) -skipPackagePluginValidation -skipMacroValidation -packageAuthorizationProvider netrc
+# Builds use exactly the versions in Package.resolved; only `make resolve` may change them.
+XCB := $(XCB_BASE) -onlyUsePackageVersionsFromResolvedFile
 APP := $(DERIVED)/Build/Products/$(CONFIG)/Amamac.app
 RESOLVED_SRC := Package.resolved
 RESOLVED_DST := Amamac.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
@@ -17,7 +19,7 @@ project:
 	@if [ -f $(RESOLVED_SRC) ]; then mkdir -p $$(dirname $(RESOLVED_DST)) && cp $(RESOLVED_SRC) $(RESOLVED_DST); fi
 
 resolve: project
-	@$(XCB) -resolvePackageDependencies > build-resolve.log 2>&1 || (tail -30 build-resolve.log; exit 1)
+	@$(XCB_BASE) -resolvePackageDependencies > build-resolve.log 2>&1 || (tail -30 build-resolve.log; exit 1)
 	@rm -f build-resolve.log
 	@cp $(RESOLVED_DST) $(RESOLVED_SRC)
 

@@ -60,7 +60,8 @@ make perf         # times collection, playlist and session work on 20,000 tracks
 ## Where things live
 
 - Library database, playlists and settings: `~/Library/Application Support/Amamac/`
-- Web cache (Wikipedia, cover lookups): `~/Library/Application Support/Amamac/Caches/http`
+- Web cache (Wikipedia, cover lookups): `~/Library/Application Support/Amamac/Caches/http`; entries
+  older than 30 days are deleted at launch
 - Podcast downloads: `~/Music/Podcasts/<podcast>` (changeable in Settings › Internet)
 
 ## Privacy
@@ -68,6 +69,19 @@ make perf         # times collection, playlist and session work on 20,000 tracks
 Amamac has no accounts and no analytics. Lookups go to Wikipedia/Wikidata, MusicBrainz, the
 Cover Art Archive, the iTunes Search API and radio-browser.info, sending only titles, artists
 and album names, with the User-Agent `Amamac/<version> (macOS music player)`.
+
+## Security
+
+- The app runs with the hardened runtime, so other programs can't inject code into it; Release
+  builds can't be attached to by debuggers.
+- Radio streams and podcasts may use plain http (many only exist that way), but a secure https
+  address is never redirected to an insecure one, responses are size-limited, and podcast
+  downloads are quarantined like browser downloads and always saved with an audio or video
+  extension.
+- Outside data (tags, playlist files, feeds, `amamac://` links) is checked before use: Organize
+  Files never moves a file out of its collection folder, playlists only bring in audio files and
+  http(s) streams, and huge or malformed numbers are ignored instead of crashing the app.
+- Amamac isn't sandboxed: it reads your collection folders and any file you open in it.
 
 ## Licenses
 

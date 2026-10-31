@@ -13,16 +13,20 @@ settings:
     CODE_SIGN_STYLE: Manual
     CODE_SIGN_IDENTITY: "-"
     DEVELOPMENT_TEAM: ""
-    ENABLE_HARDENED_RUNTIME: NO
+    # Blocks code injection into the app (DYLD_INSERT_LIBRARIES and the like, unsigned code).
+    ENABLE_HARDENED_RUNTIME: YES
     ENABLE_APP_SANDBOX: NO
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     DEAD_CODE_STRIPPING: YES
-    MARKETING_VERSION: "0.1.3"
-    CURRENT_PROJECT_VERSION: "4"
+    MARKETING_VERSION: "0.1.4"
+    CURRENT_PROJECT_VERSION: "5"
   configs:
     Debug:
       SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG $(inherited)"
       ONLY_ACTIVE_ARCH: YES
+    Release:
+      # No get-task-allow: other processes may not attach to or inspect the released app.
+      CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
 packages:
   AmamacKit:
     path: Packages/AmamacKit
@@ -125,6 +129,13 @@ targets:
       - package: tta-cpp-binary-xcframework
         product: tta-cpp
         embed: false
+    entitlements:
+      path: Generated/Amamac.entitlements
+      properties:
+        # The codec frameworks are ad-hoc signed without a Team ID, which the hardened runtime's
+        # library validation rejects. This is the only exception: DYLD_* variables, debugger
+        # attach and unsigned executable memory stay blocked.
+        com.apple.security.cs.disable-library-validation: true
     info:
       path: Generated/Amamac-Info.plist
       properties:

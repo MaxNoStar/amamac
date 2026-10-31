@@ -49,6 +49,9 @@ DerivedData lives in `~/Library/Developer/Xcode/DerivedData/Amamac-cli` (not ins
   `Tests/AmamacKitTests`; the app keeps only views, controllers and wiring.
 - Split a file along its type boundaries once it grows past ~400 lines.
 - Plan changes layer by layer (core module → app feature folder → docs), one commit per layer.
+- Outside data (tags, playlist files, feeds, HTTP headers, `amamac://` links) never reaches a force
+  unwrap, `Int(Double)`, `Dictionary(uniqueKeysWithValues:)`, unchecked arithmetic or a file path
+  directly: use `SafeNumbers`, `PathComponent`, `Paths` and `URL.isWebURL` from AmamacBase.
 
 ## App structure rules
 - The app never runs SQL or imports GRDB: database work goes through `LibraryDatabase` methods and
@@ -73,7 +76,7 @@ DerivedData lives in `~/Library/Developer/Xcode/DerivedData/Amamac-cli` (not ins
 
 ## Data / privacy
 - App data: `~/Library/Application Support/Amamac/` (override with `--data-dir`).
-- HTTP cache: `~/Library/Caches/Amamac/http`.
+- HTTP cache: `<app data>/Caches/http`, pruned to 30 days at launch.
 - Never delete tracks whose collection root is unreachable.
 - Tag writes go to a temp copy and are swapped in with `FileManager.replaceItemAt`.
 
