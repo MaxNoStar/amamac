@@ -1,108 +1,127 @@
 @preconcurrency import AVFoundation
 import AmamacModels
 import Foundation
-@preconcurrency import SFBAudioEngine
 import Synchronization
-import os
 
-/// Plays local files through SFBAudioEngine with gapless enqueueing, a 10-band equalizer whose
-/// global gain also carries ReplayGain, fades, and an optional analyzer tap.
+/// Plays local files on two decks (see `Deck`): one plays, the other stands by for crossfades.
+/// Tracks chain gaplessly on the playing deck; `Crossfader` hands over to the other deck when
+/// the next track should fade in. Fades and the analyzer tap follow whichever deck is playing.
 public final class LocalAudioEngine: @unchecked Sendable {
     /// Band centre frequencies (Hz).
     public static let equalizerFrequencies: [Float] = [29, 59, 119, 237, 474, 947, 1_900, 3_800, 7_500, 15_000]
 
     public let events: AsyncStream<EngineEvent>
-    let player = AudioPlayer()
-    let bridge: EngineBridge
-    let eq = AVAudioUnitEQ(numberOfBands: LocalAudioEngine.equalizerFrequencies.count)
-    private let settings = Mutex(EqualizerSettings())
-    private let analyzer = Mutex<SpectrumTap?>(nil)
+    private let continuation: AsyncStream<EngineEvent>.Continuation
+    let decks: [Deck]
+    let crossfader = Crossfader()
+    /// The track to play after the current one; taken by the gapless path or the crossfader.
+    private let upcoming = Mutex<UpcomingTrack?>(nil)
+    private let routing = Mutex(Routing())
     /// Bumped by every fade and cancellation; a fade step only acts while its generation is current.
     private let fadeGeneration = Mutex(0)
 
-    struct EqualizerSettings {
-        var enabled = false
-        var preamp: Float = 0
-        var bands = [Float](repeating: 0, count: LocalAudioEngine.equalizerFrequencies.count)
-        var trackGain: Float = 0
+    struct Routing {
+        var active = 0
+        var tap: SpectrumTap?
     }
 
     public init() {
         var continuation: AsyncStream<EngineEvent>.Continuation!
         events = AsyncStream(bufferingPolicy: .unbounded) { continuation = $0 }
-        bridge = EngineBridge(continuation: continuation)
-        bridge.engine = self
-        player.delegate = bridge
-        configureEqualizerBands()
-        let eq = self.eq
-        let player = self.player
-        player.modifyProcessingGraph { engine in
-            engine.attach(eq)
-            let mixer = player.mainMixerNode
-            let format = player.sourceNode.outputFormat(forBus: 0)
-            engine.disconnectNodeInput(mixer)
-            engine.connect(eq, to: mixer, format: format)
-            engine.connect(player.sourceNode, to: eq, format: format)
-        }
-        applyEqualizer()
+        self.continuation = continuation
+        decks = [Deck(index: 0, continuation: continuation), Deck(index: 1, continuation: continuation)]
+        for deck in decks { deck.bridge.engine = self }
+        crossfader.engine = self
     }
 
-    private func configureEqualizerBands() {
-        for (i, band) in eq.bands.enumerated() {
-            band.filterType = .parametric
-            band.frequency = Self.equalizerFrequencies[i]
-            band.bandwidth = 1.0
-            band.gain = 0
-            band.bypass = true
+    // MARK: Decks
+
+    var activeDeck: Deck { decks[routing.withLock { $0.active }] }
+
+    func isActive(_ deck: Deck) -> Bool { routing.withLock { $0.active == deck.index } }
+
+    func deck(otherThan deck: Deck) -> Deck { decks[1 - deck.index] }
+
+    /// Makes `deck` the one whose events, position and analyzer tap count.
+    func makeActive(_ deck: Deck) {
+        routing.withLock { r in
+            guard r.active != deck.index else { return }
+            if let tap = r.tap {
+                decks[r.active].removeTap()
+                deck.installTap(tap)
+            }
+            r.active = deck.index
         }
-        eq.bypass = false
     }
 
-    func reconnectProcessingNodes(engine: AVAudioEngine, format: AVAudioFormat) -> AVAudioNode {
-        engine.disconnectNodeOutput(eq)
-        engine.connect(eq, to: player.mainMixerNode, format: format)
-        return eq
+    public var isCrossfading: Bool { crossfader.isCrossfading }
+
+    // MARK: Upcoming
+
+    /// Sets (or clears) the track to play when the current one ends.
+    public func setUpcoming(_ upcoming: UpcomingTrack?) {
+        self.upcoming.withLock { $0 = upcoming }
+    }
+
+    func peekUpcoming() -> UpcomingTrack? { upcoming.withLock { $0 } }
+
+    /// Takes the upcoming track if it follows `item`; with `crossfadeOnly`, only one meant to crossfade.
+    func takeUpcoming(after item: PlaylistItemID?, crossfadeOnly: Bool) -> UpcomingTrack? {
+        upcoming.withLock { u in
+            guard let next = u, next.after == item else { return nil }
+            if crossfadeOnly, case .gapless = next.transition { return nil }
+            u = nil
+            return next
+        }
     }
 
     // MARK: Transport
 
-    /// Starts playing `url` immediately, replacing anything queued.
+    /// Starts playing `url` immediately, replacing anything queued and ending any crossfade.
     public func play(url: URL, itemID: PlaylistItemID, gainDB: Float = 0) throws {
-        let decoder = try AudioDecoder(url: url)
-        bridge.register(decoder, item: itemID, gain: gainDB)
-        applyGain(gainDB)
+        crossfader.finishNow()
         cancelFade()
-        try player.play(decoder)
+        try activeDeck.play(url: url, itemID: itemID, gainDB: gainDB)
+        crossfader.watch(true)
     }
 
-    /// Sets (or clears) the track to enqueue when the current one finishes decoding.
-    public func setUpcoming(_ upcoming: UpcomingTrack?) {
-        bridge.state.withLock { $0.upcoming = upcoming }
+    public func pause() {
+        for deck in decks where deck.isPlaying { _ = deck.player.pause() }
+        crossfader.watch(false)
     }
 
-    public func pause() { _ = player.pause() }
     public func resume() {
         cancelFade()
-        _ = player.resume()
+        for deck in decks where deck.isPaused { _ = deck.player.resume() }
+        crossfader.watch(true)
     }
+
     public func stop() {
-        player.stop()
-        bridge.state.withLock { $0.upcoming = nil }
+        crossfader.finishNow()
+        for deck in decks { deck.player.stop() }
+        upcoming.withLock { $0 = nil }
+        crossfader.watch(false)
     }
 
-    public var isPlaying: Bool { player.isPlaying }
-    public var isPaused: Bool { player.isPaused }
-    public var currentTime: TimeInterval? { player.currentTime }
-    public var totalTime: TimeInterval? { player.totalTime }
-    public var supportsSeeking: Bool { player.supportsSeeking }
+    public var isPlaying: Bool { activeDeck.isPlaying }
+    public var isPaused: Bool { activeDeck.isPaused }
+    public var currentTime: TimeInterval? { activeDeck.currentTime }
+    public var totalTime: TimeInterval? { activeDeck.totalTime }
+    public var supportsSeeking: Bool { activeDeck.player.supportsSeeking }
 
+    /// Seeks the playing track; a running crossfade finishes first.
     @discardableResult
-    public func seek(to time: TimeInterval) -> Bool { player.seek(time: max(0, time)) }
+    public func seek(to time: TimeInterval) -> Bool {
+        crossfader.finishNow()
+        return activeDeck.player.seek(time: max(0, time))
+    }
 
     /// Device volume, 0...1.
-    public func setVolume(_ volume: Float) { try? player.setVolume(max(0, min(1, volume))) }
+    public func setVolume(_ volume: Float) {
+        for deck in decks { try? deck.player.setVolume(max(0, min(1, volume))) }
+    }
 
-    /// Fades the mixer to silence over `duration`, then runs `completion` on the main queue.
+    /// Fades both decks to silence over `duration`, then runs `completion` on the main queue.
     /// `play`, `resume` and `cancelFade` abandon the fade; its completion then never runs.
     public func fadeOut(duration: TimeInterval, completion: @escaping @Sendable () -> Void) {
         let generation = fadeGeneration.withLock { g -> Int in
@@ -110,14 +129,14 @@ public final class LocalAudioEngine: @unchecked Sendable {
             return g
         }
         guard duration > 0 else { completion(); return }
-        let mixer = player.mainMixerNode
+        let decks = self.decks
         let steps = max(1, Int(duration / 0.02))
-        let start = mixer.outputVolume
+        let start = activeDeck.fadeGain
         let queue = DispatchQueue(label: "amamac.fade")
         for i in 1...steps {
             queue.asyncAfter(deadline: .now() + Double(i) * duration / Double(steps)) { [weak self] in
                 guard let self, self.fadeGeneration.withLock({ $0 }) == generation else { return }
-                mixer.outputVolume = start * Float(steps - i) / Float(steps)
+                for deck in decks { deck.setFadeGain(start * Float(steps - i) / Float(steps)) }
                 if i == steps {
                     DispatchQueue.main.async {
                         if self.fadeGeneration.withLock({ $0 }) == generation { completion() }
@@ -127,63 +146,39 @@ public final class LocalAudioEngine: @unchecked Sendable {
         }
     }
 
-    /// Stops a running fade and restores full mixer volume.
+    /// Stops a running fade and restores full volume.
     public func cancelFade() {
         fadeGeneration.withLock { $0 += 1 }
-        player.mainMixerNode.outputVolume = 1
+        for deck in decks { deck.setFadeGain(1) }
     }
 
-    public var isFading: Bool { player.mainMixerNode.outputVolume < 1 }
+    public var isFading: Bool { activeDeck.fadeGain < 1 }
 
     public func restoreMixerVolume() { cancelFade() }
 
-    public var outputDeviceID: AudioObjectID { player.outputDeviceID }
-    public func setOutputDevice(_ id: AudioObjectID) throws { try player.setOutputDeviceID(id) }
+    public var outputDeviceID: AudioObjectID { activeDeck.player.outputDeviceID }
+
+    public func setOutputDevice(_ id: AudioObjectID) throws {
+        for deck in decks { try deck.player.setOutputDeviceID(id) }
+    }
 
     // MARK: Equalizer / gain
 
     public func setEqualizer(enabled: Bool, preamp: Float, bands: [Float]) {
-        settings.withLock {
-            $0.enabled = enabled
-            $0.preamp = preamp
-            $0.bands = bands
-        }
-        applyEqualizer()
+        for deck in decks { deck.setEqualizer(enabled: enabled, preamp: preamp, bands: bands) }
     }
 
     /// ReplayGain for the current track (dB), applied immediately.
-    public func setTrackGain(_ gain: Float) { applyGain(gain) }
-
-    func applyGain(_ gain: Float) {
-        settings.withLock { $0.trackGain = gain }
-        applyEqualizer()
-    }
-
-    private func applyEqualizer() {
-        let s = settings.withLock { $0 }
-        for (i, band) in eq.bands.enumerated() {
-            band.gain = i < s.bands.count ? max(-12, min(12, s.bands[i])) : 0
-            band.bypass = !s.enabled
-        }
-        eq.globalGain = max(-96, min(24, s.trackGain + (s.enabled ? s.preamp : 0)))
-    }
+    public func setTrackGain(_ gain: Float) { activeDeck.applyGain(gain) }
 
     // MARK: Analyzer
 
     /// Starts copying output samples into `tap` (installed only while an analyzer is visible).
     public func setSpectrumTap(_ tap: SpectrumTap?) {
-        let mixer = player.mainMixerNode
-        let previous = analyzer.withLock { old -> SpectrumTap? in
-            let o = old
-            old = tap
-            return o
+        routing.withLock { r in
+            if r.tap != nil { decks[r.active].removeTap() }
+            r.tap = tap
+            if let tap { decks[r.active].installTap(tap) }
         }
-        if previous != nil { mixer.removeTap(onBus: 0) }
-        guard let tap else { return }
-        mixer.installTap(onBus: 0, bufferSize: 2048, format: nil, block: Self.tapBlock(tap))
-    }
-
-    static func tapBlock(_ tap: SpectrumTap) -> AVAudioNodeTapBlock {
-        { buffer, _ in tap.append(buffer) }
     }
 }

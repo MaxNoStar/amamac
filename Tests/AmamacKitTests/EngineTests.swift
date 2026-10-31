@@ -108,8 +108,8 @@ struct EngineTests {
             tap.reset()
             try engine.play(url: url, itemID: id)
             try await Task.sleep(for: .milliseconds(700))
-            #expect(engine.eq.engine != nil, "EQ node detached after playing \(url.lastPathComponent)")
-            #expect(engine.eq.bands[0].bypass == false)
+            #expect(engine.activeDeck.eq.engine != nil, "EQ node detached after playing \(url.lastPathComponent)")
+            #expect(engine.activeDeck.eq.bands[0].bypass == false)
             let peak = tap.spectrum(bands: 16).max() ?? 0
             #expect(peak > 0, "analyzer saw no signal for \(url.lastPathComponent)")
         }
