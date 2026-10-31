@@ -81,7 +81,7 @@ public enum PlaylistFile {
         if trimmed.hasPrefix("/") { return URL(fileURLWithPath: trimmed).standardizedFileURL }
         if trimmed.hasPrefix("~") { return URL(fileURLWithPath: (trimmed as NSString).expandingTildeInPath) }
         let normalized = trimmed.replacingOccurrences(of: "\\", with: "/")
-        return URL(fileURLWithPath: normalized, relativeTo: base).standardizedFileURL
+        return URL(fileURLWithPath: (base.path as NSString).appendingPathComponent(normalized)).standardizedFileURL
     }
 
     public static func parseM3U(_ text: String, base: URL) -> [PlaylistFileEntry] {
@@ -160,9 +160,9 @@ public enum PlaylistFile {
             let body = ns.substring(with: match.range(at: 1))
             let bns = body as NSString
             guard let ref = refRegex.firstMatch(in: body, range: NSRange(location: 0, length: bns.length)),
-                  let url = resolve(bns.substring(with: ref.range(at: 1)), base: base) else { continue }
+                  let url = resolve(unescapeXML(bns.substring(with: ref.range(at: 1))), base: base) else { continue }
             let title = titleRegex.firstMatch(in: body, range: NSRange(location: 0, length: bns.length))
-                .map { bns.substring(with: $0.range(at: 1)).trimmingCharacters(in: .whitespacesAndNewlines) }
+                .map { unescapeXML(bns.substring(with: $0.range(at: 1)).trimmingCharacters(in: .whitespacesAndNewlines)) }
             entries.append(PlaylistFileEntry(url: url, title: title))
         }
         return entries
@@ -247,6 +247,14 @@ public enum PlaylistFile {
         if !basePath.hasSuffix("/") { basePath += "/" }
         guard path.hasPrefix(basePath) else { return nil }
         return String(path.dropFirst(basePath.count))
+    }
+
+    static func unescapeXML(_ s: String) -> String {
+        s.replacingOccurrences(of: "&lt;", with: "<")
+            .replacingOccurrences(of: "&gt;", with: ">")
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "&apos;", with: "'")
+            .replacingOccurrences(of: "&amp;", with: "&")
     }
 
     static func escapeXML(_ s: String) -> String {

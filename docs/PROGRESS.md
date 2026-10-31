@@ -13,7 +13,12 @@ Plan: Amarok 2/3 feature parity in milestones M0–M8 (see CLAUDE.md for command
   and WKWebView.
 - Package resolution needs `-packageAuthorizationProvider netrc` (the Keychain provider hangs).
 
-## M1 — Core library
+## M1 — Core library ✅
+- GRDB schema v1, scanner (incremental, moves keep statistics, unreachable roots kept), Amarok query
+  language → SQL + in-memory, collection level queries, CoverStore (custom → embedded → folder), LRC,
+  playlist model/proxy/navigators, playlist files, organize patterns, FolderWatcher, synthetic 20k DB.
+- SFBAudioEngine only writes ID3 TDRC for full ISO timestamps; TagWriter writes mid-year timestamps
+  for ID3 formats.
 ## M2a — Playable slice
 ## M2b — Playlist pane
 ## M2c — Window chrome

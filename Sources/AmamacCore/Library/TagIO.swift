@@ -178,6 +178,16 @@ public struct TagChanges: Sendable, Equatable {
 }
 
 public enum TagWriter {
+    /// Formats whose tags SFBAudioEngine writes as ID3v2.
+    static let id3Extensions: Set<String> = ["mp3", "wav", "aif", "aiff", "aifc", "dsf", "dff", "tta"]
+
+    /// SFBAudioEngine only writes the ID3v2 TDRC frame when the date parses as a full ISO-8601
+    /// timestamp, so year-only dates are expanded for ID3 formats (mid-year, so converting the date to a
+    /// year in any time zone gives the same year).
+    static func releaseDate(year: Int, url: URL) -> String {
+        id3Extensions.contains(url.pathExtension.lowercased()) ? String(format: "%04d-07-01T12:00:00Z", year) : String(year)
+    }
+
     /// Writes tags. The file is copied, modified and swapped in with `replaceItemAt` so a decoder
     /// that has the original open keeps reading valid data.
     public static func write(_ changes: TagChanges, to url: URL) throws {
@@ -196,7 +206,7 @@ public enum TagWriter {
         if let v = changes.composer { meta.composer = v.isEmpty ? nil : v }
         if let v = changes.genre { meta.genre = v.isEmpty ? nil : v }
         if let v = changes.comment { meta.comment = v.isEmpty ? nil : v }
-        if let v = changes.year { meta.releaseDate = v > 0 ? String(v) : nil }
+        if let v = changes.year { meta.releaseDate = v > 0 ? releaseDate(year: v, url: url) : nil }
         if let v = changes.trackNumber { meta.trackNumber = v > 0 ? v : nil }
         if let v = changes.discNumber { meta.discNumber = v > 0 ? v : nil }
         if let v = changes.bpm { meta.bpm = v > 0 ? v : nil }
