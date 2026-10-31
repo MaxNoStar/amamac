@@ -288,7 +288,7 @@ struct OSDView: View {
                         if !detail.isEmpty { Text(detail).font(.system(size: 13 * scale)).opacity(0.85).lineLimit(1) }
                         HStack(spacing: 8) {
                             if let rating {
-                                Text(PlaylistRowView.stars(rating)).font(.system(size: 12 * scale)).opacity(0.9)
+                                Text(RatingText.stars(rating)).font(.system(size: 12 * scale)).opacity(0.9)
                             }
                             if !length.isEmpty { Text(length).font(.system(size: 12 * scale).monospacedDigit()).opacity(0.75) }
                         }
@@ -333,20 +333,6 @@ struct VisualEffectBackground: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
-}
-
-extension NSColor {
-    convenience init?(hex: String) {
-        var s = hex.trimmingCharacters(in: .whitespaces)
-        if s.hasPrefix("#") { s.removeFirst() }
-        guard s.count == 6, let v = UInt32(s, radix: 16) else { return nil }
-        self.init(srgbRed: CGFloat((v >> 16) & 0xFF) / 255, green: CGFloat((v >> 8) & 0xFF) / 255, blue: CGFloat(v & 0xFF) / 255, alpha: 1)
-    }
-
-    var hexString: String {
-        let c = usingColorSpace(.sRGB) ?? self
-        return String(format: "#%02X%02X%02X", Int(round(c.redComponent * 255)), Int(round(c.greenComponent * 255)), Int(round(c.blueComponent * 255)))
-    }
 }
 
 // MARK: - Menu bar item
@@ -520,7 +506,7 @@ enum HotKeys {
             KeyboardShortcuts.onKeyUp(for: name) {
                 guard let id = player.currentItem?.track.id, player.currentItem?.source == .collection else { return }
                 player.setRating(stars * 2, trackId: id)
-                osd.showMessage("Rated " + PlaylistRowView.stars(stars * 2), symbol: "star.fill")
+                osd.showMessage("Rated " + RatingText.stars(stars * 2), symbol: "star.fill")
             }
         }
     }

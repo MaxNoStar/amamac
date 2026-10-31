@@ -4,11 +4,6 @@ import AmamacPlaylist
 import AppKit
 import SwiftUI
 
-extension NSPasteboard.PasteboardType {
-    /// A playlist item UUID string (one per dragged row; internal reordering).
-    static let amamacPlaylistItems = NSPasteboard.PasteboardType("local.amamac.playlist-item")
-}
-
 /// The right "Playlist" pane: sort breadcrumb, progressive search, the album-grouped table and
 /// the bottom bar.
 final class PlaylistPaneController: NSViewController, NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate,

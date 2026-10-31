@@ -1,3 +1,4 @@
+import AmamacBase
 import AppKit
 
 /// Amarok's large round Play/Pause button.
@@ -249,7 +250,7 @@ final class SeekSlider: NSView {
 
     override func mouseMoved(with event: NSEvent) {
         guard duration > 0 else { toolTip = nil; return }
-        toolTip = TimeFormattingBridge.format(time(for: convert(event.locationInWindow, from: nil).x))
+        toolTip = TimeFormatting.duration(time(for: convert(event.locationInWindow, from: nil).x))
     }
 
     override func scrollWheel(with event: NSEvent) {
@@ -275,12 +276,4 @@ final class ClickableTimeLabel: NSTextField {
     }
 
     override func mouseDown(with event: NSEvent) { onClick?() }
-}
-
-enum TimeFormattingBridge {
-    static func format(_ t: TimeInterval) -> String {
-        let total = max(0, Int(t))
-        let h = total / 3600, m = (total % 3600) / 60, s = total % 60
-        return h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%d:%02d", m, s)
-    }
 }

@@ -115,24 +115,14 @@ struct QueueEditorView: View {
 }
 
 enum QueueEditorWindow {
-    private static var window: NSWindow?
-
     static func show(env: AppEnvironment) {
-        if let window {
-            window.makeKeyAndOrderFront(nil)
-            return
+        SingleWindow.show("QueueEditorWindow") {
+            let w = NSWindow(contentViewController: NSHostingController(rootView: QueueEditorView(model: QueueEditorModel(env: env))))
+            w.title = "Queue Editor"
+            w.styleMask = [.titled, .closable, .resizable, .miniaturizable]
+            w.setContentSize(NSSize(width: 480, height: 420))
+            return w
         }
-        let w = NSWindow(contentViewController: NSHostingController(rootView: QueueEditorView(model: QueueEditorModel(env: env))))
-        w.title = "Queue Editor"
-        w.styleMask = [.titled, .closable, .resizable, .miniaturizable]
-        w.setContentSize(NSSize(width: 480, height: 420))
-        w.isReleasedWhenClosed = false
-        w.center()
-        window = w
-        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: w, queue: .main) { _ in
-            MainActor.assumeIsolated { window = nil }
-        }
-        w.makeKeyAndOrderFront(nil)
     }
 }
 
@@ -243,24 +233,14 @@ struct BookmarkManagerView: View {
 }
 
 enum BookmarkManagerWindow {
-    private static var window: NSWindow?
-
     static func show(env: AppEnvironment) {
-        if let window {
-            window.makeKeyAndOrderFront(nil)
-            return
+        SingleWindow.show("BookmarkManagerWindow") {
+            let w = NSWindow(contentViewController: NSHostingController(rootView: BookmarkManagerView(model: BookmarkManagerModel(env: env))))
+            w.title = "Bookmark Manager"
+            w.styleMask = [.titled, .closable, .resizable, .miniaturizable]
+            w.setContentSize(NSSize(width: 640, height: 400))
+            return w
         }
-        let w = NSWindow(contentViewController: NSHostingController(rootView: BookmarkManagerView(model: BookmarkManagerModel(env: env))))
-        w.title = "Bookmark Manager"
-        w.styleMask = [.titled, .closable, .resizable, .miniaturizable]
-        w.setContentSize(NSSize(width: 640, height: 400))
-        w.isReleasedWhenClosed = false
-        w.center()
-        window = w
-        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: w, queue: .main) { _ in
-            MainActor.assumeIsolated { window = nil }
-        }
-        w.makeKeyAndOrderFront(nil)
     }
 }
 

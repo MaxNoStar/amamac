@@ -1,3 +1,4 @@
+import AmamacBase
 import AmamacModels
 import AmamacWeb
 import AppKit
@@ -155,7 +156,7 @@ final class WikipediaAppletController: NSObject, Applet, WKNavigationDelegate {
 
     private func showMessage(_ text: String) {
         titleLabel.stringValue = ""
-        let escaped = text.replacingOccurrences(of: "&", with: "&amp;").replacingOccurrences(of: "<", with: "&lt;")
+        let escaped = XMLText.escape(text)
         web.loadHTMLString(Self.wrap("<p class=\"amamac-message\">\(escaped)</p>", lang: "en"), baseURL: nil)
         updateButtons()
     }

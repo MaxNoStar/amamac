@@ -1,3 +1,4 @@
+import AmamacBase
 import AmamacModels
 import AppKit
 
@@ -240,8 +241,8 @@ final class MainToolbarView: NSView {
             remainingLabel.stringValue = ""
             return
         }
-        let elapsed = TimeFormattingBridge.format(position)
-        let remaining = duration > 0 ? "-" + TimeFormattingBridge.format(max(0, duration - position)) : ""
+        let elapsed = TimeFormatting.duration(position)
+        let remaining = duration > 0 ? "-" + TimeFormatting.duration(max(0, duration - position)) : ""
         elapsedLabel.stringValue = showRemainingOnLeft ? remaining : elapsed
         remainingLabel.stringValue = showRemainingOnLeft ? elapsed : remaining
     }

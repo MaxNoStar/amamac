@@ -1,3 +1,4 @@
+import AmamacBase
 import AppKit
 
 /// Amarok's "Slim Toolbar": Prev / Play-Pause / Stop / Next, title, progress and a volume popup.
@@ -72,8 +73,8 @@ final class SlimToolbarView: NSView {
         slider.duration = player.duration
         slider.position = player.currentTime
         slider.isEnabled = player.isActive
-        elapsed.stringValue = player.isActive ? TimeFormattingBridge.format(player.currentTime) : ""
-        remaining.stringValue = player.isActive && player.duration > 0 ? "-" + TimeFormattingBridge.format(player.duration - player.currentTime) : ""
+        elapsed.stringValue = player.isActive ? TimeFormatting.duration(player.currentTime) : ""
+        remaining.stringValue = player.isActive && player.duration > 0 ? "-" + TimeFormatting.duration(player.duration - player.currentTime) : ""
     }
 
     override func draw(_ dirtyRect: NSRect) {

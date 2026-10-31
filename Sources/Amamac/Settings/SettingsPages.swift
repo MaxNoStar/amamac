@@ -77,12 +77,9 @@ final class CollectionSettingsModel {
 
     func removeSelected() {
         guard !selection.isEmpty else { return }
-        let alert = NSAlert()
-        alert.messageText = "Remove \(selection.count == 1 ? "this folder" : "these folders") from the collection?"
-        alert.informativeText = "The files stay on disk; their tracks and statistics leave the collection."
-        alert.addButton(withTitle: "Remove")
-        alert.addButton(withTitle: "Cancel")
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        guard Confirm.ask("Remove \(selection.count == 1 ? "this folder" : "these folders") from the collection?",
+                          info: "The files stay on disk; their tracks and statistics leave the collection.",
+                          action: "Remove") else { return }
         env.setCollectionFolders(folders.map(\.path).filter { !selection.contains($0) })
         selection = []
         reload()

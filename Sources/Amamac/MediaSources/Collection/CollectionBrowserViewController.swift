@@ -4,11 +4,6 @@ import AmamacModels
 import AmamacQuery
 import AppKit
 
-extension NSPasteboard.PasteboardType {
-    /// JSON array of collection track ids.
-    static let amamacTracks = NSPasteboard.PasteboardType("local.amamac.track-ids")
-}
-
 /// A node of the collection tree. Identity is its path so expansion survives reloads.
 nonisolated final class CollectionNode: NSObject {
     enum Kind {
@@ -551,15 +546,6 @@ final class CollectionBrowserViewController: NSViewController, MediaSourcePage, 
     @objc private func menuDelete() { Commands.deleteFiles(tracks(for: contextNodes).map(\.track)) }
 
     @objc func deleteSelection(_ sender: Any?) { Commands.moveToTrash(tracks(for: selectedNodes).map(\.track)) }
-}
-
-/// An album passed to cover-related menu actions.
-struct AlbumReference {
-    var albumKey: String
-    var album: String
-    var artist: String
-    /// MusicBrainz release id from the tags, when known (better cover lookups).
-    var releaseId: String? = nil
 }
 
 /// Outline view with Return / middle-click / Delete handling.

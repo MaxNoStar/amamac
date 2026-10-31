@@ -154,16 +154,3 @@ struct AlbumsApplet: View {
     }
 }
 
-/// Loads an album cover from the cover cache.
-struct AlbumCover: View {
-    let albumKey: String?
-    let covers: CoverImageCache
-    @State private var image: NSImage?
-
-    var body: some View {
-        CoverImage(image: image)
-            .task(id: albumKey) {
-                if let albumKey { image = await covers.image(albumKey: albumKey, size: 48) }
-            }
-    }
-}

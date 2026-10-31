@@ -163,7 +163,7 @@ enum Commands {
         item.image = NSImage(systemSymbolName: "star", accessibilityDescription: nil)
         let menu = NSMenu()
         for value in 0...10 {
-            let title = value == 0 ? "No Rating" : PlaylistRowView.stars(value)
+            let title = value == 0 ? "No Rating" : RatingText.stars(value)
             let entry = NSMenuItem(title: title, action: #selector(RatingTarget.setRating(_:)), keyEquivalent: "")
             entry.target = RatingTarget.shared
             entry.tag = value

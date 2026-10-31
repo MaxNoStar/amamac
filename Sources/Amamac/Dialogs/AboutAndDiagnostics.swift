@@ -29,32 +29,22 @@ enum AboutPanel {
 // MARK: - Acknowledgements
 
 enum AcknowledgementsWindow {
-    private static var window: NSWindow?
-
     static func show() {
-        if let window {
-            window.makeKeyAndOrderFront(nil)
-            return
+        SingleWindow.show("AcknowledgementsWindow") {
+            let text = Bundle.main.url(forResource: "THIRD_PARTY_NOTICES", withExtension: "md")
+                .flatMap { try? String(contentsOf: $0, encoding: .utf8) } ?? "The notices file is missing from this build."
+            let scroll = NSTextView.scrollableTextView()
+            let textView = scroll.documentView as! NSTextView
+            textView.isEditable = false
+            textView.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
+            textView.textContainerInset = NSSize(width: 12, height: 12)
+            textView.string = text
+            let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 720, height: 560), styleMask: [.titled, .closable, .resizable, .miniaturizable],
+                             backing: .buffered, defer: false)
+            w.title = "Acknowledgements"
+            w.contentView = scroll
+            return w
         }
-        let text = Bundle.main.url(forResource: "THIRD_PARTY_NOTICES", withExtension: "md")
-            .flatMap { try? String(contentsOf: $0, encoding: .utf8) } ?? "The notices file is missing from this build."
-        let scroll = NSTextView.scrollableTextView()
-        let textView = scroll.documentView as! NSTextView
-        textView.isEditable = false
-        textView.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
-        textView.textContainerInset = NSSize(width: 12, height: 12)
-        textView.string = text
-        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 720, height: 560), styleMask: [.titled, .closable, .resizable, .miniaturizable],
-                         backing: .buffered, defer: false)
-        w.title = "Acknowledgements"
-        w.contentView = scroll
-        w.isReleasedWhenClosed = false
-        w.center()
-        window = w
-        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: w, queue: .main) { _ in
-            MainActor.assumeIsolated { window = nil }
-        }
-        w.makeKeyAndOrderFront(nil)
     }
 }
 
@@ -144,23 +134,13 @@ struct DiagnosticsView: View {
 }
 
 enum DiagnosticsWindow {
-    private static var window: NSWindow?
-
     static func show(env: AppEnvironment) {
-        if let window {
-            window.makeKeyAndOrderFront(nil)
-            return
+        SingleWindow.show("DiagnosticsWindow") {
+            let w = NSWindow(contentViewController: NSHostingController(rootView: DiagnosticsView(env: env)))
+            w.title = "Diagnostics"
+            w.styleMask = [.titled, .closable, .miniaturizable]
+            return w
         }
-        let w = NSWindow(contentViewController: NSHostingController(rootView: DiagnosticsView(env: env)))
-        w.title = "Diagnostics"
-        w.styleMask = [.titled, .closable, .miniaturizable]
-        w.isReleasedWhenClosed = false
-        w.center()
-        window = w
-        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: w, queue: .main) { _ in
-            MainActor.assumeIsolated { window = nil }
-        }
-        w.makeKeyAndOrderFront(nil)
     }
 }
 
@@ -236,22 +216,12 @@ struct HelpView: View {
 }
 
 enum HelpWindow {
-    private static var window: NSWindow?
-
     static func show() {
-        if let window {
-            window.makeKeyAndOrderFront(nil)
-            return
+        SingleWindow.show("HelpWindow") {
+            let w = NSWindow(contentViewController: NSHostingController(rootView: HelpView()))
+            w.title = "Amamac Help"
+            w.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+            return w
         }
-        let w = NSWindow(contentViewController: NSHostingController(rootView: HelpView()))
-        w.title = "Amamac Help"
-        w.styleMask = [.titled, .closable, .miniaturizable, .resizable]
-        w.isReleasedWhenClosed = false
-        w.center()
-        window = w
-        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: w, queue: .main) { _ in
-            MainActor.assumeIsolated { window = nil }
-        }
-        w.makeKeyAndOrderFront(nil)
     }
 }

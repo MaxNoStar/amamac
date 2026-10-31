@@ -147,13 +147,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     @objc func removeCollectionFolders(_ sender: Any?) {
         let folders = env.collectionFolders
         guard !folders.isEmpty else { return }
-        let alert = NSAlert()
-        alert.messageText = "Remove all collection folders?"
-        alert.informativeText = folders.map(\.path).joined(separator: "\n") +
-            "\n\nTracks stay on disk; their statistics are kept until the next full rescan."
-        alert.addButton(withTitle: "Remove")
-        alert.addButton(withTitle: "Cancel")
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        guard Confirm.ask("Remove all collection folders?",
+                          info: folders.map(\.path).joined(separator: "\n") +
+                              "\n\nTracks stay on disk; their statistics are kept until the next full rescan.",
+                          action: "Remove") else { return }
         env.setCollectionFolders([])
     }
 
@@ -283,18 +280,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     }
 
     @objc func addStream(_ sender: Any?) {
-        let alert = NSAlert()
-        alert.messageText = "Add Stream"
-        alert.informativeText = "Enter the address of an internet radio stream or a playlist (.m3u, .pls)."
-        let field = NSTextField(string: "")
-        field.placeholderString = "https://"
-        field.frame = NSRect(x: 0, y: 0, width: 360, height: 24)
-        alert.accessoryView = field
-        alert.addButton(withTitle: "Add")
-        alert.addButton(withTitle: "Cancel")
-        alert.window.initialFirstResponder = field
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-        let text = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let input = TextPrompt.ask("Add Stream", info: "Enter the address of an internet radio stream or a playlist (.m3u, .pls).",
+                                         placeholder: "https://", width: 360, action: "Add") else { return }
+        let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let url = URL(string: text), let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme) else {
             env.status.showMessage("“\(text)” is not a valid stream address.")
             return
@@ -307,23 +295,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = true
         panel.prompt = prompt
-        panel.allowedContentTypes = [.audio, .folder] + PlaylistFileFormat.allCases.compactMap { UTType(filenameExtension: $0.rawValue) }
+        panel.allowedContentTypes = [.audio, .folder] + PlaylistFileFormat.contentTypes
         return panel.runModal() == .OK ? panel.urls : nil
     }
 
     @objc func savePlaylist(_ sender: Any?) {
         guard !env.playlist.isEmpty else { return }
-        let alert = NSAlert()
-        alert.messageText = "Save Playlist"
-        alert.informativeText = "Saved playlists appear under Media Sources › Playlists."
-        let field = NSTextField(string: defaultPlaylistName())
-        field.frame = NSRect(x: 0, y: 0, width: 300, height: 24)
-        alert.accessoryView = field
-        alert.addButton(withTitle: "Save")
-        alert.addButton(withTitle: "Cancel")
-        alert.window.initialFirstResponder = field
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-        let name = field.stringValue.trimmingCharacters(in: .whitespaces).nilIfEmpty ?? defaultPlaylistName()
+        guard let input = TextPrompt.ask("Save Playlist", info: "Saved playlists appear under Media Sources › Playlists.",
+                                         text: defaultPlaylistName(), width: 300, action: "Save") else { return }
+        let name = input.trimmingCharacters(in: .whitespaces).nilIfEmpty ?? defaultPlaylistName()
         do {
             try SavedPlaylistStore(database: env.database).save(name: name, items: env.playlist.items)
             env.status.showMessage("Saved playlist “\(name)”.")
@@ -343,7 +323,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         guard !env.playlist.isEmpty else { return }
         let panel = NSSavePanel()
         panel.nameFieldStringValue = "Playlist.m3u8"
-        panel.allowedContentTypes = PlaylistFileFormat.allCases.compactMap { UTType(filenameExtension: $0.rawValue) }
+        panel.allowedContentTypes = PlaylistFileFormat.contentTypes
         panel.allowsOtherFileTypes = false
         panel.isExtensionHidden = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
@@ -439,12 +419,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     }
 
     @objc func resetLayout(_ sender: Any?) {
-        let alert = NSAlert()
-        alert.messageText = "Reset the layout?"
-        alert.informativeText = "All panes are shown again at their default widths and the layout is locked."
-        alert.addButton(withTitle: "Reset Layout")
-        alert.addButton(withTitle: "Cancel")
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        guard Confirm.ask("Reset the layout?", info: "All panes are shown again at their default widths and the layout is locked.",
+                          action: "Reset Layout") else { return }
         mainWindow.resetLayout()
     }
 
@@ -612,31 +588,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             return !env.collectionFolders.isEmpty
         default:
             return true
-        }
-    }
-}
-
-/// A simple window showing a full-size cover.
-enum CoverViewerWindow {
-    @MainActor private static var windows: [NSWindow] = []
-
-    @MainActor
-    static func show(image: NSImage, title: String) {
-        let size = image.size
-        let scale = min(1, 800 / max(size.width, size.height, 1))
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: max(200, size.width * scale), height: max(200, size.height * scale)),
-                              styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
-        window.title = title
-        window.isReleasedWhenClosed = false
-        let view = NSImageView(image: image)
-        view.imageScaling = .scaleProportionallyUpOrDown
-        window.contentView = view
-        window.center()
-        window.makeKeyAndOrderFront(nil)
-        windows.append(window)
-        let closing = ObjectIdentifier(window)
-        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
-            MainActor.assumeIsolated { windows.removeAll { ObjectIdentifier($0) == closing } }
         }
     }
 }

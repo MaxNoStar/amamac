@@ -183,7 +183,7 @@ final class SavedPlaylistsModel {
 
     func importFile() {
         let panel = NSOpenPanel()
-        panel.allowedContentTypes = PlaylistFileFormat.allCases.compactMap { UTType(filenameExtension: $0.rawValue) }
+        panel.allowedContentTypes = PlaylistFileFormat.contentTypes
         panel.allowsMultipleSelection = true
         guard panel.runModal() == .OK else { return }
         let urls = panel.urls
@@ -200,7 +200,7 @@ final class SavedPlaylistsModel {
     func export(_ summary: SavedPlaylistStore.Summary) {
         let panel = NSSavePanel()
         panel.nameFieldStringValue = summary.name + ".m3u8"
-        panel.allowedContentTypes = PlaylistFileFormat.allCases.compactMap { UTType(filenameExtension: $0.rawValue) }
+        panel.allowedContentTypes = PlaylistFileFormat.contentTypes
         guard panel.runModal() == .OK, let url = panel.url else { return }
         Task {
             do {
@@ -212,12 +212,8 @@ final class SavedPlaylistsModel {
     }
 
     func delete(_ summary: SavedPlaylistStore.Summary) {
-        let alert = NSAlert()
-        alert.messageText = "Delete the playlist “\(summary.name)”?"
-        alert.informativeText = "The tracks themselves are not affected."
-        alert.addButton(withTitle: "Delete")
-        alert.addButton(withTitle: "Cancel")
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        guard Confirm.ask("Delete the playlist “\(summary.name)”?", info: "The tracks themselves are not affected.",
+                          action: "Delete") else { return }
         store.delete(ids: [summary.id])
     }
 

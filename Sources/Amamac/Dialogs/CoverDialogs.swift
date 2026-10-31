@@ -82,8 +82,6 @@ struct CoverFetchView: View {
 /// Cover-related actions shared by the collection, Cover Manager and menus.
 @MainActor
 enum CoverActions {
-    private static var windows: [NSWindow] = []
-
     static func fetch(_ album: AlbumReference, env: AppEnvironment) {
         let window = NSWindow(contentRect: .zero, styleMask: [.titled, .closable], backing: .buffered, defer: false)
         let close: () -> Void = { [weak window] in window?.close() }
@@ -102,7 +100,7 @@ enum CoverActions {
         window.title = "Fetch Cover"
         window.isReleasedWhenClosed = false
         window.center()
-        retain(window)
+        OpenWindows.retain(window)
         window.makeKeyAndOrderFront(nil)
     }
 
@@ -155,14 +153,6 @@ enum CoverActions {
     static func changed(_ albumKey: String, env: AppEnvironment) {
         env.coverImages.invalidate(albumKey: albumKey)
         NotificationCenter.default.post(name: AppEnvironment.coverChanged, object: albumKey)
-    }
-
-    static func retain(_ window: NSWindow) {
-        windows.append(window)
-        let id = ObjectIdentifier(window)
-        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window, queue: .main) { _ in
-            MainActor.assumeIsolated { windows.removeAll { ObjectIdentifier($0) == id } }
-        }
     }
 }
 
@@ -316,23 +306,13 @@ struct CoverManagerTile: View {
 
 @MainActor
 enum CoverManagerWindow {
-    private static var window: NSWindow?
-
     static func show(env: AppEnvironment) {
-        if let window {
-            window.makeKeyAndOrderFront(nil)
-            return
+        SingleWindow.show("CoverManagerWindow") {
+            let w = NSWindow(contentViewController: NSHostingController(rootView: CoverManagerView(model: CoverManagerModel(env: env))))
+            w.title = "Cover Manager"
+            w.styleMask = [.titled, .closable, .resizable, .miniaturizable]
+            w.setContentSize(NSSize(width: 820, height: 600))
+            return w
         }
-        let w = NSWindow(contentViewController: NSHostingController(rootView: CoverManagerView(model: CoverManagerModel(env: env))))
-        w.title = "Cover Manager"
-        w.styleMask = [.titled, .closable, .resizable, .miniaturizable]
-        w.setContentSize(NSSize(width: 820, height: 600))
-        w.isReleasedWhenClosed = false
-        w.center()
-        window = w
-        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: w, queue: .main) { _ in
-            MainActor.assumeIsolated { window = nil }
-        }
-        w.makeKeyAndOrderFront(nil)
     }
 }

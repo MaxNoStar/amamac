@@ -237,24 +237,14 @@ struct VerticalSlider: NSViewRepresentable {
 }
 
 enum EqualizerWindow {
-    private static var window: NSWindow?
-
     static func show(env: AppEnvironment) {
-        if let window {
-            window.makeKeyAndOrderFront(nil)
-            return
+        SingleWindow.show("EqualizerWindow") {
+            let host = NSHostingController(rootView: EqualizerView(eq: env.equalizer))
+            host.sizingOptions = [.preferredContentSize]
+            let w = NSWindow(contentViewController: host)
+            w.title = "Equalizer"
+            w.styleMask = [.titled, .closable, .miniaturizable]
+            return w
         }
-        let host = NSHostingController(rootView: EqualizerView(eq: env.equalizer))
-        host.sizingOptions = [.preferredContentSize]
-        let w = NSWindow(contentViewController: host)
-        w.title = "Equalizer"
-        w.styleMask = [.titled, .closable, .miniaturizable]
-        w.isReleasedWhenClosed = false
-        w.center()
-        window = w
-        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: w, queue: .main) { _ in
-            MainActor.assumeIsolated { window = nil }
-        }
-        w.makeKeyAndOrderFront(nil)
     }
 }

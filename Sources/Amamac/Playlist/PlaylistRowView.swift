@@ -1,3 +1,4 @@
+import AmamacBase
 import AmamacModels
 import AmamacPlaylist
 import AppKit
@@ -201,8 +202,8 @@ final class PlaylistRowView: NSTableRowView {
     private func tokenText(_ token: LayoutToken, model: PlaylistRowModel) -> String {
         switch token.column {
         case .groupTracks: return "\(model.groupTrackCount)"
-        case .groupLength: return TimeFormattingBridge.format(model.groupLength)
-        case .rating: return Self.stars(model.item.statistics?.rating ?? 0)
+        case .groupLength: return TimeFormatting.duration(model.groupLength)
+        case .rating: return RatingText.stars(model.item.statistics?.rating ?? 0)
         case .album where model.item.isStream: return model.kind == .head ? model.item.track.displayTitle : ""
         case .albumArtist where model.item.isStream: return model.kind == .head ? "Stream" : ""
         default:
@@ -216,11 +217,6 @@ final class PlaylistRowView: NSTableRowView {
             }
             return text
         }
-    }
-
-    static func stars(_ rating: Int) -> String {
-        guard rating > 0 else { return "" }
-        return String(repeating: "★", count: rating / 2) + (rating % 2 == 1 ? "½" : "")
     }
 
     private func drawIndicators(_ model: PlaylistRowModel, in rect: NSRect, selected: Bool) {

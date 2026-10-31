@@ -154,7 +154,7 @@ enum OrganizeFilesWindow {
         window.setContentSize(NSSize(width: 760, height: 660))
         window.center()
         model.onClose = { [weak window] in window?.close() }
-        CoverActions.retain(window)
+        OpenWindows.retain(window)
         window.makeKeyAndOrderFront(nil)
     }
 }
