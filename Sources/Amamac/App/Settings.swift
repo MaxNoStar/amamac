@@ -60,6 +60,8 @@ final class AppSettings {
         Key.pauseOnSleep: true,
         Key.wikipediaLanguage: "en",
         Key.enabledApplets: ["currentTrack", "wikipedia"],
+        Key.analyzerStyle: "neonBars",
+        Key.analyzerPalette: "neon",
         Key.analyzerBarWidth: 8.0,
         Key.analyzerFallSpeed: 3,
         Key.analyzerShowFadebars: true,
@@ -139,6 +141,8 @@ final class AppSettings {
         static let hiddenPanes = "hiddenPanes"
         static let firstRunDone = "firstRunDone"
         static let outputDevice = "outputDevice"
+        static let analyzerStyle = "analyzerStyle"
+        static let analyzerPalette = "analyzerPalette"
         static let analyzerBarWidth = "analyzerBarWidth"
         static let analyzerFallSpeed = "analyzerFallSpeed"
         static let analyzerShowFadebars = "analyzerShowFadebars"

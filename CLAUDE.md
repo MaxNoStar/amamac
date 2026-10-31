@@ -31,7 +31,7 @@ DerivedData lives in `~/Library/Developer/Xcode/DerivedData/Amamac-cli` (not ins
   | `AmamacLibrary` | scanner, watcher, tags, editing, Organize, covers, statistics (`StatisticsStore`) | Database, SFBAudioEngine |
   | `AmamacPlaylist` | model, proxy, navigator, layouts, playlist files, session, saved playlists, bookmarks | Library |
   | `AmamacDynamic` | biases, dynamic playlists, the generator, `GeneratorStore` | Query, Database |
-  | `AmamacPlayback` | local and stream engines, engine bridge, ReplayGain, EQ, devices, spectrum tap | Models, SFBAudioEngine |
+  | `AmamacPlayback` | local and stream engines, engine bridge, ReplayGain, EQ, devices, spectrum tap, analyzer bar dynamics | Models, SFBAudioEngine |
   | `AmamacWeb` | `HTTPClient`, Wikipedia, MusicBrainz and covers, radio-browser | Database |
   | `AmamacPodcasts` | feeds, OPML, `PodcastService`, directory | Web, FeedKit |
   | `AmamacTestSupport` | audio fixtures, synthetic library, `StubURLProtocol`, in-memory database; compiled only in Debug | Library |

@@ -207,3 +207,12 @@ Plan: Amarok 2/3 feature parity in milestones M0–M8 (see CLAUDE.md for command
   Track Details, the `lyrics:` filter field and reading lyrics from tags. LRCLIB answered
   "503 ServerOverloaded" for every track it didn't hold exactly. Migration `v2` drops the `lyrics`
   table; `v1` is unchanged and its schema is still pinned, next to the new schema.
+- Analyzer styles: Block (Amarok's, unchanged), Neon bars (the new default), Mirror, Halo (album cover
+  ringed by turning rays, with spectrum wings), Aurora (curves with fading echoes), LED matrix and
+  Waterfall (scrolling spectrogram). Palettes: Neon, Accent, Ice, Mono. Pick them in the applet's
+  settings or by right-clicking it. Bar physics (`SpectrumDynamics`) and frame history
+  (`SpectrumHistory`) moved into `AmamacPlayback/Analyzer` with tests; each style is one renderer in
+  `Context/Applets/Analyzer/Renderers`. Halo stops turning under Reduce Motion.
+- The snapshot checks that every style's bars rise and fall with a playing tone, then captures each
+  style from a made-up music-like spectrum (`context-analyzer-<style>.png`, 2×) and the settings
+  (`context-analyzer-settings.png`).

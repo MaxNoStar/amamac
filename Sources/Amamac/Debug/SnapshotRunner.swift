@@ -436,36 +436,7 @@ final class SnapshotRunner {
         print("snapshot: playback check passed")
     }
 
-    /// Shows the Analyzer, as Configure Applets does, and checks over two plays of a tone that its
-    /// tap receives audio, its bars rise while playing and fall back after Stop.
-    private func checkAnalyzer() async {
-        let player = env.player
-        let context = window.context
-        let kinds = context.enabledKinds
-        // Snapshot runs enable every applet; show the Analyzer alone so it is on screen.
-        context.setEnabled([.analyzer])
-        guard let analyzer = context.applet(.analyzer) as? AnalyzerAppletController,
-              let id = env.playlist.activeID else { fail("no analyzer applet or active track") }
-        func barPeak() -> Float { analyzer.state.levels.max() ?? 0 }
-        for round in 1...2 {
-            player.play(id)
-            await Snapshotter.waitUntil(timeout: 3) { player.currentTime > 0.5 }
-            await Snapshotter.waitUntil(timeout: 2) { barPeak() > 0.2 }
-            let tapPeak = analyzer.tap.spectrum(bands: 16).max() ?? 0
-            print("snapshot: analyzer play \(round): time \(player.currentTime), tap peak \(tapPeak), bar peak \(barPeak())")
-            guard tapPeak > 0.2, barPeak() > 0.2 else { fail("analyzer bars did not rise on play \(round)") }
-            if round == 1, let column = context.appletColumn {
-                await Snapshotter.capture(column, to: output.appendingPathComponent("context-analyzer.png"))
-            }
-            player.stop()
-            await Snapshotter.waitUntil(timeout: 4) { barPeak() < 0.01 }
-            guard barPeak() < 0.01 else { fail("analyzer bars did not fall after stop \(round) (peak \(barPeak()))") }
-        }
-        context.setEnabled(kinds)
-        print("snapshot: analyzer check passed")
-    }
-
-    private func fail(_ message: String) -> Never {
+    func fail(_ message: String) -> Never {
         FileHandle.standardError.write("snapshot failed: \(message)\n".data(using: .utf8)!)
         exit(1)
     }

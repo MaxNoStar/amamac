@@ -7,12 +7,12 @@ import WebKit
 /// SwiftUI content with `cacheDisplay` and composites WKWebView content from `takeSnapshot`, which
 /// `cacheDisplay` cannot see. Needs no screen-recording permission.
 enum Snapshotter {
-    /// Renders `view` at 1× into a PNG.
-    static func capture(_ view: NSView, to url: URL) async {
+    /// Renders `view` into a PNG, at 1× unless `scale` says otherwise.
+    static func capture(_ view: NSView, to url: URL, scale: CGFloat = 1) async {
         view.layoutSubtreeIfNeeded()
         view.displayIfNeeded()
         let bounds = view.bounds
-        let width = Int(bounds.width.rounded()), height = Int(bounds.height.rounded())
+        let width = Int((bounds.width * scale).rounded()), height = Int((bounds.height * scale).rounded())
         guard width > 0, height > 0,
               let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: width, pixelsHigh: height,
                                          bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,

@@ -19,7 +19,8 @@ behaviour in Swift and contains no Amarok code, data or artwork.
 - **Playlist**: album grouping and four layouts, multi-level sort, progressive search, queue,
   stop-after, undo, track progressions (repeat, random tracks/albums with Favor), saved
   playlists, M3U/PLS/XSPF/ASX, dynamic playlists with biases, the Automated Playlist Generator.
-- **Context**: Current Track, Albums, Wikipedia and a spectrum Analyzer with seven styles.
+- **Context**: Current Track, Albums, Wikipedia and a spectrum Analyzer with seven styles
+  (Block, Neon bars, Mirror, Halo, Aurora, LED matrix, Waterfall) and four colour palettes.
 - **Internet**: internet radio from radio-browser.info, podcasts with downloads and OPML.
 - **Desktop**: on-screen display, menu bar icon, global shortcuts, notifications, bookmarks and
   `amamac://` links, a Files browser.
