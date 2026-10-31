@@ -59,8 +59,7 @@ final class AppSettings {
         Key.inhibitSleep: true,
         Key.pauseOnSleep: true,
         Key.wikipediaLanguage: "en",
-        Key.lyricsFontSize: 13.0,
-        Key.enabledApplets: ["currentTrack", "lyrics", "wikipedia"],
+        Key.enabledApplets: ["currentTrack", "wikipedia"],
         Key.analyzerBarWidth: 8.0,
         Key.analyzerFallSpeed: 3,
         Key.analyzerShowFadebars: true,
@@ -124,7 +123,6 @@ final class AppSettings {
         static let inhibitSleep = "inhibitSleep"
         static let pauseOnSleep = "pauseOnSleep"
         static let wikipediaLanguage = "wikipediaLanguage"
-        static let lyricsFontSize = "lyricsFontSize"
         static let enabledApplets = "enabledApplets"
         static let collapsedApplets = "collapsedApplets"
         static let appletHeights = "appletHeights"

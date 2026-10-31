@@ -203,6 +203,10 @@ public final class LibraryDatabase: Sendable {
                 t.column("value", .blob)
             }
         }
+        // Lyrics were removed from Amamac in 0.1.3. `v1` above stays as shipped.
+        migrator.registerMigration("v2") { db in
+            try db.drop(table: "lyrics")
+        }
         return migrator
     }
 }

@@ -200,9 +200,6 @@ public actor CollectionScanner {
                             try stats.save(db)
                         }
                     }
-                    if let lyrics = tags.lyrics, let id = track.id {
-                        try LyricsRecord.storeFromTag(lyrics, trackId: id, in: db)
-                    }
                 }
                 return (r, movedPaths)
             }

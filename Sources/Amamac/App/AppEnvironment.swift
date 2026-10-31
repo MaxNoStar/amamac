@@ -22,7 +22,6 @@ final class AppEnvironment {
     let navigator: PlaylistNavigator
     let player: PlayerController
     let http: HTTPClient
-    let lyrics: LyricsService
     let remoteImages: RemoteImageCache
     let bookmarks: BookmarkStore
     let savedPlaylists: SavedPlaylistStore
@@ -57,7 +56,6 @@ final class AppEnvironment {
         player = PlayerController(model: playlist, proxy: proxy, navigator: navigator, database: database, settings: settings,
                                   status: status)
         http = HTTPClient(cacheDirectory: cacheDirectory.appendingPathComponent("http"), configuration: httpConfiguration)
-        lyrics = LyricsService(database: database, http: http)
         remoteImages = RemoteImageCache(http: http)
         bookmarks = BookmarkStore(database: database)
         savedPlaylists = SavedPlaylistStore(database: database)

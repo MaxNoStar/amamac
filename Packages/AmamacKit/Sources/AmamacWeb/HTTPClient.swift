@@ -44,7 +44,6 @@ public final class HTTPClient: Sendable {
         switch host {
         case "musicbrainz.org": HostPolicy(minInterval: 1.0, cacheLifetime: 7 * 86_400)
         case "coverartarchive.org": HostPolicy(minInterval: 0.2, cacheLifetime: 30 * 86_400)
-        case "lrclib.net": HostPolicy(minInterval: 0.2, cacheLifetime: 30 * 86_400)
         case "www.wikidata.org": HostPolicy(minInterval: 0.1, cacheLifetime: 7 * 86_400)
         case "itunes.apple.com": HostPolicy(minInterval: 0.5, cacheLifetime: 7 * 86_400)
         case let h where h.hasSuffix(".wikipedia.org"): HostPolicy(minInterval: 0.1, cacheLifetime: 86_400)

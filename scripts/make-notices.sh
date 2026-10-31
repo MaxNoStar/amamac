@@ -52,8 +52,8 @@ PACKAGES=(
     echo "| $name | $license | $purpose |"
   done
   echo
-  echo "Online services used at run time (no accounts, no personal data): LRCLIB, Wikipedia and"
-  echo "Wikidata, MusicBrainz, the Cover Art Archive, the iTunes Search API and radio-browser.info."
+  echo "Online services used at run time (no accounts, no personal data): Wikipedia and Wikidata,"
+  echo "MusicBrainz, the Cover Art Archive, the iTunes Search API and radio-browser.info."
   echo
   echo "## License texts"
   for entry in "${PACKAGES[@]}"; do

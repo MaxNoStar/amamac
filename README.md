@@ -19,7 +19,7 @@ behaviour in Swift and contains no Amarok code, data or artwork.
 - **Playlist**: album grouping and four layouts, multi-level sort, progressive search, queue,
   stop-after, undo, track progressions (repeat, random tracks/albums with Favor), saved
   playlists, M3U/PLS/XSPF/ASX, dynamic playlists with biases, the Automated Playlist Generator.
-- **Context**: Current Track, Albums, synced Lyrics (LRCLIB), Wikipedia and a spectrum Analyzer.
+- **Context**: Current Track, Albums, Wikipedia and a spectrum Analyzer with seven styles.
 - **Internet**: internet radio from radio-browser.info, podcasts with downloads and OPML.
 - **Desktop**: on-screen display, menu bar icon, global shortcuts, notifications, bookmarks and
   `amamac://` links, a Files browser.
@@ -59,13 +59,13 @@ make perf         # times collection, playlist and session work on 20,000 tracks
 ## Where things live
 
 - Library database, playlists and settings: `~/Library/Application Support/Amamac/`
-- Web cache (lyrics, Wikipedia, covers lookups): `~/Library/Application Support/Amamac/Caches/http`
+- Web cache (Wikipedia, cover lookups): `~/Library/Application Support/Amamac/Caches/http`
 - Podcast downloads: `~/Music/Podcasts/<podcast>` (changeable in Settings › Internet)
 
 ## Privacy
 
-Amamac has no accounts and no analytics. Lookups go to LRCLIB, Wikipedia/Wikidata, MusicBrainz,
-the Cover Art Archive, the iTunes Search API and radio-browser.info, sending only titles, artists
+Amamac has no accounts and no analytics. Lookups go to Wikipedia/Wikidata, MusicBrainz, the
+Cover Art Archive, the iTunes Search API and radio-browser.info, sending only titles, artists
 and album names, with the User-Agent `Amamac/<version> (macOS music player)`.
 
 ## Licenses

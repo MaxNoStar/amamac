@@ -25,14 +25,14 @@ DerivedData lives in `~/Library/Developer/Xcode/DerivedData/Amamac-cli` (not ins
   | Module | Contents | Builds on |
   |---|---|---|
   | `AmamacBase` | text folding, time formatting, hashing, XML escaping, `SplitMix64`, `Amamac` (version, User-Agent) | — |
-  | `AmamacModels` | `Track`, `TagChanges`, `PlaylistItem`, file formats, `AmamacLink`, LRC | Base |
+  | `AmamacModels` | `Track`, `TagChanges`, `PlaylistItem`, file formats, `AmamacLink` | Base |
   | `AmamacQuery` | filter language: parser, AST, dates, in-memory matching | Base, Models |
-  | `AmamacDatabase` | `LibraryDatabase` (`writer` is package-only), migration `"v1"`, records, collection queries, query → SQL | Query, GRDB |
+  | `AmamacDatabase` | `LibraryDatabase` (`writer` is package-only), migrations `"v1"` (as shipped) and `"v2"` (drops lyrics), records, collection queries, query → SQL | Query, GRDB |
   | `AmamacLibrary` | scanner, watcher, tags, editing, Organize, covers, statistics (`StatisticsStore`) | Database, SFBAudioEngine |
   | `AmamacPlaylist` | model, proxy, navigator, layouts, playlist files, session, saved playlists, bookmarks | Library |
   | `AmamacDynamic` | biases, dynamic playlists, the generator, `GeneratorStore` | Query, Database |
   | `AmamacPlayback` | local and stream engines, engine bridge, ReplayGain, EQ, devices, spectrum tap | Models, SFBAudioEngine |
-  | `AmamacWeb` | `HTTPClient`, lyrics, Wikipedia, MusicBrainz and covers, radio-browser | Database |
+  | `AmamacWeb` | `HTTPClient`, Wikipedia, MusicBrainz and covers, radio-browser | Database |
   | `AmamacPodcasts` | feeds, OPML, `PodcastService`, directory | Web, FeedKit |
   | `AmamacTestSupport` | audio fixtures, synthetic library, `StubURLProtocol`, in-memory database; compiled only in Debug | Library |
 - `Sources/Amamac` — app, default isolation **MainActor**, one folder per feature:

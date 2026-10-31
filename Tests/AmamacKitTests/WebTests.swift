@@ -33,35 +33,6 @@ struct WebTests {
         URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == name }?.value
     }
 
-    @Test func lrclibExactMatchPrefersSyncedLyrics() async throws {
-        let http = Self.makeClient(routes: ["lrclib.net/api/get": [
-            "trackName": "Song", "artistName": "Band", "duration": 201.0, "instrumental": false,
-            "plainLyrics": "Hello\nWorld", "syncedLyrics": "[00:01.00]Hello\n[00:02.50]World",
-        ]])
-        let lyrics = try await LRCLIBClient(http: http).lyrics(title: "Song", artist: "Band", album: "Album", duration: 201.4)
-        #expect(lyrics == .init(text: "[00:01.00]Hello\n[00:02.50]World", synced: true, instrumental: false))
-        let url = try #require(StubURLProtocol.requestedURLs.first)
-        #expect(query(url, "duration") == "201")
-        #expect(query(url, "album_name") == "Album")
-    }
-
-    @Test func lrclibFallsBackToSearchWithinTwoSeconds() async throws {
-        let http = Self.makeClient(routes: ["lrclib.net/api/search": [
-            ["trackName": "Song", "duration": 150.0, "plainLyrics": "wrong length"],
-            ["trackName": "Song", "duration": 201.0, "plainLyrics": "plain only"],
-            ["trackName": "Song", "duration": 202.0, "plainLyrics": "p", "syncedLyrics": "[00:01.00]synced"],
-        ]])
-        let lyrics = try await LRCLIBClient(http: http).lyrics(title: "Song", artist: "Band", album: "", duration: 200.5)
-        #expect(lyrics?.text == "[00:01.00]synced")
-        #expect(StubURLProtocol.requestedURLs.map(\.path) == ["/api/get", "/api/search"])
-    }
-
-    @Test func lrclibReportsInstrumentals() async throws {
-        let http = Self.makeClient(routes: ["lrclib.net/api/get": ["instrumental": true]])
-        let lyrics = try await LRCLIBClient(http: http).lyrics(title: "Song", artist: "Band", album: "", duration: 60)
-        #expect(lyrics?.instrumental == true)
-    }
-
     @Test func wikipediaArtistResolvesThroughMusicBrainzAndWikidata() async throws {
         let agents = AgentLog()
         let http = Self.makeClient(routes: [
@@ -128,24 +99,5 @@ struct WebTests {
     @Test func notFoundIsDistinguished() async throws {
         let http = Self.makeClient(routes: [:])
         await #expect(throws: HTTPError.notFound) { try await http.data(from: URL(string: "https://example.org/missing")!) }
-    }
-
-    @Test func lyricsServiceKeepsUserLyrics() async throws {
-        let db = try LibraryDatabase.inMemory()
-        let track = try await db.writer.write { db -> Track in
-            var track = makeTrack("Song", artist: "Band")
-            try track.insert(db)
-            return track
-        }
-        let http = Self.makeClient(routes: ["lrclib.net/api/get": ["plainLyrics": "from lrclib"]])
-        let service = LyricsService(database: db, http: http)
-        try await service.save("my own words", trackId: track.id!)
-        let refetched = try await service.lyrics(for: track, refetch: true)
-        #expect(refetched?.text == "from lrclib")
-        #expect(await service.stored(trackId: track.id!)?.text == "my own words")
-        try await service.save("", trackId: track.id!)
-        #expect(await service.stored(trackId: track.id!) == nil)
-        _ = try await service.lyrics(for: track)
-        #expect(await service.stored(trackId: track.id!)?.source == "lrclib")
     }
 }

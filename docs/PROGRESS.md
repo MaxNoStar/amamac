@@ -201,3 +201,9 @@ Plan: Amarok 2/3 feature parity in milestones M0–M8 (see CLAUDE.md for command
   persisted formats, and the snapshot run gained a check that all menu commands still reach their
   controllers.
 
+
+## 0.1.3 — Lyrics removed, analyzer styles
+- Lyrics are gone: the applet, LRCLIB client, lyrics service, LRC parser, the Lyrics tab of Edit
+  Track Details, the `lyrics:` filter field and reading lyrics from tags. LRCLIB answered
+  "503 ServerOverloaded" for every track it didn't hold exactly. Migration `v2` drops the `lyrics`
+  table; `v1` is unchanged and its schema is still pinned, next to the new schema.

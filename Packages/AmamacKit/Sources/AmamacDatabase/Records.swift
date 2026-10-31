@@ -32,22 +32,6 @@ public struct CollectionFolder: Codable, Sendable, Hashable, Identifiable, Fetch
     public var url: URL { URL(fileURLWithPath: path) }
 }
 
-public struct LyricsRecord: Codable, Sendable, Hashable, FetchableRecord, PersistableRecord {
-    public static let databaseTableName = "lyrics"
-    public var trackId: Int64
-    public var text: String
-    public var synced: Bool
-    /// "user", "tag" or "lrclib".
-    public var source: String
-
-    public init(trackId: Int64, text: String, synced: Bool, source: String) {
-        self.trackId = trackId
-        self.text = text
-        self.synced = synced
-        self.source = source
-    }
-}
-
 public struct AlbumCoverRecord: Codable, Sendable, Hashable, FetchableRecord, PersistableRecord {
     public static let databaseTableName = "album_cover"
     public enum Source: String, Codable, Sendable { case custom, fetched, unset }

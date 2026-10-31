@@ -70,15 +70,14 @@ extension LibraryDatabase {
         try await writer.read { try Int64.fetchAll($0, sql: "SELECT trackId FROM statistics") }
     }
 
-    // MARK: Lyrics and labels
+    // MARK: Labels
 
-    /// Lyrics and labels of each track (nil for tracks outside the collection), plus every label
-    /// name, read in one transaction.
-    public func lyricsAndLabels(trackIds: [Int64?]) async throws -> (lyrics: [String?], labels: [[String]], allLabels: [String]) {
+    /// Labels of each track (empty for tracks outside the collection), plus every label name, read
+    /// in one transaction.
+    public func labels(trackIds: [Int64?]) async throws -> (labels: [[String]], allLabels: [String]) {
         try await writer.read { db in
-            let lyrics = try trackIds.map { id in try id.flatMap { try CollectionQueries.lyrics(db, trackId: $0)?.text } }
             let labels = try trackIds.map { id in try id.map { try CollectionQueries.labels(db, trackId: $0) } ?? [] }
-            return (lyrics, labels, try CollectionQueries.allLabels(db).map(\.name))
+            return (labels, try CollectionQueries.allLabels(db).map(\.name))
         }
     }
 

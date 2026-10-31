@@ -4,9 +4,8 @@ import Foundation
 
 extension CollectionQuery {
     /// In-memory evaluation, used by dynamic playlists and tests.
-    public func matches(_ track: Track, statistics: TrackStatistics?, labels: [String] = [],
-                        lyrics: String? = nil, now: Date = Date()) -> Bool {
-        let ctx = QueryMatchContext(track: track, statistics: statistics, labels: labels, lyrics: lyrics, now: now)
+    public func matches(_ track: Track, statistics: TrackStatistics?, labels: [String] = [], now: Date = Date()) -> Bool {
+        let ctx = QueryMatchContext(track: track, statistics: statistics, labels: labels, now: now)
         return groups.allSatisfy { group in group.isEmpty || group.contains { $0.matches(ctx) } }
     }
 }
@@ -15,7 +14,6 @@ struct QueryMatchContext {
     var track: Track
     var statistics: TrackStatistics?
     var labels: [String]
-    var lyrics: String?
     var now: Date
 }
 
@@ -83,7 +81,6 @@ extension QueryTerm {
             case .filename: haystacks = [t.path]
             case .format: haystacks = [t.format]
             case .label: haystacks = ctx.labels
-            case .lyrics: haystacks = [ctx.lyrics ?? ""]
             default: haystacks = []
             }
             let needle = TextFolding.fold(value)

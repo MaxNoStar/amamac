@@ -310,7 +310,7 @@ struct InternetSettingsView: View {
     }
 
     static let services: [(String, String)] = [
-        ("LRCLIB", "lyrics"), ("Wikipedia and Wikidata", "the Wikipedia applet"),
+        ("Wikipedia and Wikidata", "the Wikipedia applet"),
         ("MusicBrainz and Cover Art Archive", "tag lookups and covers"), ("iTunes Search", "covers and the podcast directory"),
         ("radio-browser.info", "internet radio"),
     ]

@@ -42,7 +42,6 @@ extension CollectionQuery {
 
 extension QueryTerm {
     static let labelExists = "EXISTS (SELECT 1 FROM track_label tl JOIN label l ON l.id = tl.labelId WHERE tl.trackId = t.id AND amamac_fold(l.name) LIKE ? ESCAPE '\\')"
-    static let lyricsExists = "EXISTS (SELECT 1 FROM lyrics ly WHERE ly.trackId = t.id AND amamac_fold(ly.text) LIKE ? ESCAPE '\\')"
 
     public func sql(now: Date) -> SQLFragment {
         let base = positiveSQL(now: now)
@@ -87,12 +86,6 @@ extension QueryTerm {
             }
             let pattern = op == .equals ? TextFolding.likeEscaped(TextFolding.fold(value)) : likePattern(value)
             return SQLFragment(Self.labelExists, [.text(pattern)])
-        }
-        if field == .lyrics {
-            if op == .equals && value.isEmpty {
-                return SQLFragment("NOT EXISTS (SELECT 1 FROM lyrics ly WHERE ly.trackId = t.id AND ly.text <> '')")
-            }
-            return SQLFragment(Self.lyricsExists, [.text(likePattern(value))])
         }
         let column = textColumn(field)!
         // Pre-folded columns avoid calling the fold function per row.

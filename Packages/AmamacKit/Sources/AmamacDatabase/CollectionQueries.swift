@@ -207,10 +207,6 @@ public enum CollectionQueries {
         try TrackStatistics.fetchOne(db, key: trackId)
     }
 
-    public static func lyrics(_ db: Database, trackId: Int64) throws -> LyricsRecord? {
-        try LyricsRecord.fetchOne(db, key: trackId)
-    }
-
     /// Distinct values for completion in the tag editor.
     public static func distinctValues(_ db: Database, column: String, limit: Int = 2000) throws -> [String] {
         precondition(["artist", "albumArtist", "album", "genre", "composer"].contains(column))

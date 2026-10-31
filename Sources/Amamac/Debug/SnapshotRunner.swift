@@ -25,16 +25,13 @@ final class SnapshotRunner {
         self.layoutDump = layoutDump
     }
 
-    /// Canned online answers: synced lyrics for every track, a short Wikipedia article, and
+    /// Canned online answers: a short Wikipedia article and
     /// no MusicBrainz matches (so Wikipedia's search path is used).
     nonisolated static func stubNetwork() -> URLSessionConfiguration {
         StubURLProtocol.configuration { request in
             guard let url = request.url, let host = url.host() else { return nil }
             func json(_ object: Any) -> (Int, Data) { (200, try! JSONSerialization.data(withJSONObject: object)) }
             switch host {
-            case "lrclib.net":
-                let lines = (0..<24).map { i in String(format: "[00:%02d.%02d]", i / 4 * 1, (i % 4) * 25) + "Snapshot lyric line \(i + 1)" }
-                return json(["instrumental": false, "plainLyrics": "", "syncedLyrics": lines.joined(separator: "\n")])
             case "musicbrainz.org":
                 return json(["artists": []])
             case let h where h.hasSuffix("wikipedia.org"):
@@ -163,7 +160,7 @@ final class SnapshotRunner {
         try? await Task.sleep(for: .seconds(1))
         await checkPlayback()
         await checkAnalyzer()
-        // Let the lyrics and Wikipedia applets load their (stubbed) content.
+        // Let the Wikipedia applet load its (stubbed) content.
         try? await Task.sleep(for: .seconds(1.5))
         win.contentView?.layoutSubtreeIfNeeded()
         win.displayIfNeeded()

@@ -3,7 +3,7 @@ import Foundation
 
 /// Fields understood by the collection filter language (Amarok's keywords).
 public enum QueryField: String, CaseIterable, Sendable, Codable {
-    case title, artist, album, albumartist, genre, composer, comment, filename, label, lyrics, format
+    case title, artist, album, albumartist, genre, composer, comment, filename, label, format
     case year, tracknumber, discnumber, bpm, length, bitrate, samplerate, filesize, score, playcount, rating
     case added, firstplay, lastplay, modified
 
@@ -11,7 +11,7 @@ public enum QueryField: String, CaseIterable, Sendable, Codable {
 
     public var kind: Kind {
         switch self {
-        case .title, .artist, .album, .albumartist, .genre, .composer, .comment, .filename, .label, .lyrics, .format:
+        case .title, .artist, .album, .albumartist, .genre, .composer, .comment, .filename, .label, .format:
             return .text
         case .year, .tracknumber, .discnumber, .bpm, .length, .bitrate, .samplerate, .filesize, .score,
              .playcount, .rating:
@@ -33,7 +33,6 @@ public enum QueryField: String, CaseIterable, Sendable, Codable {
         case .comment: "Comment"
         case .filename: "File Name"
         case .label: "Label"
-        case .lyrics: "Lyrics"
         case .format: "Format"
         case .year: "Year"
         case .tracknumber: "Track Number"

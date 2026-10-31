@@ -176,7 +176,7 @@ struct HelpView: View {
                     Text("""
                         **Media Sources** (left) browses your collection, playlists, files, internet radio and podcasts. \
                         Drag anything onto the playlist, or drop it on the **Context** pane (middle) to choose how it is added. \
-                        The Context pane shows applets for the playing track: details, lyrics, Wikipedia, other albums and a spectrum analyzer. \
+                        The Context pane shows applets for the playing track: details, Wikipedia, other albums and a spectrum analyzer. \
                         The **Playlist** (right) groups tracks by album and can be sorted, searched and saved.
                         """)
                     Text("Add music with Tools › Collection Folders…, or drop folders on the playlist.")

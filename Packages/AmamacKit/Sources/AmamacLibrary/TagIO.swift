@@ -19,7 +19,6 @@ public enum AudioFileTypes {
 /// Tag values read from a file, before database bookkeeping fields are filled in.
 public struct TagReadResult: Sendable {
     public var track: Track
-    public var lyrics: String?
     /// FMPS / POPM rating normalised to 0...10, when present.
     public var rating: Int?
     public var playCount: Int?
@@ -87,8 +86,7 @@ public enum TagReader {
         let playCount = extraInt(extra, keys: ["FMPS_PLAYCOUNT", "FMPS_Playcount", "PLAYCOUNT"])
 
         t.updateDerivedFields()
-        return TagReadResult(track: t, lyrics: meta.lyrics.flatMap { $0.isEmpty ? nil : $0 },
-                             rating: rating, playCount: playCount, embeddedArt: art)
+        return TagReadResult(track: t, rating: rating, playCount: playCount, embeddedArt: art)
     }
 
     /// Reads only the embedded front cover (or any picture).
@@ -167,7 +165,6 @@ public struct TagChanges: Sendable, Equatable {
     public var discNumber: Int?
     public var bpm: Int?
     public var compilation: Bool?
-    public var lyrics: String?
     /// 0...10; written as FMPS_Rating when "write statistics to file" is enabled.
     public var rating: Int?
     public var playCount: Int?
@@ -213,7 +210,6 @@ public enum TagWriter {
         if let v = changes.discNumber { meta.discNumber = v > 0 ? v : nil }
         if let v = changes.bpm { meta.bpm = v > 0 ? v : nil }
         if let v = changes.compilation { meta.isCompilation = v ? true : nil }
-        if let v = changes.lyrics { meta.lyrics = v.isEmpty ? nil : v }
         if changes.rating != nil || changes.playCount != nil {
             var extra = meta.additionalMetadata ?? [:]
             if let r = changes.rating { extra["FMPS_RATING"] = String(format: "%.1f", Double(r) / 10) }

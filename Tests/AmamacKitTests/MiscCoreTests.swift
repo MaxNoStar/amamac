@@ -80,17 +80,6 @@ struct OrganizeTests {
     }
 }
 
-struct LRCTests {
-    @Test func parsesSyncedLyrics() {
-        let text = "[ar:Someone]\n[00:01.50]First\n[00:03.00][00:10.00]Chorus\n[00:05]Second"
-        let lines = LRCParser.parse(text)
-        #expect(lines.map(\.text) == ["First", "Chorus", "Second", "Chorus"])
-        #expect(lines[0].time == 1.5)
-        #expect(LRCParser.currentLine(lines, at: 4) == 1)
-        #expect(LRCParser.plainText("[00:01.00]Hi\n[00:02.00]There") == "Hi\nThere")
-    }
-}
-
 struct TextTests {
     @Test func foldingAndSortKeys() {
         #expect(TextFolding.fold("Björk") == "bjork")

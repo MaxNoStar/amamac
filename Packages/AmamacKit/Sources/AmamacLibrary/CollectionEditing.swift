@@ -21,7 +21,6 @@ extension CollectionScanner {
             track.mtime = values.contentModificationDate ?? Date()
             track.uniqueId = Self.uniqueId(for: url, size: size)
             track.folderId = roots.folderId(containing: path)
-            let lyrics = tags.lyrics
             let fresh = track
             try await database.writer.write { db in
                 guard let existing = try Track.fetchOne(db, sql: "SELECT * FROM track WHERE path = ?", arguments: [path]) else { return }
@@ -29,9 +28,6 @@ extension CollectionScanner {
                 track.id = existing.id
                 track.dateAdded = existing.dateAdded
                 try track.update(db)
-                if let lyrics, let id = track.id {
-                    try LyricsRecord.storeFromTag(lyrics, trackId: id, in: db)
-                }
             }
             directories.insert((path as NSString).deletingLastPathComponent)
         }

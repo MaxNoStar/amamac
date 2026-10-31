@@ -35,8 +35,8 @@ corresponding `*-binary-xcframework` repositories at https://github.com/sbooth.
 | FeedKit | MIT | Podcast feed parsing |
 | KeyboardShortcuts | MIT | Global keyboard shortcuts |
 
-Online services used at run time (no accounts, no personal data): LRCLIB, Wikipedia and
-Wikidata, MusicBrainz, the Cover Art Archive, the iTunes Search API and radio-browser.info.
+Online services used at run time (no accounts, no personal data): Wikipedia and Wikidata,
+MusicBrainz, the Cover Art Archive, the iTunes Search API and radio-browser.info.
 
 ## License texts
 

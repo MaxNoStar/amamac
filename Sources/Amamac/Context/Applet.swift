@@ -4,13 +4,12 @@ import SwiftUI
 
 /// The applets the Context pane can show.
 enum AppletKind: String, CaseIterable {
-    case currentTrack, albums, lyrics, wikipedia, analyzer
+    case currentTrack, albums, wikipedia, analyzer
 
     var title: String {
         switch self {
         case .currentTrack: "Current Track"
         case .albums: "Albums"
-        case .lyrics: "Lyrics"
         case .wikipedia: "Wikipedia"
         case .analyzer: "Analyzer"
         }
@@ -20,7 +19,6 @@ enum AppletKind: String, CaseIterable {
         switch self {
         case .currentTrack: "music.note"
         case .albums: "square.stack"
-        case .lyrics: "text.quote"
         case .wikipedia: "book"
         case .analyzer: "waveform"
         }
@@ -30,7 +28,6 @@ enum AppletKind: String, CaseIterable {
         switch self {
         case .currentTrack: "Cover, rating and statistics of the playing track"
         case .albums: "Other albums by the current artist"
-        case .lyrics: "Lyrics, synced to the music when available"
         case .wikipedia: "Wikipedia articles about the artist, album or track"
         case .analyzer: "A spectrum analyzer"
         }
@@ -40,7 +37,6 @@ enum AppletKind: String, CaseIterable {
         switch self {
         case .currentTrack: 230
         case .albums: 280
-        case .lyrics: 420
         case .wikipedia: 520
         case .analyzer: 170
         }
@@ -51,7 +47,6 @@ enum AppletKind: String, CaseIterable {
         switch self {
         case .currentTrack: CurrentTrackAppletController(env: env)
         case .albums: AlbumsAppletController(env: env)
-        case .lyrics: LyricsAppletController(env: env)
         case .wikipedia: WikipediaAppletController(env: env)
         case .analyzer: AnalyzerAppletController(env: env)
         }

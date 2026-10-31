@@ -6,7 +6,7 @@ import AmamacWeb
 import AppKit
 import SwiftUI
 
-/// "Edit Track Details": Summary, Tags, Lyrics and Labels for one or many tracks. With several
+/// "Edit Track Details": Summary, Tags and Labels for one or many tracks. With several
 /// tracks, fields edit all of them unless "Per Track" is on.
 @MainActor
 @Observable
@@ -36,8 +36,6 @@ final class TagEditorModel {
     private(set) var tracks: [TrackWithStatistics]
     private var original: [Fields]
     var current: [Fields]
-    private var originalLyrics: [String?]
-    var lyrics: [String?]
     private var originalLabels: [[String]]
     var labels: [[String]]
     private(set) var allLabels: [String] = []
@@ -53,9 +51,6 @@ final class TagEditorModel {
         let fields = tracks.map { Fields($0.track) }
         original = fields
         current = fields
-        let noLyrics = [String?](repeating: nil, count: tracks.count)
-        originalLyrics = noLyrics
-        lyrics = noLyrics
         let noLabels = [[String]](repeating: [], count: tracks.count)
         originalLabels = noLabels
         labels = noLabels
@@ -67,20 +62,18 @@ final class TagEditorModel {
         let ids = tracks.map(\.track.id)
         let db = env.database
         Task {
-            let loaded = try? await db.lyricsAndLabels(trackIds: ids)
+            let loaded = try? await db.labels(trackIds: ids)
             guard let loaded else { return }
-            originalLyrics = loaded.0
-            lyrics = loaded.0
-            originalLabels = loaded.1
-            labels = loaded.1
-            allLabels = loaded.2
+            originalLabels = loaded.labels
+            labels = loaded.labels
+            allLabels = loaded.allLabels
         }
     }
 
     var isMultiple: Bool { tracks.count > 1 }
     var showsOneTrack: Bool { perTrack || !isMultiple }
     var currentTrack: TrackWithStatistics { tracks[index] }
-    var hasChanges: Bool { current != original || lyrics != originalLyrics || labels.map(Set.init) != originalLabels.map(Set.init) }
+    var hasChanges: Bool { current != original || labels.map(Set.init) != originalLabels.map(Set.init) }
 
     // MARK: Field access
 
@@ -183,22 +176,16 @@ final class TagEditorModel {
         isSaving = true
         errorMessage = nil
         let edits = tracks.indices.map { TrackEditor.Edit(path: tracks[$0].track.path, changes: Self.changes(from: original[$0], to: current[$0])) }
-        let lyricEdits = tracks.indices.compactMap { i -> (Int64, String)? in
-            guard lyrics[i] != originalLyrics[i], let id = tracks[i].track.id else { return nil }
-            return (id, lyrics[i] ?? "")
-        }
         let labelEdits = tracks.indices.compactMap { i -> (Int64, [String])? in
             guard Set(labels[i]) != Set(originalLabels[i]), let id = tracks[i].track.id else { return nil }
             return (id, labels[i])
         }
         for edit in edits where !edit.changes.isEmpty { env.ignoreWatcherEvents(for: edit.path) }
         let scanner = env.scanner
-        let lyricsService = env.lyrics
         let db = env.database
         let ids = tracks.compactMap(\.track.id)
         Task {
             let failures = await TrackEditor.apply(edits, scanner: scanner)
-            for (id, text) in lyricEdits { try? await lyricsService.save(text, trackId: id) }
             if !labelEdits.isEmpty {
                 try? await db.setLabels(labelEdits)
             }
@@ -230,8 +217,7 @@ struct TagEditorView: View {
             TabView(selection: $tab) {
                 summary.tabItem { Text("Summary") }.tag(0)
                 tags.tabItem { Text("Tags") }.tag(1)
-                lyricsTab.tabItem { Text("Lyrics") }.tag(2)
-                labelsTab.tabItem { Text("Labels") }.tag(3)
+                labelsTab.tabItem { Text("Labels") }.tag(2)
             }
             .padding(.horizontal, 14)
             footer.padding(14)
@@ -385,21 +371,7 @@ struct TagEditorView: View {
         .frame(width: 340)
     }
 
-    // MARK: Lyrics / Labels
-
-    private var lyricsTab: some View {
-        Group {
-            if model.showsOneTrack && model.currentTrack.track.id != nil {
-                TextEditor(text: Binding(get: { model.lyrics[model.index] ?? "" },
-                                         set: { model.lyrics[model.index] = $0.isEmpty ? nil : $0 }))
-                    .font(.body)
-                    .padding(4)
-            } else {
-                Text(model.isMultiple ? "Turn on Per Track to edit lyrics." : "Lyrics can be edited for collection tracks.")
-                    .foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        }
-    }
+    // MARK: Labels
 
     private var labelsTab: some View {
         VStack(alignment: .leading, spacing: 8) {
