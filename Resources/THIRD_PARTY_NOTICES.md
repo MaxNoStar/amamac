@@ -2,6 +2,10 @@
 
 Amamac is built on the open-source components below. Amamac itself contains no code, data or
 artwork from Amarok; it reproduces Amarok's layout and behaviour from its documentation.
+Amamac's own code is released under the MIT License (see `LICENSE`).
+
+TagLib is compiled into the app and used under its MPL-1.1 option; its source is available
+from https://taglib.org and the CXXTagLib repository at https://github.com/sbooth.
 
 The LGPL-licensed libraries (LAME, mpg123, libsndfile, TTA and parts of Musepack) are
 dynamically linked frameworks inside `Amamac.app/Contents/Frameworks` and can be replaced

@@ -11,8 +11,9 @@ enum AboutPanel {
         let credits = NSMutableAttributedString(string: """
             A music player for macOS on Apple silicon, with the layout and features of Amarok 2/3.
 
-            Amamac is not affiliated with KDE or the Amarok project. It reuses no Amarok code or \
-            artwork. Help › Acknowledgements lists the open-source components it builds on.
+            Amamac is free and open source under the MIT License. It is not affiliated with KDE or \
+            the Amarok project and reuses no Amarok code or artwork. Help › Acknowledgements has the \
+            license and the open-source components it builds on.
             """, attributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.secondaryLabelColor])
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = .center
@@ -31,8 +32,11 @@ enum AboutPanel {
 enum AcknowledgementsWindow {
     static func show() {
         SingleWindow.show("AcknowledgementsWindow") {
-            let text = Bundle.main.url(forResource: "THIRD_PARTY_NOTICES", withExtension: "md")
-                .flatMap { try? String(contentsOf: $0, encoding: .utf8) } ?? "The notices file is missing from this build."
+            func resource(_ name: String, _ ext: String?) -> String? {
+                Bundle.main.url(forResource: name, withExtension: ext).flatMap { try? String(contentsOf: $0, encoding: .utf8) }
+            }
+            let license = resource("LICENSE", nil).map { "# Amamac\n\n\($0)\n" } ?? ""
+            let text = license + (resource("THIRD_PARTY_NOTICES", "md") ?? "The notices file is missing from this build.")
             let scroll = NSTextView.scrollableTextView()
             let textView = scroll.documentView as! NSTextView
             textView.isEditable = false

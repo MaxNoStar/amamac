@@ -39,6 +39,10 @@ PACKAGES=(
   echo
   echo "Amamac is built on the open-source components below. Amamac itself contains no code, data or"
   echo "artwork from Amarok; it reproduces Amarok's layout and behaviour from its documentation."
+  echo "Amamac's own code is released under the MIT License (see \`LICENSE\`)."
+  echo
+  echo "TagLib is compiled into the app and used under its MPL-1.1 option; its source is available"
+  echo "from https://taglib.org and the CXXTagLib repository at https://github.com/sbooth."
   echo
   echo "The LGPL-licensed libraries (LAME, mpg123, libsndfile, TTA and parts of Musepack) are"
   echo "dynamically linked frameworks inside \`Amamac.app/Contents/Frameworks\` and can be replaced"
@@ -63,7 +67,7 @@ PACKAGES=(
     echo
     for file in $(ls "$CHECKOUTS/$dir" | grep -iE '^(license|copying)' | grep -v '^LICENSES$'); do
       echo '```'
-      cat "$CHECKOUTS/$dir/$file"
+      tr -d '\r' < "$CHECKOUTS/$dir/$file"   # some upstream files use CRLF line endings
       echo
       echo '```'
     done

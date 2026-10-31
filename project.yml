@@ -73,6 +73,9 @@ targets:
     sources:
       - Sources/Amamac
       - Resources
+      # Amamac's own license travels with every copy of the app (Help › Acknowledgements).
+      - path: LICENSE
+        buildPhase: resources
     dependencies:
       - package: AmamacKit
         product: AmamacBase
