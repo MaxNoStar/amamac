@@ -231,6 +231,13 @@ final class SnapshotRunner {
         await capture("Queue Editor", "dialog-edit-queue.png")
         BookmarkManagerWindow.show(env: env)
         await capture("Bookmark Manager", "dialog-bookmarks.png")
+        env.equalizer.select("Rock")
+        guard env.equalizer.enabled, env.settings.string(AppSettings.Key.equalizerPreset) == "Rock" else { fail("equalizer preset not applied") }
+        EqualizerWindow.show(env: env)
+        await capture("Equalizer", "dialog-equalizer.png")
+        env.equalizer.setEnabled(false)
+        SettingsWindowController.show(env: env, pane: .playback)
+        await capture("Playback", "settings-playback.png")
     }
 
     /// Plays silently through PlayerController and checks state, position and Next. The window is

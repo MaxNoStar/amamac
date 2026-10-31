@@ -108,6 +108,20 @@ Plan: Amarok 2/3 feature parity in milestones M0–M8 (see CLAUDE.md for command
 - The four built-in playlist layouts were already in place from M2b.
 - Snapshot run checks dynamic mode (5 previous, 10 upcoming), the generator and a collection link,
   and captures the Playlists pages, the Files browser, the Queue Editor and the Bookmark Manager.
-## M6 — Audio extras
+## M6 — Audio extras ✅
+- Equalizer (Tools › Equalizer…, ⌥⌘E): on/off, preamp and 10 bands (29 Hz–15 kHz, ±12 dB),
+  Amarok's 19 preset names with Amamac's own curves, Manual that remembers hand-made settings,
+  saved user presets, Flat. Applied at launch; band bypass keeps ReplayGain working when off.
+- ReplayGain Off/Track/Album with pre-amp, a gain for untagged tracks and peak limiting. Changes
+  apply to the playing track at once and to the queued gapless track.
+- Fade out on stop and pause with an adjustable duration. Fades can be cancelled: resuming or
+  starting another track during a fade restores the volume and the pending stop/pause never runs
+  (this was a real bug before).
+- Output device choice (System Default or any output device by UID) for both the file engine and
+  streams; follows device changes and falls back to the default when a device disappears.
+- Settings window (⌘,) with a Playback page: output device, resume on start, fading, ReplayGain
+  and the three seek steps. Further pages arrive in M8.
+- Tests: preset sanity and headroom, preset round trip, ReplayGain fallback and peak limiting, and
+  an engine test for fade cancellation. Snapshots of the Equalizer and the Playback settings.
 ## M7 — Internet
 ## M8 — Desktop integration and polish

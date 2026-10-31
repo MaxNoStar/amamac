@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 import Testing
 @testable import AmamacCore
 
@@ -127,5 +128,28 @@ struct EngineTests {
         let time = engine.currentTime ?? 0
         engine.stop()
         #expect(time >= 2.4 && time < 3.6, "position after seek was \(time)")
+    }
+
+    @Test func cancelledFadeNeverCompletes() async throws {
+        let dir = temporaryDirectory()
+        let a = try AudioFixtures.make(.init("a.flac", seconds: 4), in: dir)
+        let engine = LocalAudioEngine()
+        engine.setVolume(0)
+        try engine.play(url: a, itemID: PlaylistItemID())
+        try await Task.sleep(for: .milliseconds(200))
+        let completed = Mutex(false)
+        engine.fadeOut(duration: 0.6) { completed.withLock { $0 = true } }
+        try await Task.sleep(for: .milliseconds(250))
+        #expect(engine.isFading, "the fade should have lowered the mixer volume")
+        engine.resume()
+        try await Task.sleep(for: .milliseconds(700))
+        #expect(!engine.isFading)
+        #expect(!completed.withLock { $0 })
+        #expect(engine.isPlaying)
+
+        engine.fadeOut(duration: 0.3) { completed.withLock { $0 = true } }
+        try await Task.sleep(for: .milliseconds(700))
+        #expect(completed.withLock { $0 }, "an uninterrupted fade completes")
+        engine.stop()
     }
 }

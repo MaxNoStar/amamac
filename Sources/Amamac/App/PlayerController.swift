@@ -32,6 +32,9 @@ final class PlayerController {
     @ObservationIgnored private var positionTimer: Timer?
     @ObservationIgnored private var consecutiveErrors = 0
     @ObservationIgnored private var listeners: [UUID: (PlayerEvent) -> Void] = [:]
+    @ObservationIgnored private var appliedGainSettings: [String] = []
+    @ObservationIgnored private var appliedOutputUID: String?
+    @ObservationIgnored private var deviceObservation: AudioDeviceObservation?
 
     enum PlayerEvent {
         case trackChanged
@@ -66,6 +69,47 @@ final class PlayerController {
             }
         }
         proxy.onChange { [weak self] in self?.updateUpcoming() }
+        appliedGainSettings = gainSettings
+        applyOutputDevice()
+        deviceObservation = AudioDevices.observeChanges { [weak self] in
+            Task { @MainActor in self?.applyOutputDevice() }
+        }
+        NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: settings.defaults,
+                                               queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.audioSettingsChanged() }
+        }
+    }
+
+    // MARK: Audio settings
+
+    private var gainSettings: [String] {
+        [settings.replayGainMode.rawValue, String(settings.double(AppSettings.Key.replayGainPreamp)),
+         String(settings.double(AppSettings.Key.replayGainFallback))]
+    }
+
+    /// Re-applies ReplayGain and the output device when their settings change (any writer).
+    private func audioSettingsChanged() {
+        if gainSettings != appliedGainSettings {
+            appliedGainSettings = gainSettings
+            if backend == .local, let item = currentItem { local.setTrackGain(gain(for: item)) }
+            updateUpcoming()
+        }
+        if (settings.string(AppSettings.Key.outputDevice) ?? "") != appliedOutputUID { applyOutputDevice() }
+    }
+
+    /// Routes both engines to the chosen device, or to the system default when it is unset or gone.
+    func applyOutputDevice() {
+        let uid = settings.string(AppSettings.Key.outputDevice) ?? ""
+        appliedOutputUID = uid
+        let chosen = uid.isEmpty ? nil : AudioDevices.device(uid: uid)
+        if let target = chosen ?? AudioDevices.defaultOutputDevice(), target != local.outputDeviceID {
+            do {
+                try local.setOutputDevice(target)
+            } catch {
+                AppEnvironment.shared?.status.showMessage("Could not switch the output device: \(error.localizedDescription)")
+            }
+        }
+        stream.setOutputDevice(uid: chosen != nil ? uid : nil)
     }
 
     @discardableResult
@@ -386,7 +430,8 @@ final class PlayerController {
     }
 
     func gain(for item: PlaylistItem) -> Float {
-        ReplayGain.gain(for: item.track, mode: settings.replayGainMode, preamp: settings.double(AppSettings.Key.replayGainPreamp))
+        ReplayGain.gain(for: item.track, mode: settings.replayGainMode, preamp: settings.double(AppSettings.Key.replayGainPreamp),
+                        fallback: settings.double(AppSettings.Key.replayGainFallback))
     }
 
     // MARK: Statistics

@@ -45,6 +45,8 @@ enum MainMenu {
         let m = NSMenu(title: Amamac.appName)
         item("About \(Amamac.appName)", #selector(AppDelegate.showAbout(_:)), in: m)
         m.addItem(.separator())
+        item("Settings…", #selector(AppDelegate.showSettings(_:)), ",", in: m)
+        m.addItem(.separator())
         let services = NSMenuItem(title: "Services", action: nil, keyEquivalent: "")
         let servicesMenu = NSMenu(title: "Services")
         services.submenu = servicesMenu
@@ -159,6 +161,7 @@ enum MainMenu {
         let m = NSMenu(title: "Tools")
         item("Bookmark Manager", #selector(AppDelegate.showBookmarkManager(_:)), in: m)
         item("Cover Manager", #selector(AppDelegate.showCoverManager(_:)), in: m)
+        item("Equalizer…", #selector(AppDelegate.showEqualizer(_:)), "e", [.command, .option], in: m)
         m.addItem(.separator())
         item("Collection Folders…", #selector(AppDelegate.chooseCollectionFolders(_:)), in: m)
         item("Remove Collection Folders…", #selector(AppDelegate.removeCollectionFolders(_:)), in: m)

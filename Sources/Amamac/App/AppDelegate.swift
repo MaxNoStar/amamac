@@ -42,6 +42,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             return
         }
         AppEnvironment.shared = env
+        _ = env.equalizer
         if options.snapshotDir != nil { env.settings.enabledApplets = AppletKind.allCases.map(\.rawValue) }
         NSApp.mainMenu = MainMenu.build()
         mainWindow = MainWindowController(env: env)
@@ -256,7 +257,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     @objc func setReplayGainMode(_ sender: NSMenuItem) {
         guard let raw = sender.representedObject as? String, let mode = ReplayGainMode(rawValue: raw) else { return }
         env.settings.replayGainMode = mode
-        env.player.updateUpcoming()
     }
 
     @objc func playMedia(_ sender: Any?) {
@@ -455,6 +455,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     @objc func showBookmarkManager(_ sender: Any?) { BookmarkManagerWindow.show(env: env) }
 
     @objc func editQueue(_ sender: Any?) { QueueEditorWindow.show(env: env) }
+
+    @objc func showEqualizer(_ sender: Any?) { EqualizerWindow.show(env: env) }
+
+    @objc func showSettings(_ sender: Any?) { SettingsWindowController.show(env: env) }
 
     /// Shows Media Sources at a root category and returns its page.
     @discardableResult

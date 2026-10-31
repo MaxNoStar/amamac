@@ -102,6 +102,11 @@ public final class StreamEngine: NSObject, AVPlayerItemMetadataOutputPushDelegat
 
     public func setVolume(_ volume: Float) { player.volume = max(0, min(1, volume)) }
 
+    /// Routes streams to a device by Core Audio UID; nil follows the system default output.
+    public func setOutputDevice(uid: String?) {
+        if player.audioOutputDeviceUniqueID != uid { player.audioOutputDeviceUniqueID = uid }
+    }
+
     // MARK: Metadata
 
     public func metadataOutput(_ output: AVPlayerItemMetadataOutput, didOutputTimedMetadataGroups groups: [AVTimedMetadataGroup],

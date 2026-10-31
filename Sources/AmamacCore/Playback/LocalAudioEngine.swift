@@ -155,6 +155,8 @@ public final class LocalAudioEngine: @unchecked Sendable {
     let eq = AVAudioUnitEQ(numberOfBands: LocalAudioEngine.equalizerFrequencies.count)
     private let settings = Mutex(EqualizerSettings())
     private let analyzer = Mutex<SpectrumTap?>(nil)
+    /// Bumped by every fade and cancellation; a fade step only acts while its generation is current.
+    private let fadeGeneration = Mutex(0)
 
     struct EqualizerSettings {
         var enabled = false
@@ -207,7 +209,7 @@ public final class LocalAudioEngine: @unchecked Sendable {
         let decoder = try AudioDecoder(url: url)
         bridge.register(decoder, item: itemID, gain: gainDB)
         applyGain(gainDB)
-        player.mainMixerNode.outputVolume = 1
+        cancelFade()
         try player.play(decoder)
     }
 
@@ -218,7 +220,7 @@ public final class LocalAudioEngine: @unchecked Sendable {
 
     public func pause() { _ = player.pause() }
     public func resume() {
-        player.mainMixerNode.outputVolume = 1
+        cancelFade()
         _ = player.resume()
     }
     public func stop() {
@@ -239,21 +241,39 @@ public final class LocalAudioEngine: @unchecked Sendable {
     public func setVolume(_ volume: Float) { try? player.setVolume(max(0, min(1, volume))) }
 
     /// Fades the mixer to silence over `duration`, then runs `completion` on the main queue.
+    /// `play`, `resume` and `cancelFade` abandon the fade; its completion then never runs.
     public func fadeOut(duration: TimeInterval, completion: @escaping @Sendable () -> Void) {
+        let generation = fadeGeneration.withLock { g -> Int in
+            g += 1
+            return g
+        }
         guard duration > 0 else { completion(); return }
         let mixer = player.mainMixerNode
         let steps = max(1, Int(duration / 0.02))
         let start = mixer.outputVolume
         let queue = DispatchQueue(label: "amamac.fade")
         for i in 1...steps {
-            queue.asyncAfter(deadline: .now() + Double(i) * duration / Double(steps)) {
+            queue.asyncAfter(deadline: .now() + Double(i) * duration / Double(steps)) { [weak self] in
+                guard let self, self.fadeGeneration.withLock({ $0 }) == generation else { return }
                 mixer.outputVolume = start * Float(steps - i) / Float(steps)
-                if i == steps { DispatchQueue.main.async(execute: completion) }
+                if i == steps {
+                    DispatchQueue.main.async {
+                        if self.fadeGeneration.withLock({ $0 }) == generation { completion() }
+                    }
+                }
             }
         }
     }
 
-    public func restoreMixerVolume() { player.mainMixerNode.outputVolume = 1 }
+    /// Stops a running fade and restores full mixer volume.
+    public func cancelFade() {
+        fadeGeneration.withLock { $0 += 1 }
+        player.mainMixerNode.outputVolume = 1
+    }
+
+    public var isFading: Bool { player.mainMixerNode.outputVolume < 1 }
+
+    public func restoreMixerVolume() { cancelFade() }
 
     public var outputDeviceID: AudioObjectID { player.outputDeviceID }
     public func setOutputDevice(_ id: AudioObjectID) throws { try player.setOutputDeviceID(id) }
@@ -268,6 +288,9 @@ public final class LocalAudioEngine: @unchecked Sendable {
         }
         applyEqualizer()
     }
+
+    /// ReplayGain for the current track (dB), applied immediately.
+    public func setTrackGain(_ gain: Float) { applyGain(gain) }
 
     func applyGain(_ gain: Float) {
         settings.withLock { $0.trackGain = gain }

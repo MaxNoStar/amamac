@@ -31,6 +31,7 @@ final class AppSettings {
         Key.fadeOutDuration: 2000,
         Key.replayGainMode: ReplayGainMode.track.rawValue,
         Key.replayGainPreamp: 0.0,
+        Key.replayGainFallback: 0.0,
         Key.equalizerEnabled: false,
         Key.equalizerPreset: "Zero",
         Key.equalizerBands: [Double](repeating: 0, count: 10),
@@ -90,6 +91,9 @@ final class AppSettings {
         static let fadeOutDuration = "fadeOutDuration"
         static let replayGainMode = "replayGainMode"
         static let replayGainPreamp = "replayGainPreamp"
+        static let replayGainFallback = "replayGainFallback"
+        static let equalizerManual = "equalizerManual"
+        static let equalizerUserPresets = "equalizerUserPresets"
         static let equalizerEnabled = "equalizerEnabled"
         static let equalizerPreset = "equalizerPreset"
         static let equalizerBands = "equalizerBands"

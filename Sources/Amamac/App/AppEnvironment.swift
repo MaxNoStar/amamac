@@ -22,6 +22,7 @@ final class AppEnvironment {
     let http: HTTPClient
     let lyrics: LyricsService
     private(set) lazy var dynamicMode = DynamicModeController(env: self)
+    private(set) lazy var equalizer = EqualizerController(settings: settings, engine: player.local)
     private var watcher: FolderWatcher?
 
     /// Posted when the collection database changed (scan, tag edit, statistics).
