@@ -181,6 +181,7 @@ final class SnapshotRunner {
         await capturePlaylistPages(win, tracks: tracks, music: music)
         await captureInternetPages(win)
         await captureDialogs(tracks: tracks)
+        await checkCrossfade()
         if let layoutDump { Snapshotter.dumpLayout(of: win, to: layoutDump) }
         env.player.stop()
         print("snapshot: wrote \(output.path)")

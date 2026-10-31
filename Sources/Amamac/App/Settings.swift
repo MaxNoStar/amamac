@@ -31,6 +31,9 @@ final class AppSettings {
         Key.fadeOutOnStop: false,
         Key.fadeOutOnPause: false,
         Key.fadeOutDuration: 2000,
+        Key.crossfade: false,
+        Key.crossfadeDuration: 5000,
+        Key.crossfadeKeepsAlbumsGapless: true,
         Key.replayGainMode: ReplayGainMode.track.rawValue,
         Key.replayGainPreamp: 0.0,
         Key.replayGainFallback: 0.0,
@@ -95,6 +98,9 @@ final class AppSettings {
         static let fadeOutOnStop = "fadeOutOnStop"
         static let fadeOutOnPause = "fadeOutOnPause"
         static let fadeOutDuration = "fadeOutDuration"
+        static let crossfade = "crossfade"
+        static let crossfadeDuration = "crossfadeDuration"
+        static let crossfadeKeepsAlbumsGapless = "crossfadeKeepsAlbumsGapless"
         static let replayGainMode = "replayGainMode"
         static let replayGainPreamp = "replayGainPreamp"
         static let replayGainFallback = "replayGainFallback"

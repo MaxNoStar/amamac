@@ -39,6 +39,7 @@ final class PlayerController {
     @ObservationIgnored private var consecutiveErrors = 0
     @ObservationIgnored private var listeners: [UUID: (PlayerEvent) -> Void] = [:]
     @ObservationIgnored private var appliedGainSettings: [String] = []
+    @ObservationIgnored private var appliedCrossfade = CrossfadePolicy()
     @ObservationIgnored private var appliedOutputUID: String?
     @ObservationIgnored private var deviceObservation: AudioDeviceObservation?
 
@@ -77,6 +78,7 @@ final class PlayerController {
         }
         proxy.onChange { [weak self] in self?.updateUpcoming() }
         appliedGainSettings = gainSettings
+        appliedCrossfade = settings.crossfadePolicy
         applyOutputDevice()
         deviceObservation = AudioDevices.observeChanges { [weak self] in
             Task { @MainActor in self?.applyOutputDevice() }
@@ -94,11 +96,15 @@ final class PlayerController {
          String(settings.double(AppSettings.Key.replayGainFallback))]
     }
 
-    /// Re-applies ReplayGain and the output device when their settings change (any writer).
+    /// Re-applies ReplayGain, crossfading and the output device when their settings change (any writer).
     private func audioSettingsChanged() {
         if gainSettings != appliedGainSettings {
             appliedGainSettings = gainSettings
             if backend == .local, let item = currentItem { local.setTrackGain(gain(for: item)) }
+            updateUpcoming()
+        }
+        if settings.crossfadePolicy != appliedCrossfade {
+            appliedCrossfade = settings.crossfadePolicy
             updateUpcoming()
         }
         if (settings.string(AppSettings.Key.outputDevice) ?? "") != appliedOutputUID { applyOutputDevice() }
@@ -425,15 +431,16 @@ final class PlayerController {
         }
     }
 
-    /// Recomputes the track the engine should enqueue next.
+    /// Recomputes the track the engine should play next, and whether it crossfades.
     func updateUpcoming() {
-        guard backend == .local, state != .stopped, let current = currentItem?.id,
+        guard backend == .local, state != .stopped, let current = currentItem,
               let nextID = navigator.peekNext(), let next = model.item(nextID),
               next.url.isFileURL, !next.isStream else {
             local.setUpcoming(nil)
             return
         }
-        local.setUpcoming(UpcomingTrack(itemID: nextID, url: next.url, gainDB: gain(for: next), after: current))
+        local.setUpcoming(UpcomingTrack(itemID: nextID, url: next.url, gainDB: gain(for: next), after: current.id,
+                                        transition: settings.crossfadePolicy.transition(from: current.track, to: next.track)))
     }
 
     func gain(for item: PlaylistItem) -> Float {
