@@ -179,6 +179,25 @@ struct NavigatorTests {
         }
         #expect(firstPicks > 200 / 6 * 2, "rated track should be favoured (\(firstPicks))")
     }
+    @Test func favorAppliesToRandomAlbums() {
+        let model = PlaylistModel()
+        let loved = (0..<3).map { i in PlaylistItem(track: makeTrack("Loved\(i)", album: "Loved", track: i + 1),
+                                                    statistics: TrackStatistics(trackId: Int64(i + 1), rating: 10)) }
+        let others = (0..<5).flatMap { a in (0..<3).map { i in
+            PlaylistItem(track: makeTrack("O\(a)-\(i)", album: "Other \(a)", track: i + 1),
+                         statistics: TrackStatistics(trackId: Int64(100 + a * 10 + i), rating: 1))
+        } }
+        model.append(loved + others)
+        let proxy = PlaylistProxy(model: model)
+        var lovedFirst = 0
+        for seed in 0..<200 {
+            let nav = PlaylistNavigator(proxy: proxy, rng: SplitMix64(seed: UInt64(seed)))
+            nav.progression = .randomAlbums
+            nav.favor = .higherRatings
+            if nav.peekNext() == loved[0].id { lovedFirst += 1 }
+        }
+        #expect(lovedFirst > 200 / 6 * 2, "the well-rated album should come first more often (\(lovedFirst))")
+    }
 }
 
 @MainActor

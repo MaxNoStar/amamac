@@ -4,23 +4,41 @@ import AmamacCore
 
 /// The Settings window: one toolbar tab per page, each a SwiftUI form.
 enum SettingsPane: String, CaseIterable {
-    case playback
+    case general, collection, metadata, playback, notifications, internet, shortcuts
 
     var title: String {
         switch self {
+        case .general: "General"
+        case .collection: "Local Collection"
+        case .metadata: "Metadata"
         case .playback: "Playback"
+        case .notifications: "Notifications"
+        case .internet: "Internet"
+        case .shortcuts: "Shortcuts"
         }
     }
 
     var symbol: String {
         switch self {
+        case .general: "gearshape"
+        case .collection: "music.note.house"
+        case .metadata: "tag"
         case .playback: "play.circle"
+        case .notifications: "text.bubble"
+        case .internet: "globe"
+        case .shortcuts: "keyboard"
         }
     }
 
     @MainActor func makeView(env: AppEnvironment) -> AnyView {
         switch self {
+        case .general: AnyView(GeneralSettingsView(env: env))
+        case .collection: AnyView(CollectionSettingsView(env: env))
+        case .metadata: AnyView(MetadataSettingsView(env: env))
         case .playback: AnyView(PlaybackSettingsView(env: env))
+        case .notifications: AnyView(NotificationSettingsView(env: env))
+        case .internet: AnyView(InternetSettingsView(env: env))
+        case .shortcuts: AnyView(ShortcutSettingsView())
         }
     }
 }

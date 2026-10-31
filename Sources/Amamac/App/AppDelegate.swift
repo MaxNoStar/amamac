@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
     private(set) var env: AppEnvironment!
     private(set) var mainWindow: MainWindowController!
+    private(set) var desktop: DesktopIntegration?
     private var sessionSaveScheduled = false
     private var nowPlayingArtworkKey: String?
     private var nowPlayingArtwork: NSImage?
@@ -47,12 +48,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         NSApp.mainMenu = MainMenu.build()
         mainWindow = MainWindowController(env: env)
 
+        if let perfOutput = options.perfOutput {
+            PerfRunner(env: env, window: mainWindow, output: perfOutput).run()
+            return
+        }
         if let snapshotDir = options.snapshotDir {
             SnapshotRunner(env: env, window: mainWindow, output: snapshotDir, layoutDump: options.dumpLayout).run()
             return
         }
 
         mainWindow.showWindow(nil)
+        desktop = DesktopIntegration(env: env, mainWindow: mainWindow)
         setUpNowPlaying()
         observeSession()
         restoreSession()
@@ -534,12 +540,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
     // MARK: Help
 
-    @objc func showAbout(_ sender: Any?) {
-        NSApp.orderFrontStandardAboutPanel(options: [
-            .applicationName: Amamac.appName,
-            .credits: NSAttributedString(string: "A music player for macOS modelled on Amarok 2/3.\nBuilt with SFBAudioEngine, GRDB, FeedKit and KeyboardShortcuts."),
-        ])
-    }
+    @objc func showAbout(_ sender: Any?) { AboutPanel.show() }
+
+    @objc func showDiagnostics(_ sender: Any?) { DiagnosticsWindow.show(env: env) }
+
+    @objc func showAcknowledgements(_ sender: Any?) { AcknowledgementsWindow.show() }
+
+    @objc func showAmamacHelp(_ sender: Any?) { HelpWindow.show() }
 
     // MARK: Validation
 

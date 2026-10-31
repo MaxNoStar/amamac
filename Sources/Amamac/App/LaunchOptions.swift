@@ -7,6 +7,7 @@ struct LaunchOptions {
     var dumpLayout: URL?
     var selfTestDecoders = false
     var canaryDir: URL?
+    var perfOutput: URL?
 
     static let current = LaunchOptions(arguments: CommandLine.arguments)
 
@@ -23,11 +24,12 @@ struct LaunchOptions {
             case "--dump-layout": dumpLayout = value().map { URL(fileURLWithPath: $0) }
             case "--selftest-decoders": selfTestDecoders = true
             case "--canary": canaryDir = value().map { URL(fileURLWithPath: $0) }
+            case "--perf": perfOutput = value().map { URL(fileURLWithPath: $0) }
             default: break
             }
             i += 1
         }
     }
 
-    var isAutomation: Bool { snapshotDir != nil || selfTestDecoders || canaryDir != nil }
+    var isAutomation: Bool { snapshotDir != nil || selfTestDecoders || canaryDir != nil || perfOutput != nil }
 }

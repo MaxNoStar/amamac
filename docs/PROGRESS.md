@@ -144,4 +144,38 @@ Plan: Amarok 2/3 feature parity in milestones M0–M8 (see CLAUDE.md for command
 - Tests: mirror choice and codec flags, favourites round trip, subscribe/update/download/prune
   against a stubbed feed, the podcast directory, and OPML export/parse (including nested
   outlines). The snapshot run checks radio, the directory, a subscription and a download.
-## M8 — Desktop integration and polish
+## M8 — Desktop integration and polish ✅
+- Settings window (⌘,) with seven pages: General (menu bar icon, playlist behaviour, sleep),
+  Local Collection (folders with per-folder watching, update and rescan), Metadata (automatic
+  cover fetching, statistics in files, Apple Music import, Wikipedia language), Playback (M6),
+  Notifications (OSD and Notification Center), Internet (podcast schedule and folder, the online
+  services used, clearing the web cache) and Shortcuts (global shortcut recorders with defaults).
+- On-screen display: a non-activating panel showing cover, title, artist/album, rating and length
+  on track changes, plus pause/stop, volume, mute, rating and stop-after messages. Duration, text
+  size and colour, translucency, screen, hiding during full-screen apps, and a draggable preview
+  to place it. (The snapshot run caught a sizing bug that made it 0×0; fixed.)
+- Menu bar icon: click shows or hides the window, right-click opens playback controls, scrolling
+  changes the volume, middle-click pauses, tooltip shows the track.
+- Global shortcuts (KeyboardShortcuts): ⌃⌥P play/pause, ⌃⌥←/→ previous/next, ⌃⌥=/− volume,
+  ⌃⌥M mute, ⌃⌥O show OSD, ⌃⌥1–5 rate, ⌃⌥⇧V stop after current, ⌃⌥A add media; Stop unassigned.
+- Optional Notification Center banners (with cover) while Amamac is in the background; a sleep
+  assertion while playing and pause before sleep; "start playing when adding while stopped",
+  "keep the playing track in view" and "fetch missing covers" now do what they say.
+- App icon drawn by `scripts/make-icon.swift` (an original record-and-wave design; `make icon`).
+- About panel, Help window (layout, filter syntax, keys), Diagnostics (copyable report) and
+  Acknowledgements; THIRD_PARTY_NOTICES.md generated from the packages' license files
+  (`make notices`) and bundled in the app; README.md.
+- Performance pass on 20,000 tracks (`make perf`, Debug build, this Mac):
+
+  | Operation | Time |
+  |---|---|
+  | Collection top level / expand 5 artists | 43 ms / 17 ms |
+  | Collection filter (“night”, `rating:>3 year:>1990`) | 48 ms / 36 ms |
+  | Load 20,000 tracks with statistics | 208 ms |
+  | Replace playlist with 20,000 items (incl. table) | 110 ms |
+  | Sort by artist, album / clear | 87 ms / 38 ms |
+  | Remove 5,000 items / undo | 58 ms / 61 ms |
+  | Save / restore session | 47 ms / 348 ms |
+
+  Random Albums with Favor rebuilt its album index on every step (≈10 ms per advance); it is now
+  cached until the playlist changes (50 advances: 480 → 28 ms), and Favor now weights albums too.

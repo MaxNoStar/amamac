@@ -358,8 +358,26 @@ final class SnapshotRunner {
         EqualizerWindow.show(env: env)
         await capture("Equalizer", "dialog-equalizer.png")
         env.equalizer.setEnabled(false)
-        SettingsWindowController.show(env: env, pane: .playback)
-        await capture("Playback", "settings-playback.png")
+        for pane in SettingsPane.allCases {
+            SettingsWindowController.show(env: env, pane: pane)
+            await capture(pane.title, "settings-\(pane.rawValue).png")
+        }
+        HelpWindow.show()
+        await capture("Amamac Help", "help.png")
+        DiagnosticsWindow.show(env: env)
+        await capture("Diagnostics", "diagnostics.png")
+
+        // The OSD with an opaque background (the HUD material does not render off screen).
+        env.settings.set(false, AppSettings.Key.osdTranslucent)
+        let osd = OSDController(env: env)
+        if let item = env.playlist.items.first(where: { $0.source == .collection && !$0.track.album.isEmpty }) {
+            osd.showTrack(item, force: true)
+            try? await Task.sleep(for: .milliseconds(600))
+            if let view = osd.contentView { await Snapshotter.capture(view, to: output.appendingPathComponent("osd-track.png")) }
+        }
+        osd.showMessage("Volume 60%", symbol: "speaker.wave.2.fill", level: 0.6, force: true)
+        try? await Task.sleep(for: .milliseconds(300))
+        if let view = osd.contentView { await Snapshotter.capture(view, to: output.appendingPathComponent("osd-volume.png")) }
     }
 
     /// Plays silently through PlayerController and checks state, position and Next. The window is

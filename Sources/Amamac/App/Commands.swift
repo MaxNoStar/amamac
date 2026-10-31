@@ -26,7 +26,8 @@ enum Commands {
         let model = env.playlist
         switch mode {
         case .append:
-            model.insert(items, at: index)
+            let ids = model.insert(items, at: index)
+            if env.settings.bool(AppSettings.Key.startPlayingOnAdd), env.player.state == .stopped { env.player.play(ids[0]) }
         case .appendAndPlay:
             let ids = model.insert(items, at: index)
             env.player.play(ids[0])

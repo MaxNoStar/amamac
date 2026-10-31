@@ -8,7 +8,10 @@ import AmamacCore
 @MainActor
 @Observable
 final class PodcastController {
-    let service: PodcastService
+    /// Rebuilt on use so a changed download folder applies at once.
+    var service: PodcastService {
+        PodcastService(database: env.database, http: env.http, downloadFolder: Self.downloadFolder(env))
+    }
     private(set) var channels: [PodcastChannel] = []
     private(set) var newCounts: [Int64: Int] = [:]
     /// Running downloads: episode id → fraction done.
@@ -22,7 +25,6 @@ final class PodcastController {
 
     init(env: AppEnvironment) {
         self.env = env
-        service = PodcastService(database: env.database, http: env.http, downloadFolder: Self.downloadFolder(env))
         NotificationCenter.default.addObserver(forName: PodcastService.changed, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.reload() }
         }

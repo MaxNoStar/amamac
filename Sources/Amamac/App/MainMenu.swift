@@ -16,7 +16,10 @@ enum MainMenu {
         bar.addItem(submenu(window))
         NSApp.windowsMenu = window
         let help = NSMenu(title: "Help")
-        help.addItem(item("Amamac Help", #selector(NSApplication.showHelp(_:)), "?"))
+        help.addItem(item("Amamac Help", #selector(AppDelegate.showAmamacHelp(_:)), "?"))
+        help.addItem(.separator())
+        help.addItem(item("Diagnostics", #selector(AppDelegate.showDiagnostics(_:))))
+        help.addItem(item("Acknowledgements", #selector(AppDelegate.showAcknowledgements(_:))))
         bar.addItem(submenu(help))
         NSApp.helpMenu = help
         return bar

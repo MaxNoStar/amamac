@@ -50,6 +50,8 @@ public final class PlaylistNavigator {
     private var plannedTracks: [PlaylistItemID]?
     private var playedAlbums = Set<String>()
     private var plannedAlbums: [String]?
+    /// Tracks of each album in visible order; rebuilt after the proxy changes.
+    private var albumIndex: (tracks: [String: [PlaylistItemID]], order: [String])?
     /// Items played, most recent last (for Previous in random modes).
     public private(set) var history: [PlaylistItemID] = []
     private var listenerToken: UUID?
@@ -64,6 +66,7 @@ public final class PlaylistNavigator {
     public func invalidate() {
         plannedTracks = nil
         plannedAlbums = nil
+        albumIndex = nil
     }
 
     // MARK: Next / previous
@@ -203,16 +206,32 @@ public final class PlaylistNavigator {
         return plan
     }
 
-    private func nextRandomAlbumItem(activeRow: Int?) -> PlaylistItemID? {
-        let visible = proxy.visible
-        // Tracks of each album in visible order.
+    private func albumsInVisibleOrder() -> (tracks: [String: [PlaylistItemID]], order: [String]) {
+        if let albumIndex { return albumIndex }
         var albums: [String: [PlaylistItemID]] = [:]
         var albumOrder: [String] = []
-        for id in visible {
+        for id in proxy.visible {
             guard let item = model.item(id) else { continue }
             if albums[item.albumKey] == nil { albumOrder.append(item.albumKey) }
             albums[item.albumKey, default: []].append(id)
         }
+        albumIndex = (albums, albumOrder)
+        return (albums, albumOrder)
+    }
+
+    /// Albums in random order; with a Favor mode, weighted by their tracks' average weight.
+    private func shuffleAlbums(_ keys: [String], tracks: [String: [PlaylistItemID]]) -> [String] {
+        if favor == .none { return keys.shuffled(using: &rng) }
+        let keyed = keys.map { key -> (String, Double) in
+            let items = (tracks[key] ?? []).compactMap { model.item($0) }
+            let w = items.isEmpty ? 1 : items.map(weight).reduce(0, +) / Double(items.count)
+            return (key, pow(Double.random(in: Double.ulpOfOne..<1, using: &rng), 1 / max(w, 0.0001)))
+        }
+        return keyed.sorted { $0.1 > $1.1 }.map(\.0)
+    }
+
+    private func nextRandomAlbumItem(activeRow: Int?) -> PlaylistItemID? {
+        let (albums, albumOrder) = albumsInVisibleOrder()
         if let active = model.activeItem, let tracks = albums[active.albumKey],
            let pos = tracks.firstIndex(of: active.id), pos + 1 < tracks.count {
             return tracks[pos + 1]
@@ -224,7 +243,7 @@ public final class PlaylistNavigator {
                 candidates = albumOrder.filter { $0 != model.activeItem?.albumKey }
                 if candidates.isEmpty { candidates = albumOrder }
             }
-            plannedAlbums = candidates.shuffled(using: &rng)
+            plannedAlbums = shuffleAlbums(candidates, tracks: albums)
         }
         while let key = plannedAlbums?.first {
             if let first = albums[key]?.first { return first }

@@ -44,13 +44,15 @@ final class AppSettings {
         Key.showTrayIcon: true,
         Key.autoFetchCovers: false,
         Key.autoScrollPlaylist: true,
-        Key.writeTagsToFile: true,
         Key.writeStatisticsToFile: false,
         Key.osdEnabled: true,
         Key.osdDuration: 5000,
         Key.osdTranslucent: true,
         Key.osdFontScale: 115,
         Key.osdHideWhenFullscreen: true,
+        Key.osdScreen: 0,
+        Key.osdTextColor: "#FFFFFF",
+        Key.osdPosition: [0.5, 0.9],
         Key.systemNotifications: false,
         Key.inhibitSleep: true,
         Key.pauseOnSleep: true,
@@ -107,7 +109,6 @@ final class AppSettings {
         static let showTrayIcon = "showTrayIcon"
         static let autoFetchCovers = "autoFetchCovers"
         static let autoScrollPlaylist = "autoScrollPlaylist"
-        static let writeTagsToFile = "writeTagsToFile"
         static let writeStatisticsToFile = "writeStatisticsToFile"
         static let osdEnabled = "osdEnabled"
         static let osdDuration = "osdDuration"
@@ -115,6 +116,7 @@ final class AppSettings {
         static let osdFontScale = "osdFontScale"
         static let osdHideWhenFullscreen = "osdHideWhenFullscreen"
         static let osdPosition = "osdPosition"
+        static let osdScreen = "osdScreen"
         static let osdTextColor = "osdTextColor"
         static let systemNotifications = "systemNotifications"
         static let inhibitSleep = "inhibitSleep"
@@ -136,7 +138,6 @@ final class AppSettings {
         static let paneWidths = "paneWidths"
         static let hiddenPanes = "hiddenPanes"
         static let firstRunDone = "firstRunDone"
-        static let httpContact = "httpContact"
         static let outputDevice = "outputDevice"
         static let analyzerBarWidth = "analyzerBarWidth"
         static let analyzerFallSpeed = "analyzerFallSpeed"

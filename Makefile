@@ -10,7 +10,7 @@ RESOLVED_SRC := Package.resolved
 RESOLVED_DST := Amamac.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 SNAPSHOT_DIR ?= $(TMPDIR)amamac-snapshot
 
-.PHONY: project resolve build test test-engine run app snapshot clean
+.PHONY: project resolve build test test-engine run app snapshot perf icon notices clean
 
 project:
 	@xcodegen generate --quiet
@@ -50,6 +50,17 @@ snapshot: build
 	@rm -rf "$(SNAPSHOT_DIR)" && mkdir -p "$(SNAPSHOT_DIR)"
 	@"$(APP)/Contents/MacOS/Amamac" --snapshot "$(SNAPSHOT_DIR)" --data-dir "$(SNAPSHOT_DIR)/data" --dump-layout "$(SNAPSHOT_DIR)/layout.json"
 	@ls "$(SNAPSHOT_DIR)"
+
+perf: build
+	@rm -rf "$(TMPDIR)amamac-perf" && mkdir -p "$(TMPDIR)amamac-perf"
+	@"$(APP)/Contents/MacOS/Amamac" --perf "$(TMPDIR)amamac-perf/perf.txt" --data-dir "$(TMPDIR)amamac-perf/data" | grep "^perf:" || true
+	@cat "$(TMPDIR)amamac-perf/perf.txt"
+
+icon:
+	@swift scripts/make-icon.swift Resources/Assets.xcassets/AppIcon.appiconset
+
+notices:
+	@scripts/make-notices.sh THIRD_PARTY_NOTICES.md && cp THIRD_PARTY_NOTICES.md Resources/THIRD_PARTY_NOTICES.md
 
 clean:
 	@rm -rf build "$(DERIVED)"
