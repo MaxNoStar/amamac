@@ -80,7 +80,6 @@ public enum SystemMediaControls {
     }
 
     static func makeArtwork(_ image: NSImage) -> MPMediaItemArtwork {
-        nonisolated(unsafe) let image = image
         return MPMediaItemArtwork(boundsSize: image.size) { _ in image }
     }
 }

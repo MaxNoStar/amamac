@@ -215,11 +215,10 @@ final class MediaSourcesViewController: NSViewController {
         LinkHandler.open(url)
     }
 
-    // Category pages are created by later milestones' extensions.
-    func makeInternetPage() -> NSViewController { InternetBrowserPage(env: env) }
+    func makeInternetPage() -> NSViewController { InternetBrowserPage(env: env, owner: self) }
     func makePlaylistsPage() -> NSViewController { PlaylistsBrowserPage(env: env, owner: self) }
     func makeFilesPage() -> NSViewController { FileBrowserPage(env: env) }
-    func makePodcastsPage() -> NSViewController { PodcastBrowserPage(env: env) }
+    func makePodcastsPage() -> NSViewController { PodcastBrowserPage(env: env, owner: self) }
 }
 
 /// Home › Category › Level crumbs with a bookmark menu.

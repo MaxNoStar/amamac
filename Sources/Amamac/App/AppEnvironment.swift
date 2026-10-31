@@ -23,6 +23,7 @@ final class AppEnvironment {
     let lyrics: LyricsService
     private(set) lazy var dynamicMode = DynamicModeController(env: self)
     private(set) lazy var equalizer = EqualizerController(settings: settings, engine: player.local)
+    private(set) lazy var podcasts = PodcastController(env: self)
     private var watcher: FolderWatcher?
 
     /// Posted when the collection database changed (scan, tag edit, statistics).

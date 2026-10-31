@@ -68,6 +68,7 @@ final class AppSettings {
         Key.dynamicUpcoming: 10,
         Key.dynamicAllowDuplicates: false,
         Key.podcastUpdateMinutes: 60,
+        Key.radioHideUnplayable: true,
         Key.firstRunDone: false,
     ]
 
@@ -130,6 +131,8 @@ final class AppSettings {
         static let activeDynamicPlaylist = "activeDynamicPlaylist"
         static let fileBrowserFolder = "fileBrowserFolder"
         static let podcastUpdateMinutes = "podcastUpdateMinutes"
+        static let podcastFolder = "podcastFolder"
+        static let radioHideUnplayable = "radioHideUnplayable"
         static let paneWidths = "paneWidths"
         static let hiddenPanes = "hiddenPanes"
         static let firstRunDone = "firstRunDone"

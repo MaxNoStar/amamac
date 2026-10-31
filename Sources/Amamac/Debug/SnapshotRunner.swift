@@ -43,10 +43,81 @@ final class SnapshotRunner {
                 gapless playback. See also <a href="https://example.org/">an external link</a>.</p>
                 """
                 return json(["parse": ["title": "Björk Ensemble", "text": html]])
+            case "all.api.radio-browser.info":
+                return json([["name": "de1.api.radio-browser.info"]])
+            case let h where h.hasSuffix("api.radio-browser.info"):
+                let path = url.path()
+                if path.contains("/json/tags") {
+                    return json([["name": "jazz", "stationcount": 1520], ["name": "news", "stationcount": 980], ["name": "classical", "stationcount": 870]])
+                }
+                if path.contains("/json/countries") {
+                    return json([["name": "Iceland", "iso_3166_1": "IS", "stationcount": 41], ["name": "Japan", "iso_3166_1": "JP", "stationcount": 312]])
+                }
+                if path.contains("/json/url/") { return json(["ok": true]) }
+                let stations: [(String, String, Int, Int, String)] = [
+                    ("Reykjavík Jazz", "MP3", 128, 0, "jazz,bebop"), ("Sine Wave FM", "AAC+", 64, 0, "electronic,ambient"),
+                    ("Ogg Vorbis Classics", "OGG", 160, 0, "classical"), ("World News 24", "AAC", 96, 1, "news,talk"),
+                    ("Synth City", "MP3", 320, 0, "synthwave,80s"), ("Opus Experimental", "OPUS", 96, 0, "experimental"),
+                ]
+                return json(stations.enumerated().map { i, s in
+                    ["stationuuid": "stub-\(i)", "name": s.0, "url": "http://radio.example.org/\(i)", "codec": s.1, "bitrate": s.2,
+                     "hls": s.3, "tags": s.4, "country": "Iceland", "favicon": "https://art.example.org/\(i).png",
+                     "homepage": "https://radio.example.org"] as [String: Any]
+                })
+            case "itunes.apple.com":
+                let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+                guard query.contains(where: { $0.name == "media" && $0.value == "podcast" }) else { return nil }
+                return json(["results": [
+                    ["collectionId": 1, "collectionName": "Field Recordings", "artistName": "Example Radio", "primaryGenreName": "Music",
+                     "feedUrl": "https://pod.example.org/feed.xml", "artworkUrl600": "https://pod.example.org/art.png"],
+                    ["collectionId": 2, "collectionName": "Tone Talk", "artistName": "The Synthetics", "primaryGenreName": "Technology",
+                     "feedUrl": "https://tones.example.org/rss", "artworkUrl600": "https://art.example.org/7.png"],
+                ]])
+            case "pod.example.org":
+                if url.pathExtension == "png" { return (200, stubArtwork(hue: 0.08)) }
+                return (200, stubFeed)
+            case "art.example.org":
+                return (200, stubArtwork(hue: Double(url.deletingPathExtension().lastPathComponent) .map { $0 / 8 } ?? 0.5))
+            case "cdn.example.org":
+                return (200, Data(repeating: 0, count: 48_000))
             default:
                 return nil
             }
         }
+    }
+
+    nonisolated static let stubFeed = Data("""
+        <?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"><channel>
+        <title>Field Recordings</title><link>https://pod.example.org</link>
+        <itunes:author>Example Radio</itunes:author><itunes:image href="https://pod.example.org/art.png"/>
+        <description>Sounds recorded outdoors, with notes on where and how.</description>
+        <item><title>Harbour at Dawn</title><guid>e3</guid><pubDate>Mon, 19 Oct 2026 06:00:00 +0000</pubDate>
+        <enclosure url="https://cdn.example.org/e3.mp3" length="48000" type="audio/mpeg"/><itunes:duration>24:10</itunes:duration>
+        <description><![CDATA[<p>Gulls, ropes and a <b>distant foghorn</b>, recorded from the pier.</p>]]></description></item>
+        <item><title>Rain on a Tin Roof</title><guid>e2</guid><pubDate>Mon, 12 Oct 2026 06:00:00 +0000</pubDate>
+        <enclosure url="https://cdn.example.org/e2.mp3" length="48000" type="audio/mpeg"/><itunes:duration>31:02</itunes:duration>
+        <description>A summer storm passing over a mountain hut.</description></item>
+        <item><title>Night Train</title><guid>e1</guid><pubDate>Mon, 05 Oct 2026 06:00:00 +0000</pubDate>
+        <enclosure url="https://cdn.example.org/e1.mp3" length="48000" type="audio/mpeg"/><itunes:duration>45:00</itunes:duration>
+        <description>Sleeper carriage from Oslo to Bergen.</description></item>
+        </channel></rss>
+        """.utf8)
+
+    /// A small gradient PNG standing in for station logos and podcast artwork.
+    nonisolated static func stubArtwork(hue: Double) -> Data {
+        let size = 64
+        guard let ctx = CGContext(data: nil, width: size, height: size, bitsPerComponent: 8, bytesPerRow: 0,
+                                  space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return Data() }
+        let top = NSColor(hue: hue.truncatingRemainder(dividingBy: 1), saturation: 0.55, brightness: 0.95, alpha: 1).cgColor
+        let bottom = NSColor(hue: (hue + 0.12).truncatingRemainder(dividingBy: 1), saturation: 0.75, brightness: 0.6, alpha: 1).cgColor
+        if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: [top, bottom] as CFArray, locations: [0, 1]) {
+            ctx.drawLinearGradient(gradient, start: CGPoint(x: 0, y: size), end: CGPoint(x: size, y: 0), options: [])
+        }
+        ctx.setFillColor(NSColor.white.withAlphaComponent(0.85).cgColor)
+        ctx.fillEllipse(in: CGRect(x: 20, y: 20, width: 24, height: 24))
+        guard let image = ctx.makeImage() else { return Data() }
+        return NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) ?? Data()
     }
 
     func run() {
@@ -104,6 +175,7 @@ final class SnapshotRunner {
         }
         await captureVariants(win)
         await capturePlaylistPages(win, tracks: tracks, music: music)
+        await captureInternetPages(win)
         await captureDialogs(tracks: tracks)
         if let layoutDump { Snapshotter.dumpLayout(of: win, to: layoutDump) }
         env.player.stop()
@@ -203,6 +275,56 @@ final class SnapshotRunner {
             BookmarkStore(database: env.database).addPosition(trackId: track, title: tracks[0].track.displayTitle, position: 1)
         }
         print("snapshot: link check passed")
+    }
+
+    /// Internet radio, the podcast directory and the Podcasts page, against the stubbed network.
+    private func captureInternetPages(_ win: NSWindow) async {
+        let sources = window.mediaSources
+        func captureSources(_ name: String) async {
+            try? await Task.sleep(for: .milliseconds(700))
+            win.contentView?.layoutSubtreeIfNeeded()
+            if let view = window.panes[.mediaSources]?.view {
+                await Snapshotter.capture(view, to: output.appendingPathComponent(name))
+            }
+        }
+        sources.open(category: .internet)
+        guard let internet = sources.page(for: .internet) as? InternetBrowserPage,
+              let radio = internet.open(.radio) as? HostedPage<RadioView> else { fail("no internet radio page") }
+        let top = radio.root.model.top
+        await Snapshotter.waitUntil(timeout: 5) { !top.stations.isEmpty }
+        guard top.stations.count == 6, top.hiddenCount == 2 else {
+            fail("radio: \(top.stations.count) stations, \(top.hiddenCount) hidden, error \(top.error ?? "none")")
+        }
+        top.toggleFavorite(top.visible[0])
+        let before = env.playlist.count
+        top.add([top.visible[1]], mode: .append)
+        guard env.playlist.count == before + 1, env.playlist.items.last?.isStream == true,
+              env.playlist.items.last?.track.title == "Sine Wave FM" else { fail("station was not added as a stream") }
+        await captureSources("internet-radio.png")
+
+        sources.open(category: .internet)
+        guard let directory = internet.open(.podcasts) as? HostedPage<PodcastDirectoryView> else { fail("no podcast directory") }
+        let search = directory.root.model
+        search.term = "field recordings"
+        search.search()
+        await Snapshotter.waitUntil(timeout: 5) { !search.results.isEmpty }
+        guard let first = search.results.first else { fail("podcast search found nothing") }
+        search.subscribe(first)
+        await Snapshotter.waitUntil(timeout: 5) { env.podcasts.channels.count == 1 }
+        guard let channel = env.podcasts.channels.first, let channelId = channel.id else { fail("podcast subscription failed") }
+        await captureSources("podcast-directory.png")
+
+        sources.open(category: .podcasts)
+        guard let page = sources.page(for: .podcasts) as? PodcastBrowserPage else { fail("no podcasts page") }
+        page.model.setExpanded(channelId, true)
+        let episodes = env.podcasts.service.episodes(channelId: channelId)
+        guard episodes.count == 3, episodes[0].isNew, !episodes[1].isNew else { fail("podcast episodes: \(episodes.map(\.title))") }
+        env.podcasts.download(episodes[0])
+        await Snapshotter.waitUntil(timeout: 5) { env.podcasts.service.episodes(channelId: channelId).first?.isDownloaded == true }
+        guard env.podcasts.service.episodes(channelId: channelId).first?.isDownloaded == true else { fail("episode download failed") }
+        page.model.selection = [.episode(episodes[0].id!)]
+        await captureSources("podcasts.png")
+        print("snapshot: internet check passed")
     }
 
     /// Opens each library dialog, captures it and closes it again.

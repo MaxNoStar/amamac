@@ -123,5 +123,25 @@ Plan: Amarok 2/3 feature parity in milestones M0–M8 (see CLAUDE.md for command
   and the three seek steps. Further pages arrive in M8.
 - Tests: preset sanity and headroom, preset round trip, ReplayGain fallback and peak limiting, and
   an engine test for fade cancellation. Snapshots of the Equalizer and the Playback settings.
-## M7 — Internet
+## M7 — Internet ✅
+- Internet Radio (Media Sources › Internet) from radio-browser.info: a mirror is picked from the
+  directory's server list, then Favorites, Top, Genres, Countries and Search. Stations show logo,
+  tags, country and a codec badge; Ogg, Opus and FLAC streams (which macOS's streaming engine
+  can't play) are hidden by default and shown dimmed when included. Play, Add, Replace, star as
+  favourite (stored in the database), open homepage, copy the stream address. Playing a station
+  reports the click to the directory, as its ranking expects.
+- Podcast Directory: iTunes Search for podcasts with Subscribe buttons.
+- Podcasts page: subscriptions with artwork and new-episode badges, expandable episode lists,
+  an info pane with the plain-text description, Add Podcast (feed address), Update All,
+  Import/Export OPML, per-channel settings (automatic updates, download policy, keep N
+  downloads), Download / Delete Download / Show in Finder, Mark as Played / New, Unsubscribe
+  (optionally deleting downloads). Downloads show progress in the row and in the Media Sources
+  strip and go to ~/Music/Podcasts/<podcast>.
+- An hourly update (configurable) checks channels with automatic updates and downloads new
+  episodes where the channel asks for it.
+- Feeds are parsed with FeedKit (RSS with iTunes tags, and Atom enclosures). A subscription marks
+  only the newest episode new; updates add unseen episodes as new.
+- Tests: mirror choice and codec flags, favourites round trip, subscribe/update/download/prune
+  against a stubbed feed, the podcast directory, and OPML export/parse (including nested
+  outlines). The snapshot run checks radio, the directory, a subscription and a download.
 ## M8 — Desktop integration and polish

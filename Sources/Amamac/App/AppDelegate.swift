@@ -56,6 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         setUpNowPlaying()
         observeSession()
         restoreSession()
+        env.podcasts.startAutoUpdate()
         if env.collectionFolders.isEmpty && !env.settings.bool(AppSettings.Key.firstRunDone) {
             DispatchQueue.main.async { self.runFirstRunSetup() }
         } else {

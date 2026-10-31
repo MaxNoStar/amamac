@@ -85,6 +85,22 @@ public final class HTTPClient: Sendable {
         }
     }
 
+    /// Downloads `url` to `destination` (replacing it), reporting progress 0...1. Not cached.
+    public func download(from url: URL, to destination: URL, progress: @escaping @Sendable (Double) -> Void) async throws {
+        var request = URLRequest(url: url)
+        request.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
+        let delegate = DownloadProgressDelegate(progress)
+        let (temporary, response) = try await session.download(for: request, delegate: delegate)
+        defer { try? FileManager.default.removeItem(at: temporary) }
+        guard let http = response as? HTTPURLResponse else { throw HTTPError.invalidResponse }
+        guard (200..<300).contains(http.statusCode) else { throw http.statusCode == 404 ? HTTPError.notFound : HTTPError.status(http.statusCode) }
+        let fm = FileManager.default
+        try fm.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+        if fm.fileExists(atPath: destination.path) { try fm.removeItem(at: destination) }
+        try fm.moveItem(at: temporary, to: destination)
+        progress(1)
+    }
+
     public func json<T: Decodable>(_ type: T.Type, from url: URL) async throws -> T {
         try JSONDecoder().decode(T.self, from: try await data(from: url))
     }
@@ -168,4 +184,19 @@ public final class StubURLProtocol: URLProtocol {
     }
 
     override public func stopLoading() {}
+}
+
+/// Forwards a download task's progress.
+final class DownloadProgressDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+    private let handler: @Sendable (Double) -> Void
+    private let lock = NSLock()
+    private var observation: NSKeyValueObservation?
+
+    init(_ handler: @escaping @Sendable (Double) -> Void) { self.handler = handler }
+
+    func urlSession(_ session: URLSession, didCreateTask task: URLSessionTask) {
+        let handler = self.handler
+        let o = task.progress.observe(\.fractionCompleted) { progress, _ in handler(progress.fractionCompleted) }
+        lock.withLock { observation = o }
+    }
 }
