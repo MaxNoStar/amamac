@@ -7,3 +7,6 @@ DerivedData/
 xcuserdata/
 .DS_Store
 Generated/
+
+# Old release disk images (kept out of build/ so `make clean` keeps them)
+archive/

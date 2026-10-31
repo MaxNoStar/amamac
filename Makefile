@@ -49,7 +49,7 @@ app: build
 # Always a Release build, whatever CONFIG says.
 dmg:
 	@$(MAKE) --no-print-directory app CONFIG=Release
-	@scripts/make-dmg.sh build/Amamac.app build
+	@scripts/make-dmg.sh build/Amamac.app build archive
 
 snapshot: build
 	@rm -rf "$(SNAPSHOT_DIR)" && mkdir -p "$(SNAPSHOT_DIR)"

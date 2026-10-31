@@ -41,8 +41,9 @@ macOS may ask again for access to Music, Documents or external drives after each
 
 ## Installing
 
-`make dmg` builds Release and writes `build/Amamac-<version>.dmg`. Open it and drag Amamac onto
-Applications. A disk image built on your own Mac opens without warnings; copied to another Mac, the
+`make dmg` builds Release and writes `build/Amamac-<version>.dmg`; open it and drag Amamac onto
+Applications. Disk images of older versions move to `archive/`, which `make clean` leaves alone.
+A disk image built on your own Mac opens without warnings; copied to another Mac, the
 ad-hoc signature means Gatekeeper blocks the first launch until you allow it in System Settings ›
 Privacy & Security.
 

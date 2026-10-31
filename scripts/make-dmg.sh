@@ -1,11 +1,13 @@
 #!/bin/bash
 # Packs a built Amamac.app into a compressed disk image for drag-to-install: the app, a shortcut to
 # /Applications and the app icon as the volume icon. `make dmg` builds Release and calls it.
-#   scripts/make-dmg.sh APP OUTPUT_DIR   → OUTPUT_DIR/Amamac-<version>.dmg
+#   scripts/make-dmg.sh APP OUTPUT_DIR [ARCHIVE_DIR]   → OUTPUT_DIR/Amamac-<version>.dmg
+# With ARCHIVE_DIR, disk images of other versions in OUTPUT_DIR are moved there afterwards.
 set -euo pipefail
 
-APP="${1:?usage: make-dmg.sh APP OUTPUT_DIR}"
-OUT_DIR="${2:?usage: make-dmg.sh APP OUTPUT_DIR}"
+APP="${1:?usage: make-dmg.sh APP OUTPUT_DIR [ARCHIVE_DIR]}"
+OUT_DIR="${2:?usage: make-dmg.sh APP OUTPUT_DIR [ARCHIVE_DIR]}"
+ARCHIVE_DIR="${3:-}"
 NAME=Amamac
 VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist")
 DMG="$OUT_DIR/$NAME-$VERSION.dmg"
@@ -39,3 +41,16 @@ rm -f "$DMG"
 hdiutil convert -quiet "$WORK/rw.dmg" -format ULFO -o "$DMG"
 hdiutil verify -quiet "$DMG"
 echo "$DMG ($(du -h "$DMG" | cut -f1 | tr -d ' '))"
+
+if [ -n "$ARCHIVE_DIR" ]; then
+  mkdir -p "$ARCHIVE_DIR"
+  for old in "$OUT_DIR/$NAME"-*.dmg; do
+    [ -e "$old" ] && [ "$old" != "$DMG" ] || continue
+    # Never overwrite an archived image; leave the file where it is instead.
+    if [ -e "$ARCHIVE_DIR/$(basename "$old")" ]; then
+      echo "not archived, $ARCHIVE_DIR already has $(basename "$old")" >&2
+    else
+      mv "$old" "$ARCHIVE_DIR/" && echo "archived $(basename "$old") in $ARCHIVE_DIR"
+    fi
+  done
+fi

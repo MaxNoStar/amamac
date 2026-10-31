@@ -9,7 +9,8 @@ No Amarok code, data tables, or artwork is copied; behaviour is reimplemented fr
 - `make test` — core unit tests (Swift Testing), excluding the audio engine suite.
 - `make test-engine` — audio engine tests (muted, serialized).
 - `make run` — build and open the app.
-- `make dmg` — Release build packed into `build/Amamac-<version>.dmg` (`scripts/make-dmg.sh`).
+- `make dmg` — Release build packed into `build/Amamac-<version>.dmg` (`scripts/make-dmg.sh`); disk images of
+  older versions move to `archive/` (git-ignored, outside `build/` so `make clean` keeps it).
 - `make snapshot` — run the app offscreen with `--snapshot <dir> --data-dir <dir>/data --dump-layout`
   and write PNGs + `layout.json` to `$TMPDIR/amamac-snapshot`.
 - `make resolve` — re-resolve SwiftPM packages and refresh the committed `Package.resolved`.
