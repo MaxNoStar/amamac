@@ -12,7 +12,7 @@ RESOLVED_SRC := Package.resolved
 RESOLVED_DST := Amamac.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 SNAPSHOT_DIR ?= $(TMPDIR)amamac-snapshot
 
-.PHONY: project resolve build test test-engine run app dmg snapshot perf icon notices mascot clean
+.PHONY: project resolve build test test-engine run app dmg snapshot screenshots perf icon notices mascot clean
 
 project:
 	@xcodegen generate --quiet
@@ -57,6 +57,9 @@ snapshot: build
 	@rm -rf "$(SNAPSHOT_DIR)" && mkdir -p "$(SNAPSHOT_DIR)"
 	@"$(APP)/Contents/MacOS/Amamac" --snapshot "$(SNAPSHOT_DIR)" --data-dir "$(SNAPSHOT_DIR)/data" --dump-layout "$(SNAPSHOT_DIR)/layout.json"
 	@ls "$(SNAPSHOT_DIR)"
+
+screenshots: build
+	@scripts/readme-screenshots.sh "$(APP)" docs/images/screenshots
 
 perf: build
 	@rm -rf "$(TMPDIR)amamac-perf" && mkdir -p "$(TMPDIR)amamac-perf"

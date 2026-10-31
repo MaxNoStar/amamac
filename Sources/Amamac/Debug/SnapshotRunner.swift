@@ -36,9 +36,13 @@ final class SnapshotRunner {
                 return json(["artists": []])
             case let h where h.hasSuffix("wikipedia.org"):
                 let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+                func value(_ name: String) -> String { query.first { $0.name == name }?.value ?? "" }
+                let showcase = ShowcaseLibrary.heroArtist
                 if query.contains(where: { $0.name == "list" }) {
-                    return json(["query": ["search": [["title": "Björk Ensemble"]]]])
+                    let title = value("srsearch").localizedCaseInsensitiveContains(showcase) ? showcase : "Björk Ensemble"
+                    return json(["query": ["search": [["title": title]]]])
                 }
+                if value("page") == showcase { return json(["parse": ["title": showcase, "text": showcaseArticle]]) }
                 let html = """
                 <table class="infobox"><tr><th colspan="2">Björk Ensemble</th></tr><tr><td>Origin</td><td>Reykjavík</td></tr>
                 <tr><td>Genres</td><td>Test tones</td></tr><tr><td>Years active</td><td>2015–present</td></tr></table>
@@ -59,14 +63,25 @@ final class SnapshotRunner {
                     return json([["name": "Iceland", "iso_3166_1": "IS", "stationcount": 41], ["name": "Japan", "iso_3166_1": "JP", "stationcount": 312]])
                 }
                 if path.contains("/json/url/") { return json(["ok": true]) }
-                let stations: [(String, String, Int, Int, String)] = [
-                    ("Reykjavík Jazz", "MP3", 128, 0, "jazz,bebop"), ("Sine Wave FM", "AAC+", 64, 0, "electronic,ambient"),
-                    ("Ogg Vorbis Classics", "OGG", 160, 0, "classical"), ("World News 24", "AAC", 96, 1, "news,talk"),
-                    ("Synth City", "MP3", 320, 0, "synthwave,80s"), ("Opus Experimental", "OPUS", 96, 0, "experimental"),
+                var stations: [(String, String, Int, Int, String, String)] = [
+                    ("Reykjavík Jazz", "MP3", 128, 0, "jazz,bebop", "Iceland"),
+                    ("Sine Wave FM", "AAC+", 64, 0, "electronic,ambient", "Germany"),
+                    ("Ogg Vorbis Classics", "OGG", 160, 0, "classical", "Austria"),
+                    ("World News 24", "AAC", 96, 1, "news,talk", "United Kingdom"),
+                    ("Synth City", "MP3", 320, 0, "synthwave,80s", "Japan"),
+                    ("Opus Experimental", "OPUS", 96, 0, "experimental", "Canada"),
                 ]
+                if ProcessInfo.processInfo.environment["AMAMAC_SNAPSHOT_SHOWCASE"] != nil {
+                    stations.insert(contentsOf: [
+                        ("Hog Heaven Classic Rock", "MP3", 192, 0, "classic rock,70s", "United States"),
+                        ("Radio Truffle", "AAC", 128, 0, "soul,funk", "France"),
+                        ("Mud & Mellow", "MP3", 128, 0, "lofi,chill", "Netherlands"),
+                        ("Pen Pals Punk", "MP3", 256, 0, "punk,garage", "Australia"),
+                    ], at: 0)
+                }
                 return json(stations.enumerated().map { i, s in
                     ["stationuuid": "stub-\(i)", "name": s.0, "url": "http://radio.example.org/\(i)", "codec": s.1, "bitrate": s.2,
-                     "hls": s.3, "tags": s.4, "country": "Iceland", "favicon": "https://art.example.org/\(i).png",
+                     "hls": s.3, "tags": s.4, "country": s.5, "favicon": "https://art.example.org/\(i).png",
                      "homepage": "https://radio.example.org"] as [String: Any]
                 })
             case "itunes.apple.com":
@@ -125,9 +140,20 @@ final class SnapshotRunner {
         return NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) ?? Data()
     }
 
-    func run() {
-        Snapshotter.startWatchdog(seconds: 120)
+    /// Light, or dark with `AMAMAC_SNAPSHOT_DARK=1`. Set before any window exists, so views that
+    /// resolve colours once at creation get the right ones.
+    static func applyAppearance() {
         NSApp.appearance = NSAppearance(named: ProcessInfo.processInfo.environment["AMAMAC_SNAPSHOT_DARK"] == nil ? .aqua : .darkAqua)
+    }
+
+    func run() {
+        Self.applyAppearance()
+        if ProcessInfo.processInfo.environment["AMAMAC_SNAPSHOT_SHOWCASE"] != nil {
+            Snapshotter.startWatchdog(seconds: 180)
+            Task { await performShowcase() }
+            return
+        }
+        Snapshotter.startWatchdog(seconds: 120)
         Task { await perform() }
     }
 

@@ -14,15 +14,19 @@ public enum AudioFixtures {
         public var sampleRate: Double = 44_100
         public var channels: AVAudioChannelCount = 2
         public var frequency: Double = 440
+        /// Peak level of the sine; 0 writes silence (tiny once compressed).
+        public var amplitude: Double = 0.2
         public var tags = TagChanges()
 
         public init(_ relativePath: String, seconds: Double = 2, sampleRate: Double = 44_100,
-                    channels: AVAudioChannelCount = 2, frequency: Double = 440, tags: TagChanges = TagChanges()) {
+                    channels: AVAudioChannelCount = 2, frequency: Double = 440, amplitude: Double = 0.2,
+                    tags: TagChanges = TagChanges()) {
             self.relativePath = relativePath
             self.seconds = seconds
             self.sampleRate = sampleRate
             self.channels = channels
             self.frequency = frequency
+            self.amplitude = amplitude
             self.tags = tags
         }
     }
@@ -72,7 +76,7 @@ public enum AudioFixtures {
         for ch in 0..<Int(spec.channels) {
             let data = buffer.floatChannelData![ch]
             for i in 0..<Int(frames) {
-                data[i] = Float(0.2 * sin(twoPi * spec.frequency * Double(i) / spec.sampleRate))
+                data[i] = Float(spec.amplitude * sin(twoPi * spec.frequency * Double(i) / spec.sampleRate))
             }
         }
         try file.write(from: buffer)

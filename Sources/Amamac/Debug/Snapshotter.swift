@@ -7,8 +7,9 @@ import WebKit
 /// SwiftUI content with `cacheDisplay` and composites WKWebView content from `takeSnapshot`, which
 /// `cacheDisplay` cannot see. Needs no screen-recording permission.
 enum Snapshotter {
-    /// Renders `view` into a PNG, at 1× unless `scale` says otherwise.
-    static func capture(_ view: NSView, to url: URL, scale: CGFloat = 1) async {
+    /// Renders `view` into a PNG, at 1× unless `scale` says otherwise. With a `background`, areas
+    /// only a visual-effect material fills (which `cacheDisplay` leaves transparent) get that colour.
+    static func capture(_ view: NSView, to url: URL, scale: CGFloat = 1, background: NSColor? = nil) async {
         view.layoutSubtreeIfNeeded()
         view.displayIfNeeded()
         let bounds = view.bounds
@@ -25,17 +26,42 @@ enum Snapshotter {
         if !webViews.isEmpty, let ctx = NSGraphicsContext(bitmapImageRep: rep) {
             for web in webViews {
                 guard let image = try? await web.takeSnapshot(configuration: nil) else { continue }
-                var rect = web.convert(web.bounds, to: view)
-                if view.isFlipped { rect.origin.y = bounds.height - rect.maxY }
+                var rect = web.convert(web.bounds, to: view), visible = web.convert(web.visibleRect, to: view)
+                if view.isFlipped {
+                    rect.origin.y = bounds.height - rect.maxY
+                    visible.origin.y = bounds.height - visible.maxY
+                }
                 NSGraphicsContext.saveGraphicsState()
                 NSGraphicsContext.current = ctx
+                // Only the part a scroll view shows, so it doesn't cover the bars around it.
+                NSBezierPath(rect: visible).setClip()
                 image.draw(in: rect)
                 NSGraphicsContext.restoreGraphicsState()
             }
         }
-        if let data = rep.representation(using: .png, properties: [:]) {
+        let output = background.flatMap { flatten(rep, onto: $0, appearance: view.effectiveAppearance) } ?? rep
+        if let data = output.representation(using: .png, properties: [:]) {
             try? data.write(to: url)
         }
+    }
+
+    /// `rep` drawn over `color` (resolved in `appearance`), in a new bitmap of the same size.
+    private static func flatten(_ rep: NSBitmapImageRep, onto color: NSColor, appearance: NSAppearance) -> NSBitmapImageRep? {
+        guard let flat = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: rep.pixelsWide, pixelsHigh: rep.pixelsHigh,
+                                          bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                          colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0) else { return nil }
+        flat.size = rep.size
+        guard let ctx = NSGraphicsContext(bitmapImageRep: flat) else { return nil }
+        let rect = NSRect(origin: .zero, size: rep.size)
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = ctx
+        appearance.performAsCurrentDrawingAppearance {
+            color.setFill()
+            rect.fill()
+        }
+        rep.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: false, hints: nil)
+        NSGraphicsContext.restoreGraphicsState()
+        return flat
     }
 
     static func descendants(of view: NSView) -> [NSView] {

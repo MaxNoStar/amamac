@@ -49,6 +49,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         _ = env.equalizer
         if options.snapshotDir != nil { env.settings.enabledApplets = AppletKind.allCases.map(\.rawValue) }
         NSApp.mainMenu = MainMenu.build()
+        #if DEBUG
+        if options.snapshotDir != nil { SnapshotRunner.applyAppearance() }
+        #endif
         mainWindow = MainWindowController(env: env)
         let tools = ToolsCommands(env: env)
         let setup = CollectionSetup(env: env)

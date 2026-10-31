@@ -13,6 +13,9 @@ No Amarok code, data tables, or artwork is copied; behaviour is reimplemented fr
   older versions move to `archive/` (git-ignored, outside `build/` so `make clean` keeps it).
 - `make snapshot` — run the app offscreen with `--snapshot <dir> --data-dir <dir>/data --dump-layout`
   and write PNGs + `layout.json` to `$TMPDIR/amamac-snapshot`.
+- `make screenshots` — README screenshots from the made-up showcase library (`AMAMAC_SNAPSHOT_SHOWCASE=1`),
+  light and dark, resized into `docs/images/screenshots/` (`scripts/readme-screenshots.sh`).
+- `make mascot` — re-render the mascot PNGs and the social preview from the SVGs in `docs/images/mascot/`.
 - `make resolve` — re-resolve SwiftPM packages and refresh the committed `Package.resolved`.
 
 DerivedData lives in `~/Library/Developer/Xcode/DerivedData/Amamac-cli` (not inside `~/Documents`).
