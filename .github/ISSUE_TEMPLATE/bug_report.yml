@@ -1,0 +1,66 @@
+name: Bug report
+description: Something in Amamac doesn't work the way it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug!
+
+        Please **don't attach music files, playlists or anything from `~/Library/Application Support/Amamac/`**
+        (your library database and settings): they can hold personal data. Describing the files involved
+        (format, tags, where they're stored) is usually enough to reproduce a problem.
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      description: Apple menu › About This Mac.
+      placeholder: macOS 26.1
+    validations:
+      required: true
+  - type: input
+    id: amamac
+    attributes:
+      label: Amamac version
+      description: Amamac › About Amamac. If you built it yourself, add the commit.
+      placeholder: 0.1.6 (7)
+    validations:
+      required: true
+  - type: input
+    id: mac
+    attributes:
+      label: Mac
+      description: Model and chip.
+      placeholder: MacBook Air, M2
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open …
+        2. Click …
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected to happen
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead
+      description: Screenshots or a screen recording help a lot.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics or crash report (optional)
+      description: >
+        Help › Diagnostics › Copy Report, or the crash report macOS shows. The diagnostics report lists your
+        data and collection folder paths, which include your macOS user name; edit out anything you'd rather
+        keep private.
+      render: text
