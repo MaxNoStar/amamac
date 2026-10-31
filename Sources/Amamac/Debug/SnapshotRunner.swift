@@ -17,6 +17,38 @@ final class SnapshotRunner {
         self.layoutDump = layoutDump
     }
 
+    /// Canned online answers: synced lyrics for every track, a short Wikipedia article, and
+    /// no MusicBrainz matches (so Wikipedia's search path is used).
+    nonisolated static func stubNetwork() -> URLSessionConfiguration {
+        StubURLProtocol.configuration { request in
+            guard let url = request.url, let host = url.host() else { return nil }
+            func json(_ object: Any) -> (Int, Data) { (200, try! JSONSerialization.data(withJSONObject: object)) }
+            switch host {
+            case "lrclib.net":
+                let lines = (0..<24).map { i in String(format: "[00:%02d.%02d]", i / 4 * 1, (i % 4) * 25) + "Snapshot lyric line \(i + 1)" }
+                return json(["instrumental": false, "plainLyrics": "", "syncedLyrics": lines.joined(separator: "\n")])
+            case "musicbrainz.org":
+                return json(["artists": []])
+            case let h where h.hasSuffix("wikipedia.org"):
+                let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+                if query.contains(where: { $0.name == "list" }) {
+                    return json(["query": ["search": [["title": "Björk Ensemble"]]]])
+                }
+                let html = """
+                <table class="infobox"><tr><th colspan="2">Björk Ensemble</th></tr><tr><td>Origin</td><td>Reykjavík</td></tr>
+                <tr><td>Genres</td><td>Test tones</td></tr><tr><td>Years active</td><td>2015–present</td></tr></table>
+                <p><b>Björk Ensemble</b> is a fictional group used by Amamac's snapshot fixtures. Its only album,
+                <a href="./Discs_(album)">Dïscs</a>, consists of sine waves spread over two discs.</p>
+                <h2>History</h2><p>The ensemble was formed to exercise multi-disc albums, diacritics in tags and
+                gapless playback. See also <a href="https://example.org/">an external link</a>.</p>
+                """
+                return json(["parse": ["title": "Björk Ensemble", "text": html]])
+            default:
+                return nil
+            }
+        }
+    }
+
     func run() {
         Snapshotter.startWatchdog(seconds: 120)
         NSApp.appearance = NSAppearance(named: .aqua)
@@ -53,6 +85,8 @@ final class SnapshotRunner {
         // Covers and the collection outline load asynchronously.
         try? await Task.sleep(for: .seconds(1))
         await checkPlayback()
+        // Let the lyrics and Wikipedia applets load their (stubbed) content.
+        try? await Task.sleep(for: .seconds(1.5))
         win.contentView?.layoutSubtreeIfNeeded()
         win.displayIfNeeded()
 
@@ -65,6 +99,9 @@ final class SnapshotRunner {
             }
         }
         await Snapshotter.capture(window.toolbar, to: output.appendingPathComponent("toolbar.png"))
+        if let column = window.context.appletColumn {
+            await Snapshotter.capture(column, to: output.appendingPathComponent("context-applets.png"))
+        }
         await captureVariants(win)
         if let layoutDump { Snapshotter.dumpLayout(of: win, to: layoutDump) }
         env.player.stop()

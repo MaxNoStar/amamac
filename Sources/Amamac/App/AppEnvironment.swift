@@ -19,12 +19,15 @@ final class AppEnvironment {
     let proxy: PlaylistProxy
     let navigator: PlaylistNavigator
     let player: PlayerController
+    let http: HTTPClient
+    let lyrics: LyricsService
     private var watcher: FolderWatcher?
 
     /// Posted when the collection database changed (scan, tag edit, statistics).
     static let collectionChanged = Notification.Name("amamacCollectionChanged")
 
-    init(dataDirectory: URL, defaults: UserDefaults) throws {
+    /// `httpConfiguration` is replaced by a stub in snapshot runs.
+    init(dataDirectory: URL, defaults: UserDefaults, httpConfiguration: URLSessionConfiguration = .ephemeral) throws {
         self.dataDirectory = dataDirectory
         cacheDirectory = dataDirectory.appendingPathComponent("Caches")
         settings = AppSettings(defaults: defaults)
@@ -37,6 +40,12 @@ final class AppEnvironment {
         navigator.progression = settings.trackProgression
         navigator.favor = settings.favor
         player = PlayerController(model: playlist, proxy: proxy, navigator: navigator, database: database, settings: settings)
+        http = HTTPClient(cacheDirectory: cacheDirectory.appendingPathComponent("http"), configuration: httpConfiguration)
+        lyrics = LyricsService(database: database, http: http)
+    }
+
+    func wikipedia() -> WikipediaClient {
+        WikipediaClient(http: http, language: settings.string(AppSettings.Key.wikipediaLanguage) ?? "en")
     }
 
     static func defaultDataDirectory() -> URL {

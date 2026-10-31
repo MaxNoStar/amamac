@@ -56,6 +56,12 @@ final class AppSettings {
         Key.wikipediaLanguage: "en",
         Key.lyricsFontSize: 13.0,
         Key.enabledApplets: ["currentTrack", "lyrics", "wikipedia"],
+        Key.analyzerBarWidth: 8.0,
+        Key.analyzerFallSpeed: 3,
+        Key.analyzerShowFadebars: true,
+        Key.analyzerSampleSize: 4096,
+        Key.analyzerMinFrequency: 40.0,
+        Key.analyzerMaxFrequency: 16_000.0,
         Key.timeDisplayRemaining: false,
         Key.dynamicPrevious: 5,
         Key.dynamicUpcoming: 10,
@@ -128,6 +134,8 @@ final class AppSettings {
         static let analyzerFallSpeed = "analyzerFallSpeed"
         static let analyzerShowFadebars = "analyzerShowFadebars"
         static let analyzerSampleSize = "analyzerSampleSize"
+        static let analyzerMinFrequency = "analyzerMinFrequency"
+        static let analyzerMaxFrequency = "analyzerMaxFrequency"
     }
 
     func bool(_ key: String) -> Bool { defaults.bool(forKey: key) }

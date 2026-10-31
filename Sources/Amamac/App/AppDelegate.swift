@@ -32,7 +32,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             defaults = .standard
         }
         do {
-            env = try AppEnvironment(dataDirectory: dataDir, defaults: defaults)
+            env = try AppEnvironment(dataDirectory: dataDir, defaults: defaults,
+                                     httpConfiguration: options.snapshotDir != nil ? SnapshotRunner.stubNetwork() : .ephemeral)
         } catch {
             let alert = NSAlert(error: error)
             alert.messageText = "Amamac could not open its collection database."
@@ -41,6 +42,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             return
         }
         AppEnvironment.shared = env
+        if options.snapshotDir != nil { env.settings.enabledApplets = AppletKind.allCases.map(\.rawValue) }
         NSApp.mainMenu = MainMenu.build()
         mainWindow = MainWindowController(env: env)
 

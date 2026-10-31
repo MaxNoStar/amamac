@@ -2,11 +2,18 @@ import AppKit
 import SwiftUI
 import AmamacCore
 
-/// The middle "Context" pane: a column of applets. M2 shows the Current Track applet only; the
-/// applet framework (tabs, configuration, other applets) arrives with M3.
+/// The middle "Context" pane: a scrolling column of applets, the applet tab bar with
+/// "Configure Applets", and the Pop-Up Dropper overlay.
 final class ContextPaneController: NSViewController {
     let env: AppEnvironment
     private let dropper = PopUpDropper()
+    private let scroll = NSScrollView()
+    private let column = NSStackView()
+    private let tabBar = AppletTabBar()
+    private var strip: NSHostingView<AppletStrip>!
+    private var stripHeight: NSLayoutConstraint!
+    private var applets: [AppletKind: Applet] = [:]
+    private var containers: [AppletKind: AppletContainerView] = [:]
 
     init(env: AppEnvironment) {
         self.env = env
@@ -15,158 +22,159 @@ final class ContextPaneController: NSViewController {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    /// The scrolling column of applets (snapshots capture all of it).
+    var appletColumn: NSView? { scroll.documentView }
+
+    var enabledKinds: [AppletKind] {
+        env.settings.enabledApplets.compactMap(AppletKind.init(rawValue:))
+    }
+
     override func loadView() {
         let root = NSView()
-        let host = NSHostingView(rootView: CurrentTrackApplet(player: env.player, covers: env.coverImages))
-        host.sizingOptions = []
-        host.safeAreaRegions = []
-        for v in [host, dropper] {
+        root.identifier = NSUserInterfaceItemIdentifier("contextPane")
+
+        column.orientation = .vertical
+        column.alignment = .leading
+        column.spacing = 10
+        column.edgeInsets = NSEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
+        let document = FlippedView()
+        column.translatesAutoresizingMaskIntoConstraints = false
+        document.addSubview(column)
+        document.translatesAutoresizingMaskIntoConstraints = false
+        scroll.documentView = document
+        scroll.hasVerticalScroller = true
+        scroll.autohidesScrollers = true
+        scroll.drawsBackground = true
+        scroll.backgroundColor = .underPageBackgroundColor
+        NSLayoutConstraint.activate([
+            column.topAnchor.constraint(equalTo: document.topAnchor),
+            column.leadingAnchor.constraint(equalTo: document.leadingAnchor),
+            column.trailingAnchor.constraint(equalTo: document.trailingAnchor),
+            column.bottomAnchor.constraint(equalTo: document.bottomAnchor),
+            document.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor),
+        ])
+
+        strip = NSHostingView(rootView: makeStrip())
+        strip.sizingOptions = []
+        strip.isHidden = true
+        tabBar.configureButton.target = self
+        tabBar.configureButton.action = #selector(toggleConfigure(_:))
+        tabBar.onSelect = { [weak self] kind in self?.scroll(to: kind) }
+        tabBar.onReorder = { [weak self] kinds in self?.setEnabled(kinds) }
+
+        for v in [scroll, strip!, tabBar, dropper] as [NSView] {
             v.translatesAutoresizingMaskIntoConstraints = false
             root.addSubview(v)
-            NSLayoutConstraint.activate([
-                v.topAnchor.constraint(equalTo: root.topAnchor),
-                v.leadingAnchor.constraint(equalTo: root.leadingAnchor),
-                v.trailingAnchor.constraint(equalTo: root.trailingAnchor),
-                v.bottomAnchor.constraint(equalTo: root.bottomAnchor),
-            ])
         }
-        root.identifier = NSUserInterfaceItemIdentifier("contextPane")
+        stripHeight = strip.heightAnchor.constraint(equalToConstant: 0)
+        NSLayoutConstraint.activate([
+            scroll.topAnchor.constraint(equalTo: root.topAnchor),
+            scroll.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+            strip.topAnchor.constraint(equalTo: scroll.bottomAnchor),
+            strip.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+            strip.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+            stripHeight,
+            tabBar.topAnchor.constraint(equalTo: strip.bottomAnchor),
+            tabBar.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+            tabBar.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+            tabBar.bottomAnchor.constraint(equalTo: root.bottomAnchor),
+            dropper.topAnchor.constraint(equalTo: root.topAnchor),
+            dropper.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+            dropper.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+            dropper.bottomAnchor.constraint(equalTo: root.bottomAnchor),
+        ])
         view = root
         PopUpDropper.shared = dropper
+        rebuild()
+    }
+
+    // MARK: Applets
+
+    private func applet(_ kind: AppletKind) -> Applet {
+        if let existing = applets[kind] { return existing }
+        let made = kind.make(env: env)
+        applets[kind] = made
+        return made
+    }
+
+    private func rebuild() {
+        let kinds = enabledKinds
+        let collapsed = Set(env.settings.defaults.stringArray(forKey: AppSettings.Key.collapsedApplets) ?? [])
+        let heights = env.settings.defaults.dictionary(forKey: AppSettings.Key.appletHeights) as? [String: Double] ?? [:]
+        for view in column.arrangedSubviews { view.removeFromSuperview() }
+        for (kind, container) in containers where !kinds.contains(kind) {
+            container.applet.setActive(false)
+            containers[kind] = nil
+        }
+        for kind in kinds {
+            let container = containers[kind] ?? {
+                let c = AppletContainerView(applet: applet(kind), height: heights[kind.rawValue].map { CGFloat($0) } ?? kind.defaultHeight,
+                                            collapsed: collapsed.contains(kind.rawValue))
+                c.onHeightChanged = { [weak self] height in self?.saveHeight(kind, height) }
+                c.onCollapsedChanged = { [weak self] value in self?.saveCollapsed(kind, value) }
+                containers[kind] = c
+                return c
+            }()
+            column.addArrangedSubview(container)
+            container.leadingAnchor.constraint(equalTo: column.leadingAnchor, constant: 10).isActive = true
+            container.trailingAnchor.constraint(equalTo: column.trailingAnchor, constant: -10).isActive = true
+            container.applet.setActive(!container.isCollapsed)
+        }
+        if kinds.isEmpty {
+            let hint = NSTextField(wrappingLabelWithString: "No applets are shown. Use Configure Applets below to add some.")
+            hint.textColor = .secondaryLabelColor
+            hint.alignment = .center
+            column.addArrangedSubview(hint)
+        }
+        tabBar.kinds = kinds
+        strip.rootView = makeStrip()
+    }
+
+    private func setEnabled(_ kinds: [AppletKind]) {
+        env.settings.enabledApplets = kinds.map(\.rawValue)
+        rebuild()
+    }
+
+    private func saveHeight(_ kind: AppletKind, _ height: CGFloat) {
+        var heights = env.settings.defaults.dictionary(forKey: AppSettings.Key.appletHeights) as? [String: Double] ?? [:]
+        heights[kind.rawValue] = Double(height)
+        env.settings.set(heights, AppSettings.Key.appletHeights)
+    }
+
+    private func saveCollapsed(_ kind: AppletKind, _ collapsed: Bool) {
+        var set = Set(env.settings.defaults.stringArray(forKey: AppSettings.Key.collapsedApplets) ?? [])
+        if collapsed { set.insert(kind.rawValue) } else { set.remove(kind.rawValue) }
+        env.settings.set(Array(set), AppSettings.Key.collapsedApplets)
+        containers[kind]?.applet.setActive(!collapsed)
+    }
+
+    private func makeStrip() -> AppletStrip {
+        AppletStrip(enabled: enabledKinds) { [weak self] kind in
+            guard let self else { return }
+            var kinds = self.enabledKinds
+            if let i = kinds.firstIndex(of: kind) { kinds.remove(at: i) } else { kinds.append(kind) }
+            self.setEnabled(kinds)
+            if kinds.contains(kind) { DispatchQueue.main.async { self.scroll(to: kind) } }
+        }
+    }
+
+    @objc private func toggleConfigure(_ sender: NSButton) {
+        let show = sender.state == .on
+        strip.isHidden = !show
+        stripHeight.constant = show ? 100 : 0
+    }
+
+    func scroll(to kind: AppletKind) {
+        guard let container = containers[kind], let document = scroll.documentView else { return }
+        view.layoutSubtreeIfNeeded()
+        let frame = container.convert(container.bounds, to: document)
+        let maxY = max(0, document.bounds.height - scroll.contentView.bounds.height)
+        scroll.contentView.animator().setBoundsOrigin(NSPoint(x: 0, y: min(max(0, frame.minY - 10), maxY)))
+        scroll.reflectScrolledClipView(scroll.contentView)
     }
 }
 
-/// Cover, title, artist, album, rating and play statistics of the current track.
-struct CurrentTrackApplet: View {
-    let player: PlayerController
-    let covers: CoverImageCache
-    @State private var cover: NSImage?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 6) {
-                Image(systemName: "music.note")
-                Text("Current Track").font(.headline)
-                Spacer()
-            }
-            .padding(.horizontal, 10).padding(.vertical, 6)
-            .background(.quaternary.opacity(0.5))
-            content.padding(12)
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .task(id: player.currentItem?.albumKey) { await loadCover() }
-    }
-
-    @ViewBuilder private var content: some View {
-        if let item = player.currentItem, player.state != .stopped {
-            HStack(alignment: .top, spacing: 14) {
-                coverView
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(item.streamTitle ?? item.track.displayTitle)
-                        .font(.title2.bold()).lineLimit(2).minimumScaleFactor(0.6)
-                    if !item.track.artist.isEmpty { Text(item.track.displayArtist).font(.title3).lineLimit(1) }
-                    if !item.track.album.isEmpty {
-                        Text(item.track.displayAlbum).font(.title3).foregroundStyle(.secondary).lineLimit(1)
-                    }
-                    if let trackId = item.track.id, item.source == .collection {
-                        RatingStars(rating: item.statistics?.rating ?? 0) { player.setRating($0, trackId: trackId) }
-                            .padding(.top, 4)
-                        let stats = item.statistics
-                        HStack(spacing: 16) {
-                            stat("Play Count", "\(stats?.playCount ?? 0)")
-                            stat("Score", "\(Int((stats?.score ?? 0).rounded()))")
-                            stat("Last Played", stats?.lastPlayed.map { TimeFormatting.relative($0) } ?? "Never")
-                        }
-                        .padding(.top, 4)
-                    }
-                }
-                Spacer(minLength: 0)
-            }
-        } else {
-            VStack(spacing: 6) {
-                Image(systemName: "music.note.list").font(.system(size: 36)).foregroundStyle(.tertiary)
-                Text("Nothing is playing").font(.title3).foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 24)
-        }
-    }
-
-    private var coverView: some View {
-        Group {
-            if let cover {
-                Image(nsImage: cover).resizable().aspectRatio(contentMode: .fit)
-            } else {
-                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
-                    .overlay(Image(systemName: "opticaldisc").font(.system(size: 40)).foregroundStyle(.tertiary))
-            }
-        }
-        .frame(width: 128, height: 128)
-        .clipShape(RoundedRectangle(cornerRadius: 6))
-        .shadow(radius: 2, y: 1)
-    }
-
-    private func stat(_ title: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text(title).font(.caption).foregroundStyle(.secondary)
-            Text(value).font(.callout.monospacedDigit())
-        }
-    }
-
-    private func loadCover() async {
-        guard let key = player.currentItem?.albumKey, player.currentItem?.isStream == false else {
-            cover = nil
-            return
-        }
-        cover = await covers.image(albumKey: key, size: 128)
-    }
-}
-
-/// Five clickable stars with half steps (rating 0...10). Clicking the current value clears it.
-struct RatingStars: View {
-    let rating: Int
-    var size: CGFloat = 16
-    let onChange: (Int) -> Void
-    @State private var hover: Int?
-
-    var body: some View {
-        let shown = hover ?? rating
-        HStack(spacing: 2) {
-            ForEach(1...5, id: \.self) { star in
-                let full = shown >= star * 2
-                let half = shown == star * 2 - 1
-                Image(systemName: full ? "star.fill" : (half ? "star.leadinghalf.filled" : "star"))
-                    .font(.system(size: size))
-                    .foregroundStyle(shown > 0 && (full || half) ? Color.orange : Color.secondary)
-            }
-        }
-        .contentShape(Rectangle())
-        .onContinuousHover { phase in
-            switch phase {
-            case .active(let p): hover = value(at: p.x)
-            case .ended: hover = nil
-            }
-        }
-        .gesture(SpatialTapGesture().onEnded { e in
-            let v = value(at: e.location.x)
-            onChange(v == rating ? 0 : v)
-        })
-        .accessibilityElement()
-        .accessibilityLabel("Rating")
-        .accessibilityValue("\(Double(rating) / 2) stars")
-        .accessibilityAdjustableAction { direction in
-            switch direction {
-            case .increment: onChange(min(10, rating + 1))
-            case .decrement: onChange(max(0, rating - 1))
-            @unknown default: break
-            }
-        }
-    }
-
-    private func value(at x: CGFloat) -> Int {
-        let starWidth = size + 2
-        let v = Int((x / starWidth * 2).rounded(.up))
-        return max(1, min(10, v))
-    }
+final class FlippedView: NSView {
+    override var isFlipped: Bool { true }
 }

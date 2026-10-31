@@ -54,7 +54,20 @@ Plan: Amarok 2/3 feature parity in milestones M0–M8 (see CLAUDE.md for command
 - View menu pane toggles, Lock Layout (title bars when unlocked), Main / Slim Toolbar, Reset Layout,
   Full Screen; first-run collection folder prompt, Open With / Dock drops, Dock menu, window title.
 - Snapshot variants: expanded collection, unlocked layout with slim toolbar, Media Sources home.
-## M3 — Context view
+## M3 — Context view ✅
+- `HTTPClient`: fixed User-Agent, per-host spacing (MusicBrainz 1 req/s), 429/503 retries with
+  Retry-After, on-disk cache with per-host lifetimes, `StubURLProtocol` for tests and snapshots.
+- `LRCLIBClient` (exact lookup, then search within ±2 s, synced preferred), `LyricsService`
+  (user → tag → LRCLIB, user text never overwritten), `WikipediaClient` (MusicBrainz → Wikidata
+  sitelink for artists/composers, search otherwise; `action=parse` HTML).
+- Applet framework: scrolling column of applets with headers (settings popover, collapse),
+  drag-to-resize, tab bar (click to scroll, drag to reorder), Configure Applets strip; enabled
+  order, heights and collapsed state persist.
+- Applets: Current Track (rating, statistics; recently added albums when stopped), Albums (current
+  artist, expandable, drag/double-click to the playlist), Lyrics (synced highlight and auto-scroll,
+  edit/save/clear, font size), Wikipedia (Artist/Composer/Album/Track, in-applet links with
+  Back/Forward, language setting), Analyzer (block bars with fade bars; tap only while shown).
+- Snapshot runs use canned lyrics / Wikipedia responses and capture the whole applet column.
 ## M4 — Library management
 ## M5 — Playlists
 ## M6 — Audio extras
