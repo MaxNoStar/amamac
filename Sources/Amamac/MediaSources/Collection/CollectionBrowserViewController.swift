@@ -666,10 +666,18 @@ final class CollectionCellView: NSTableCellView {
         }
     }
 
-    static let placeholder: NSImage = {
-        let img = NSImage(systemSymbolName: "opticaldisc", accessibilityDescription: nil)!
-        return img
-    }()
+    /// Album without a cover: a soft tile with a faint disc, drawn per appearance.
+    static let placeholder = NSImage(size: NSSize(width: 32, height: 32), flipped: false) { rect in
+        NSColor.quaternaryLabelColor.setFill()
+        NSBezierPath(roundedRect: rect, xRadius: 3, yRadius: 3).fill()
+        let config = NSImage.SymbolConfiguration(pointSize: 15, weight: .light)
+            .applying(.init(paletteColors: [.tertiaryLabelColor]))
+        if let disc = NSImage(systemSymbolName: "opticaldisc", accessibilityDescription: nil)?.withSymbolConfiguration(config) {
+            let size = disc.size
+            disc.draw(in: NSRect(x: rect.midX - size.width / 2, y: rect.midY - size.height / 2, width: size.width, height: size.height))
+        }
+        return true
+    }
 
     static func symbol(for level: CollectionLevel) -> String {
         switch level {

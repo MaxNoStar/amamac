@@ -65,10 +65,39 @@ final class SnapshotRunner {
             }
         }
         await Snapshotter.capture(window.toolbar, to: output.appendingPathComponent("toolbar.png"))
+        await captureVariants(win)
         if let layoutDump { Snapshotter.dumpLayout(of: win, to: layoutDump) }
         env.player.stop()
         print("snapshot: wrote \(output.path)")
         exit(0)
+    }
+
+    /// Expanded collection, unlocked layout with the slim toolbar, and the Media Sources home page.
+    private func captureVariants(_ win: NSWindow) async {
+        let outline = window.mediaSources.collectionBrowser.outline
+        for row in stride(from: min(outline.numberOfRows, 4) - 1, through: 0, by: -1) {
+            outline.expandItem(outline.item(atRow: row), expandChildren: row < 2)
+        }
+        try? await Task.sleep(for: .milliseconds(600))
+        if let view = window.panes[.mediaSources]?.view {
+            await Snapshotter.capture(view, to: output.appendingPathComponent("collection-expanded.png"))
+        }
+
+        window.applyLock(false)
+        window.setSlimToolbar(true)
+        win.contentView?.layoutSubtreeIfNeeded()
+        if let root = win.contentView {
+            await Snapshotter.capture(root, to: output.appendingPathComponent("window-unlocked-slim.png"))
+        }
+        window.applyLock(true)
+        window.setSlimToolbar(false)
+
+        window.mediaSources.pop(to: 0)
+        win.contentView?.layoutSubtreeIfNeeded()
+        if let view = window.panes[.mediaSources]?.view {
+            await Snapshotter.capture(view, to: output.appendingPathComponent("media-sources-home.png"))
+        }
+        window.mediaSources.open(category: .localMusic)
     }
 
     /// Plays silently through PlayerController and checks state, position and Next. The window is

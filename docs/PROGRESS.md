@@ -46,7 +46,14 @@ Plan: Amarok 2/3 feature parity in milestones M0–M8 (see CLAUDE.md for command
   Organize Files, cover fetching, Edit Filter builder (M4); Playlists / Files / Internet / Podcasts
   pages and the Bookmark Manager (M5, M7).
 
-## M2c — Window chrome
+## M2c — Window chrome ✅
+- Track-label carousel (slide animation, drag past 1/5 to skip), volume dial, position markers on the
+  seek slider (`bookmark` table), time labels that swap on click.
+- Media Sources breadcrumb with bookmark menu and the category home page; collection Sort Options
+  (presets and per-level menus) and filter presets.
+- View menu pane toggles, Lock Layout (title bars when unlocked), Main / Slim Toolbar, Reset Layout,
+  Full Screen; first-run collection folder prompt, Open With / Dock drops, Dock menu, window title.
+- Snapshot variants: expanded collection, unlocked layout with slim toolbar, Media Sources home.
 ## M3 — Context view
 ## M4 — Library management
 ## M5 — Playlists

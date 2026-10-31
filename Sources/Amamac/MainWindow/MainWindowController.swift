@@ -27,7 +27,7 @@ enum Pane: String, CaseIterable {
 final class PaneViewController: NSViewController {
     let pane: Pane
     let content: NSViewController
-    private let titleBar = NSView()
+    private let titleBar = PaneTitleBar()
     private var titleBarHeight: NSLayoutConstraint!
     var onClose: (() -> Void)?
 
@@ -54,8 +54,6 @@ final class PaneViewController: NSViewController {
             v.translatesAutoresizingMaskIntoConstraints = false
             titleBar.addSubview(v)
         }
-        titleBar.wantsLayer = true
-        titleBar.layer?.backgroundColor = NSColor.underPageBackgroundColor.cgColor
         for v in [titleBar, content.view] {
             v.translatesAutoresizingMaskIntoConstraints = false
             root.addSubview(v)
@@ -85,6 +83,16 @@ final class PaneViewController: NSViewController {
     }
 
     @objc private func closePane() { onClose?() }
+}
+
+/// Title strip shown above a pane while the layout is unlocked.
+final class PaneTitleBar: NSView {
+    override func draw(_ dirtyRect: NSRect) {
+        NSColor.underPageBackgroundColor.setFill()
+        bounds.fill()
+        NSColor.separatorColor.setFill()
+        NSRect(x: 0, y: 0, width: bounds.width, height: 1).fill()
+    }
 }
 
 /// The main window: toolbar on top, Media Sources | Context | Playlist below.
