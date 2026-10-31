@@ -80,7 +80,7 @@ final class LibraryActions: NSObject {
         guard !tracks.isEmpty else { return }
         let ids = tracks.compactMap(\.id)
         let known = (try? env.database.tracks(ids: ids)) ?? []
-        let byId = Dictionary(uniqueKeysWithValues: known.map { ($0.track.id!, $0) })
+        let byId = Dictionary(known.map { ($0.track.id!, $0) }, uniquingKeysWith: { first, _ in first })
         let resolved = tracks.map { track in
             track.id.flatMap { byId[$0] } ?? TrackWithStatistics(track: track, statistics: nil)
         }

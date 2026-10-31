@@ -25,21 +25,29 @@ public struct PlaylistFileEntry: Sendable, Equatable {
 public enum PlaylistFileError: Error, LocalizedError {
     case unsupportedFormat(String)
     case unreadable(URL)
+    case tooLarge(URL)
 
     public var errorDescription: String? {
         switch self {
         case .unsupportedFormat(let ext): "Unsupported playlist format “\(ext)”."
         case .unreadable(let url): "Could not read “\(url.lastPathComponent)”."
+        case .tooLarge(let url): "“\(url.lastPathComponent)” is too large to be a playlist."
         }
     }
 }
 
 public enum PlaylistFile {
+    /// Larger files aren't read: real playlists are a few hundred kilobytes.
+    public static let maxFileSize = 16 * 1024 * 1024
+
     // MARK: Reading
 
     public static func read(from url: URL) throws -> [PlaylistFileEntry] {
         guard let format = PlaylistFileFormat.from(url: url) else {
             throw PlaylistFileError.unsupportedFormat(url.pathExtension)
+        }
+        if let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize, size > maxFileSize {
+            throw PlaylistFileError.tooLarge(url)
         }
         let data = try Data(contentsOf: url)
         let text = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) ?? ""
@@ -78,7 +86,7 @@ public enum PlaylistFile {
                 let info = line.dropFirst("#EXTINF:".count)
                 if let comma = info.firstIndex(of: ",") {
                     let seconds = Int(info[..<comma].trimmingCharacters(in: .whitespaces).split(separator: " ").first ?? "") ?? -1
-                    pendingDuration = seconds > 0 ? seconds * 1000 : nil
+                    pendingDuration = seconds > 0 ? SafeNumbers.milliseconds(seconds: seconds) : nil
                     let label = String(info[info.index(after: comma)...]).trimmingCharacters(in: .whitespaces)
                     if let dash = label.range(of: " - ") {
                         pendingArtist = String(label[..<dash.lowerBound])
@@ -118,7 +126,7 @@ public enum PlaylistFile {
         }
         return files.keys.sorted().compactMap { n in
             guard let url = resolve(files[n]!, base: base) else { return nil }
-            let length = lengths[n].flatMap { $0 > 0 ? $0 * 1000 : nil }
+            let length = lengths[n].flatMap { $0 > 0 ? SafeNumbers.milliseconds(seconds: $0) : nil }
             return PlaylistFileEntry(url: url, title: titles[n], durationMs: length)
         }
     }
@@ -132,22 +140,38 @@ public enum PlaylistFile {
     }
 
     public static func parseASX(_ text: String, base: URL) -> [PlaylistFileEntry] {
-        // ASX is loosely formed XML with case-insensitive tags; scan with regular expressions.
+        // ASX is loosely formed XML with case-insensitive tags. Entries are cut out with plain
+        // forward searches, which stay linear even in a file full of unclosed tags.
         var entries: [PlaylistFileEntry] = []
-        let entryRegex = try! NSRegularExpression(pattern: "<entry[^>]*>(.*?)</entry>", options: [.caseInsensitive, .dotMatchesLineSeparators])
-        let refRegex = try! NSRegularExpression(pattern: "<ref\\s+href\\s*=\\s*\"([^\"]+)\"", options: [.caseInsensitive])
-        let titleRegex = try! NSRegularExpression(pattern: "<title>(.*?)</title>", options: [.caseInsensitive, .dotMatchesLineSeparators])
-        let ns = text as NSString
-        for match in entryRegex.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
-            let body = ns.substring(with: match.range(at: 1))
-            let bns = body as NSString
-            guard let ref = refRegex.firstMatch(in: body, range: NSRange(location: 0, length: bns.length)),
-                  let url = resolve(unescapeXML(bns.substring(with: ref.range(at: 1))), base: base) else { continue }
-            let title = titleRegex.firstMatch(in: body, range: NSRange(location: 0, length: bns.length))
-                .map { unescapeXML(bns.substring(with: $0.range(at: 1)).trimmingCharacters(in: .whitespacesAndNewlines)) }
+        var rest = text[...]
+        while let open = rest.range(of: "<entry", options: .caseInsensitive),
+              let openEnd = rest[open.upperBound...].firstIndex(of: ">"),
+              let close = rest[openEnd...].range(of: "</entry>", options: .caseInsensitive) {
+            let body = rest[rest.index(after: openEnd)..<close.lowerBound]
+            rest = rest[close.upperBound...]
+            guard let ref = asxReference(in: body), let url = resolve(unescapeXML(ref), base: base) else { continue }
+            let title = asxElement("title", in: body).map { unescapeXML($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
             entries.append(PlaylistFileEntry(url: url, title: title))
         }
         return entries
+    }
+
+    /// The quoted `href` of the first `<ref …>` tag in an ASX entry.
+    static func asxReference(in body: Substring) -> String? {
+        guard let ref = body.range(of: "<ref", options: .caseInsensitive),
+              let tagEnd = body[ref.upperBound...].firstIndex(of: ">") else { return nil }
+        let tag = body[ref.upperBound..<tagEnd]
+        guard let href = tag.range(of: "href", options: .caseInsensitive),
+              let open = tag[href.upperBound...].firstIndex(of: "\""),
+              let close = tag[tag.index(after: open)...].firstIndex(of: "\"") else { return nil }
+        return String(tag[tag.index(after: open)..<close])
+    }
+
+    /// The text of the first `<name>…</name>` element in an ASX entry.
+    static func asxElement(_ name: String, in body: Substring) -> String? {
+        guard let open = body.range(of: "<\(name)>", options: .caseInsensitive),
+              let close = body[open.upperBound...].range(of: "</\(name)>", options: .caseInsensitive) else { return nil }
+        return String(body[open.upperBound..<close.lowerBound])
     }
 
     // MARK: Writing
@@ -175,16 +199,17 @@ public enum PlaylistFile {
             for e in entries {
                 let seconds = e.durationMs.map { $0 / 1000 } ?? -1
                 let label = [e.artist, e.title].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " - ")
-                if !label.isEmpty || seconds > 0 { lines.append("#EXTINF:\(seconds),\(label)") }
-                lines.append(location(e.url))
+                // One entry per line: a line break in a title or path would start another entry.
+                if !label.isEmpty || seconds > 0 { lines.append("#EXTINF:\(seconds),\(label.singleLine)") }
+                lines.append(location(e.url).singleLine)
             }
             return lines.joined(separator: "\n") + "\n"
         case .pls:
             var lines = ["[playlist]"]
             for (i, e) in entries.enumerated() {
                 let n = i + 1
-                lines.append("File\(n)=\(location(e.url))")
-                if let t = e.title { lines.append("Title\(n)=\([e.artist, t].compactMap { $0 }.joined(separator: " - "))") }
+                lines.append("File\(n)=\(location(e.url).singleLine)")
+                if let t = e.title { lines.append("Title\(n)=\([e.artist, t].compactMap { $0 }.joined(separator: " - ").singleLine)") }
                 lines.append("Length\(n)=\(e.durationMs.map { $0 / 1000 } ?? -1)")
             }
             lines.append("NumberOfEntries=\(entries.count)")
@@ -214,7 +239,7 @@ public enum PlaylistFile {
                 xml += "  <entry>\n"
                 if let t = e.title { xml += "    <title>\(XMLText.escape(t))</title>\n" }
                 if let a = e.artist { xml += "    <author>\(XMLText.escape(a))</author>\n" }
-                xml += "    <ref href=\"\(XMLText.escape(e.url.isFileURL ? e.url.absoluteString : e.url.absoluteString))\"/>\n"
+                xml += "    <ref href=\"\(XMLText.escape(e.url.absoluteString))\"/>\n"
                 xml += "  </entry>\n"
             }
             xml += "</asx>\n"

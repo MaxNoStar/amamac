@@ -1,3 +1,4 @@
+import AmamacBase
 import AmamacDatabase
 import AmamacLibrary
 import AmamacModels
@@ -7,18 +8,26 @@ import GRDB
 /// Turns opened or dropped URLs (audio files, folders, playlist files, streams) into playlist items,
 /// and saves / restores the current playlist session.
 public enum PlaylistLoader {
+    /// The most entries one open or drop can produce.
+    static let maxEntries = 50_000
+
     /// Expands folders (recursively, in natural path order) and playlist files, then resolves the
     /// result against the collection.
     @concurrent
     public static func items(for urls: [URL], database: LibraryDatabase) async -> [PlaylistItem] {
         var entries: [PlaylistFileEntry] = []
-        for url in urls { expand(url, into: &entries, depth: 0) }
+        var visited = Set<String>()
+        for url in urls { expand(url, into: &entries, visited: &visited, depth: 0) }
         return resolve(entries, database: database)
     }
 
-    static func expand(_ url: URL, into entries: inout [PlaylistFileEntry], depth: Int) {
+    /// Adds the audio files, streams and playlist contents behind `url`. Each playlist file is read
+    /// once per load, so one that lists itself (or another playlist many times) can't multiply into
+    /// millions of reads. Only audio files and http(s) streams are taken from playlists.
+    static func expand(_ url: URL, into entries: inout [PlaylistFileEntry], visited: inout Set<String>, depth: Int) {
+        guard entries.count < maxEntries else { return }
         guard url.isFileURL else {
-            entries.append(PlaylistFileEntry(url: url))
+            if url.isWebURL { entries.append(PlaylistFileEntry(url: url)) }
             return
         }
         var isDirectory: ObjCBool = false
@@ -31,13 +40,14 @@ public enum PlaylistLoader {
                 if AudioFileTypes.isAudio(file) { files.append(file) }
             }
             files.sort { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
-            entries += files.map { PlaylistFileEntry(url: $0) }
+            entries += files.prefix(maxEntries - entries.count).map { PlaylistFileEntry(url: $0) }
         } else if PlaylistFileFormat.from(url: url) != nil {
-            guard depth < 4 else { return }
+            guard depth < 4, visited.insert(url.standardizedFileURL.path).inserted else { return }
             for entry in (try? PlaylistFile.read(from: url)) ?? [] {
+                guard entries.count < maxEntries else { return }
                 if entry.url.isFileURL && PlaylistFileFormat.from(url: entry.url) != nil {
-                    expand(entry.url, into: &entries, depth: depth + 1)
-                } else {
+                    expand(entry.url, into: &entries, visited: &visited, depth: depth + 1)
+                } else if entry.url.isFileURL ? AudioFileTypes.isAudio(entry.url) : entry.url.isWebURL {
                     entries.append(entry)
                 }
             }
@@ -135,7 +145,8 @@ public enum PlaylistLoader {
     public static func items(for session: Session, database: LibraryDatabase) async -> [PlaylistItem] {
         let ids = session.entries.compactMap(\.trackId)
         let tracks = (try? await database.writer.read { try CollectionQueries.tracks($0, ids: ids) }) ?? []
-        let byId = Dictionary(uniqueKeysWithValues: tracks.map { ($0.track.id!, $0) })
+        // A playlist may hold the same track twice, and then so does `tracks`.
+        let byId = Dictionary(tracks.map { ($0.track.id!, $0) }, uniquingKeysWith: { first, _ in first })
         return session.entries.compactMap { entry in
             let id = PlaylistItemID(rawValue: entry.id)
             if let trackId = entry.trackId, let found = byId[trackId] {

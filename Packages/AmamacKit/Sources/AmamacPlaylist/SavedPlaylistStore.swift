@@ -75,7 +75,8 @@ public struct SavedPlaylistStore: Sendable {
         }) ?? []
         let ids = entries.compactMap(\.trackId)
         let known = (try? await database.writer.read { try CollectionQueries.tracks($0, ids: ids) }) ?? []
-        let byId = Dictionary(uniqueKeysWithValues: known.map { ($0.track.id!, $0) })
+        // A playlist may hold the same track twice, and then so does `known`.
+        let byId = Dictionary(known.map { ($0.track.id!, $0) }, uniquingKeysWith: { first, _ in first })
         return entries.compactMap { entry -> PlaylistItem? in
             if let id = entry.trackId, let track = byId[id] { return track.playlistItem() }
             guard let url = URL(string: entry.url) else { return nil }
