@@ -17,7 +17,7 @@ public struct OrganizeOptions: Sendable, Equatable, Codable {
 /// Expands Organize Files patterns such as `%artist%/%album%/%track% - %title%`.
 /// `{...}` marks an optional section that disappears when any token inside it is empty.
 public struct FileNamingPattern: Sendable, Equatable {
-    public static let defaultScheme = "%albumartist%/%album%{ (%year%)}/{%discnumber%-}%track% - %title%"
+    public static let defaultScheme = "%albumartist%/%album%{ (%year%)}/{%discnumber%-}{%track% - }%title%"
     public static let presets: [(name: String, pattern: String)] = [
         ("Album Artist/Album/Track - Title", defaultScheme),
         ("Artist/Album/Track_-_Title", "%artist%/%album%/%track%_-_%title%"),

@@ -103,6 +103,7 @@ final class SnapshotRunner {
             await Snapshotter.capture(column, to: output.appendingPathComponent("context-applets.png"))
         }
         await captureVariants(win)
+        await captureDialogs(tracks: tracks)
         if let layoutDump { Snapshotter.dumpLayout(of: win, to: layoutDump) }
         env.player.stop()
         print("snapshot: wrote \(output.path)")
@@ -135,6 +136,29 @@ final class SnapshotRunner {
             await Snapshotter.capture(view, to: output.appendingPathComponent("media-sources-home.png"))
         }
         window.mediaSources.open(category: .localMusic)
+    }
+
+    /// Opens each library dialog, captures it and closes it again.
+    private func captureDialogs(tracks: [TrackWithStatistics]) async {
+        func capture(_ prefix: String, _ name: String) async {
+            try? await Task.sleep(for: .milliseconds(700))
+            guard let dialog = NSApp.windows.first(where: { $0.isVisible && $0.title.hasPrefix(prefix) }),
+                  let view = dialog.contentView?.superview ?? dialog.contentView else {
+                FileHandle.standardError.write("snapshot: no window titled \(prefix)\n".data(using: .utf8)!)
+                return
+            }
+            await Snapshotter.capture(view, to: output.appendingPathComponent(name))
+            dialog.close()
+        }
+        let album = tracks.filter { $0.track.album == "Dïscs" }
+        TagEditorWindow.show(tracks: album, env: env)
+        await capture("Edit Track Details", "dialog-tag-editor.png")
+        OrganizeFilesWindow.show(tracks: tracks.map(\.track), env: env)
+        await capture("Organize Files", "dialog-organize.png")
+        EditFilterDialog.show(initial: "artist:björk year:>2000 -live", relativeTo: nil) { _ in }
+        await capture("Edit Filter", "dialog-edit-filter.png")
+        CoverManagerWindow.show(env: env)
+        await capture("Cover Manager", "dialog-cover-manager.png")
     }
 
     /// Plays silently through PlayerController and checks state, position and Next. The window is

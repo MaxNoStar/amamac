@@ -108,6 +108,9 @@ final class PlaylistPaneController: NSViewController, NSTableViewDataSource, NST
         env.player.addListener { [weak self] event in
             if event == .stateChanged || event == .trackChanged { self?.refreshVisibleRows() }
         }
+        NotificationCenter.default.addObserver(forName: AppEnvironment.coverChanged, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshVisibleRows() }
+        }
         reload()
     }
 
@@ -415,6 +418,10 @@ final class PlaylistPaneController: NSViewController, NSTableViewDataSource, NST
         Commands.editTrackDetails(contextIDs.compactMap { model.item($0) }.filter { $0.source != .stream }.map(\.track))
     }
 
+    @objc private func organizeContext() {
+        Commands.organizeFiles(contextIDs.compactMap { model.item($0) }.filter { $0.source == .collection }.map(\.track))
+    }
+
     @objc private func showInFinderContext() {
         Commands.showInFinder(contextIDs.compactMap { model.item($0)?.url })
     }
@@ -462,8 +469,15 @@ final class PlaylistPaneController: NSViewController, NSTableViewDataSource, NST
         }
         add("Remove From Playlist", #selector(removeSelected(_:)), "minus")
         menu.addItem(.separator())
+        let collectionItems = ids.compactMap { model.item($0) }.filter { $0.source == .collection && $0.track.id != nil }
+        if !collectionItems.isEmpty {
+            let ratings = Set(collectionItems.map { $0.statistics?.rating ?? 0 })
+            menu.addItem(Commands.ratingMenuItem(trackIds: collectionItems.compactMap(\.track.id),
+                                                 current: ratings.count == 1 ? ratings.first : nil))
+        }
         add("Edit Track Details…", #selector(editContext), "pencil")
         add("Show in Finder", #selector(showInFinderContext), "finder")
+        if !collectionItems.isEmpty { add("Organize Files…", #selector(organizeContext), "folder.badge.gearshape") }
         if ids.count == 1, let item = model.item(ids[0]), item.source == .collection {
             add("Show Album in Media Sources", #selector(showAlbumInMediaSources), "square.stack")
             add("Show Artist in Media Sources", #selector(showArtistInMediaSources), "music.mic")

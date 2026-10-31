@@ -25,6 +25,8 @@ final class AppEnvironment {
 
     /// Posted when the collection database changed (scan, tag edit, statistics).
     static let collectionChanged = Notification.Name("amamacCollectionChanged")
+    /// Posted with the album key as object when an album's cover was set, fetched or unset.
+    static let coverChanged = Notification.Name("amamacCoverChanged")
 
     /// `httpConfiguration` is replaced by a stub in snapshot runs.
     init(dataDirectory: URL, defaults: UserDefaults, httpConfiguration: URLSessionConfiguration = .ephemeral) throws {

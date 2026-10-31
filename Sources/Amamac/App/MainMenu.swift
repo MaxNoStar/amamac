@@ -157,11 +157,14 @@ enum MainMenu {
     private static func toolsMenu() -> NSMenu {
         let m = NSMenu(title: "Tools")
         item("Bookmark Manager", #selector(AppDelegate.showBookmarkManager(_:)), in: m)
+        item("Cover Manager", #selector(AppDelegate.showCoverManager(_:)), in: m)
         m.addItem(.separator())
         item("Collection Folders…", #selector(AppDelegate.chooseCollectionFolders(_:)), in: m)
         item("Remove Collection Folders…", #selector(AppDelegate.removeCollectionFolders(_:)), in: m)
         item("Update Collection", #selector(AppDelegate.updateCollection(_:)), "r", in: m)
         item("Full Rescan", #selector(AppDelegate.fullRescan(_:)), "r", [.command, .shift], in: m)
+        m.addItem(.separator())
+        item("Import Statistics from Apple Music…", #selector(AppDelegate.importAppleMusicStatistics(_:)), in: m)
         return m
     }
 

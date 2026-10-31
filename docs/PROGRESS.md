@@ -68,7 +68,22 @@ Plan: Amarok 2/3 feature parity in milestones M0–M8 (see CLAUDE.md for command
   edit/save/clear, font size), Wikipedia (Artist/Composer/Album/Track, in-applet links with
   Back/Forward, language setting), Analyzer (block bars with fade bars; tap only while shown).
 - Snapshot runs use canned lyrics / Wikipedia responses and capture the whole applet column.
-## M4 — Library management
+## M4 — Library management ✅
+- Edit Track Details: Summary (statistics, rating), Tags (multi-track editing with "Various",
+  Per Track with Previous/Next, Guess Tags from Filename, MusicBrainz recording lookup), Lyrics,
+  Labels. Writes go through `TrackEditor` (temp copy + swap) and `CollectionScanner.refresh`, so
+  ids, statistics and date added survive; playlist items and the playing track update.
+- Ratings from the collection and playlist context menus (half stars, several tracks at once);
+  optional FMPS rating / play count written into files.
+- Covers: Fetch Cover (Cover Art Archive via MusicBrainz releases, then iTunes, choose from
+  candidates), Display / Set Custom / Unset, Cover Manager (filter, search, Fetch Missing Covers).
+- Organize Files: pattern presets and tokens, options, live preview with conflict marking, moves
+  update the collection and playlist, emptied folders are removed. Move to Trash and permanent
+  Delete (with confirmation).
+- Edit Filter dialog builds conditions (field, operator, value, negate; all/any) into filter text.
+- Import Statistics from Apple Music (exported Library.xml): matched by path, then tags; play
+  counts and dates only grow, ratings fill gaps unless replacing is chosen.
+- Snapshot run captures the tag editor, Organize Files, Edit Filter and Cover Manager.
 ## M5 — Playlists
 ## M6 — Audio extras
 ## M7 — Internet

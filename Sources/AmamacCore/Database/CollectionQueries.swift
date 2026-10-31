@@ -254,6 +254,22 @@ public enum CollectionQueries {
         }
     }
 
+    /// Every album (Cover Manager), by album artist then title.
+    public static func allAlbums(_ db: Database) throws -> [CollectionGroup] {
+        let rows = try Row.fetchAll(db, sql: """
+            SELECT t.albumKey AS k, MIN(t.album) AS name, COUNT(*) AS n, MAX(t.year) AS year,
+                   MAX(t.compilation) AS compilation,
+                   MIN(CASE WHEN t.compilation THEN '\(TrackText.variousArtists)' WHEN t.albumArtist = '' THEN t.artist ELSE t.albumArtist END) AS albumArtist
+            FROM track t WHERE t.album <> ''
+            GROUP BY t.albumKey ORDER BY albumArtist COLLATE NOCASE, name COLLATE NOCASE
+            """)
+        return rows.map { row in
+            CollectionGroup(level: .album, key: row["k"], name: row["name"] ?? "", trackCount: row["n"],
+                            year: row["year"] ?? 0, albumKey: row["k"], albumArtist: row["albumArtist"],
+                            isCompilation: row["compilation"] ?? false)
+        }
+    }
+
     /// Recently added albums (Current Track applet when stopped).
     public static func recentlyAddedAlbums(_ db: Database, limit: Int = 5) throws -> [CollectionGroup] {
         let rows = try Row.fetchAll(db, sql: """

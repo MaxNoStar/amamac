@@ -413,6 +413,25 @@ final class PlayerController {
         model.updateTrack(id: trackId) { $0.statistics = stats }
         if currentItem?.track.id == trackId { currentItem?.statistics = stats }
         statisticsRevision += 1
+        writeStatisticsToFile(trackId: trackId, stats)
+    }
+
+    /// Keeps the playing item's metadata in step with tag edits and moves.
+    func trackUpdated(_ track: Track) {
+        guard let current = currentItem, current.track.id == track.id else { return }
+        currentItem?.track = track
+        if current.url.isFileURL { currentItem?.url = track.url }
+        emit(.trackChanged)
+    }
+
+    /// Optional: mirrors rating and play count into the file's FMPS tags.
+    private func writeStatisticsToFile(trackId: Int64, _ stats: TrackStatistics) {
+        guard settings.bool(AppSettings.Key.writeStatisticsToFile),
+              let path = model.items.first(where: { $0.track.id == trackId })?.track.path ?? (currentItem?.track.id == trackId ? currentItem?.track.path : nil)
+        else { return }
+        AppEnvironment.shared?.ignoreWatcherEvents(for: path)
+        let rating = stats.rating, plays = stats.playCount
+        Task { await StatisticsTagWriter.write(rating: rating, playCount: plays, to: path) }
     }
 
     /// Sets the rating (0...10) of a track and updates every copy of it.

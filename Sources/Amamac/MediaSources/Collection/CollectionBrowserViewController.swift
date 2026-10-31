@@ -140,6 +140,14 @@ final class CollectionBrowserViewController: NSViewController, MediaSourcePage, 
         ])
         view = root
         reload()
+        NotificationCenter.default.addObserver(forName: AppEnvironment.coverChanged, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let outline = self?.outline else { return }
+                let visible = outline.rows(in: outline.visibleRect)
+                guard visible.length > 0 else { return }
+                outline.reloadData(forRowIndexes: IndexSet(integersIn: visible.location..<NSMaxRange(visible)), columnIndexes: [0])
+            }
+        }
         NotificationCenter.default.addObserver(forName: AppEnvironment.collectionChanged, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.scheduleReload() }
         }
@@ -504,7 +512,7 @@ final class CollectionBrowserViewController: NSViewController, MediaSourcePage, 
         if let album = nodes.first?.group, album.level == .album, let key = album.albumKey {
             menu.addItem(.separator())
             let albumMenu = NSMenu()
-            for (title, symbol, action) in [("Fetch Cover", "arrow.down.circle", #selector(AppDelegate.fetchCover(_:))),
+            for (title, symbol, action) in [("Fetch Cover…", "arrow.down.circle", #selector(AppDelegate.fetchCover(_:))),
                                             ("Display Cover", "photo", #selector(AppDelegate.displayCover(_:))),
                                             ("Set Custom Cover…", "photo.badge.plus", #selector(AppDelegate.setCustomCover(_:))),
                                             ("Unset Cover", "photo.badge.minus", #selector(AppDelegate.unsetCover(_:)))] {
@@ -518,11 +526,17 @@ final class CollectionBrowserViewController: NSViewController, MediaSourcePage, 
             menu.addItem(albumItem)
         }
         menu.addItem(.separator())
+        if nodes.allSatisfy({ $0.track != nil }) {
+            let ids = nodes.compactMap { $0.track?.track.id }
+            let ratings = Set(nodes.map { $0.track?.statistics?.rating ?? 0 })
+            menu.addItem(Commands.ratingMenuItem(trackIds: ids, current: ratings.count == 1 ? ratings.first : nil))
+        }
         add("Edit Track Details…", #selector(menuEdit), symbol: "pencil")
         add("Organize Files…", #selector(menuOrganize), symbol: "folder.badge.gearshape")
         add("Show in Finder", #selector(menuShowInFinder), symbol: "finder")
         menu.addItem(.separator())
         add("Move Tracks to Trash", #selector(menuTrash), symbol: "trash")
+        add("Delete Tracks…", #selector(menuDelete), symbol: "xmark.bin")
     }
 
     @objc private func menuAppend() { Commands.addToPlaylist(tracks(for: contextNodes), mode: .append) }
@@ -534,6 +548,7 @@ final class CollectionBrowserViewController: NSViewController, MediaSourcePage, 
     @objc private func menuOrganize() { Commands.organizeFiles(tracks(for: contextNodes).map(\.track)) }
     @objc private func menuShowInFinder() { Commands.showInFinder(tracks(for: contextNodes).map(\.track.url)) }
     @objc private func menuTrash() { Commands.moveToTrash(tracks(for: contextNodes).map(\.track)) }
+    @objc private func menuDelete() { Commands.deleteFiles(tracks(for: contextNodes).map(\.track)) }
 
     @objc func deleteSelection(_ sender: Any?) { Commands.moveToTrash(tracks(for: selectedNodes).map(\.track)) }
 }
@@ -543,6 +558,8 @@ struct AlbumReference {
     var albumKey: String
     var album: String
     var artist: String
+    /// MusicBrainz release id from the tags, when known (better cover lookups).
+    var releaseId: String? = nil
 }
 
 /// Outline view with Return / middle-click / Delete handling.

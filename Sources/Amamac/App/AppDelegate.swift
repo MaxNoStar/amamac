@@ -154,6 +154,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             Task { @MainActor in AppEnvironment.shared.player.handle(command) }
         }
         env.player.addListener { [weak self] _ in self?.updateNowPlaying() }
+        NotificationCenter.default.addObserver(forName: AppEnvironment.coverChanged, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.nowPlayingArtworkKey = nil
+                self?.updateNowPlaying()
+            }
+        }
         Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.updateNowPlaying() }
         }
@@ -462,53 +468,65 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
     // MARK: Covers
 
+    private func album(from sender: NSMenuItem) -> AlbumReference? {
+        guard var album = sender.representedObject as? AlbumReference else { return nil }
+        if album.releaseId == nil {
+            album.releaseId = try? env.database.writer.read {
+                try String.fetchOne($0, sql: "SELECT mbReleaseId FROM track WHERE albumKey = ? AND mbReleaseId <> '' LIMIT 1",
+                                    arguments: [album.albumKey])
+            }
+        }
+        return album
+    }
+
     @objc func fetchCover(_ sender: NSMenuItem) {
-        env.status.showMessage("Fetching covers from the internet is not available yet.")
+        if let album = album(from: sender) { CoverActions.fetch(album, env: env) }
     }
 
     @objc func displayCover(_ sender: NSMenuItem) {
-        guard let album = sender.representedObject as? AlbumReference else { return }
-        let covers = env.covers
-        Task {
-            guard let data = await covers.originalImageData(albumKey: album.albumKey), let image = NSImage(data: data) else {
-                env.status.showMessage("“\(album.album)” has no cover.")
-                return
-            }
-            CoverViewerWindow.show(image: image, title: [album.album, album.artist].filter { !$0.isEmpty }.joined(separator: " – "))
-        }
+        if let album = album(from: sender) { CoverActions.display(album, env: env) }
     }
 
     @objc func setCustomCover(_ sender: NSMenuItem) {
-        guard let album = sender.representedObject as? AlbumReference else { return }
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.image]
-        panel.message = "Choose a cover for “\(album.album)”"
-        guard panel.runModal() == .OK, let url = panel.url, let data = try? Data(contentsOf: url) else { return }
-        let covers = env.covers
-        Task {
-            do {
-                try await covers.setCover(albumKey: album.albumKey, imageData: data)
-                coverChanged(album.albumKey)
-            } catch {
-                env.status.showMessage("Could not set the cover: \(error.localizedDescription)")
-            }
-        }
+        if let album = album(from: sender) { CoverActions.setCustom(album, env: env) }
     }
 
     @objc func unsetCover(_ sender: NSMenuItem) {
-        guard let album = sender.representedObject as? AlbumReference else { return }
-        let covers = env.covers
-        Task {
-            try? await covers.unsetCover(albumKey: album.albumKey)
-            coverChanged(album.albumKey)
-        }
+        if let album = album(from: sender) { CoverActions.unset(album, env: env) }
     }
 
-    private func coverChanged(_ albumKey: String) {
-        env.coverImages.invalidate(albumKey: albumKey)
-        if nowPlayingArtworkKey == albumKey { nowPlayingArtworkKey = nil }
-        NotificationCenter.default.post(name: AppEnvironment.collectionChanged, object: nil)
-        mainWindow.playlistPane.reload()
+    @objc func showCoverManager(_ sender: Any?) { CoverManagerWindow.show(env: env) }
+
+    // MARK: Statistics import
+
+    @objc func importAppleMusicStatistics(_ sender: Any?) {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.xml, .propertyList]
+        panel.message = "Choose the library file exported from Music (File › Library › Export Library…)."
+        panel.prompt = "Import"
+        let overwrite = NSButton(checkboxWithTitle: "Replace ratings that are already set", target: nil, action: nil)
+        panel.accessoryView = overwrite
+        panel.isAccessoryViewDisclosed = true
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let replace = overwrite.state == .on
+        let db = env.database
+        let token = env.status.beginTask("Importing statistics")
+        Task {
+            defer { env.status.endTask(token) }
+            do {
+                let entries = try await Task.detached { try AppleMusicImporter.parse(url) }.value
+                let report = try await AppleMusicImporter.apply(entries, to: db, overwriteRatings: replace)
+                let ids = (try? await db.writer.read { try Int64.fetchAll($0, sql: "SELECT trackId FROM statistics") }) ?? []
+                Commands.tracksChanged(ids: ids)
+                let alert = NSAlert()
+                alert.messageText = "Statistics imported"
+                alert.informativeText = "\(report.entries) tracks in the export, \(report.matched) found in the collection, " +
+                    "\(report.updated) updated, \(report.unmatched) not found."
+                alert.runModal()
+            } catch {
+                NSAlert(error: error).runModal()
+            }
+        }
     }
 
     // MARK: Help
@@ -580,7 +598,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             return env.playlist.activeID != nil || player.currentItem != nil
         case #selector(removeCollectionFolders(_:)):
             return !env.collectionFolders.isEmpty
-        case #selector(fetchCover(_:)), #selector(showBookmarkManager(_:)):
+        case #selector(showBookmarkManager(_:)):
             return false
         default:
             return true
