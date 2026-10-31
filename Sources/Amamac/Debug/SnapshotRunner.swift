@@ -192,7 +192,7 @@ final class SnapshotRunner {
         win.displayIfNeeded()
 
         if let root = win.contentView {
-            await Snapshotter.capture(root, to: output.appendingPathComponent("window.png"))
+            await Snapshotter.capture(root, to: output.appendingPathComponent("window.png"), background: .windowBackgroundColor)
         }
         for pane in Pane.allCases {
             if let view = window.panes[pane]?.view {
@@ -229,7 +229,7 @@ final class SnapshotRunner {
         window.setSlimToolbar(true)
         win.contentView?.layoutSubtreeIfNeeded()
         if let root = win.contentView {
-            await Snapshotter.capture(root, to: output.appendingPathComponent("window-unlocked-slim.png"))
+            await Snapshotter.capture(root, to: output.appendingPathComponent("window-unlocked-slim.png"), background: .windowBackgroundColor)
         }
         window.applyLock(true)
         window.setSlimToolbar(false)
