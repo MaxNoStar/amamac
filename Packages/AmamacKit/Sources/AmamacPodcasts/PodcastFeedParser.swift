@@ -1,3 +1,4 @@
+import AmamacBase
 import FeedKit
 import Foundation
 
@@ -43,13 +44,13 @@ public enum PodcastFeedParser {
         case .rss(let rss):
             guard let channel = rss.channel else { throw PodcastFeedError.notAFeed }
             let episodes = (channel.items ?? []).compactMap { item -> ParsedEpisode? in
-                guard let enclosure = item.enclosure?.attributes, let url = enclosure.url, !url.isEmpty else { return nil }
+                guard let enclosure = item.enclosure?.attributes, let url = enclosure.url, Self.isWebAddress(url) else { return nil }
                 let guid = item.guid?.text?.trimmingCharacters(in: .whitespacesAndNewlines)
                 return ParsedEpisode(guid: guid?.isEmpty == false ? guid! : url,
                                      title: item.title ?? item.iTunes?.title ?? "Untitled Episode",
                                      summary: item.iTunes?.summary ?? item.content?.encoded ?? item.description,
                                      pubDate: item.pubDate,
-                                     durationMs: item.iTunes?.duration.map { Int($0 * 1000) },
+                                     durationMs: item.iTunes?.duration.flatMap { SafeNumbers.milliseconds(seconds: $0) },
                                      enclosureURL: url, enclosureType: enclosure.type,
                                      fileSize: enclosure.length.flatMap { $0 > 0 ? $0 : nil })
             }
@@ -61,7 +62,7 @@ public enum PodcastFeedParser {
         case .atom(let atom):
             let episodes = (atom.entries ?? []).compactMap { entry -> ParsedEpisode? in
                 guard let link = entry.links?.first(where: { $0.attributes?.rel == "enclosure" })?.attributes,
-                      let url = link.href else { return nil }
+                      let url = link.href, Self.isWebAddress(url) else { return nil }
                 return ParsedEpisode(guid: entry.id ?? url, title: entry.title ?? "Untitled Episode", summary: entry.summary?.text,
                                      pubDate: entry.published ?? entry.updated, durationMs: nil, enclosureURL: url,
                                      enclosureType: link.type, fileSize: link.length)
@@ -72,6 +73,12 @@ public enum PodcastFeedParser {
         default:
             throw PodcastFeedError.notAFeed
         }
+    }
+
+    /// Episodes are only taken from http(s) enclosures: a `file://` one would turn any file on the
+    /// Mac into a playable, editable "episode".
+    static func isWebAddress(_ string: String) -> Bool {
+        URL(string: string.trimmingCharacters(in: .whitespaces))?.isWebURL ?? false
     }
 }
 

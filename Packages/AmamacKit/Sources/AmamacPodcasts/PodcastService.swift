@@ -144,28 +144,49 @@ public struct PodcastService: Sendable {
         notify()
     }
 
-    /// Where an episode is saved: <folder>/<channel>/<file name from the enclosure>.
+    /// Extensions a downloaded episode may have. Anything else gets one from the MIME type, so a
+    /// feed can't make Amamac save a `.terminal`, `.webloc` or `.app`.
+    static let mediaExtensions: Set<String> = ["mp3", "m4a", "aac", "mp4", "m4v", "mov", "ogg", "oga", "opus", "flac", "wav"]
+
+    /// Where an episode is saved: <folder>/<channel>/<file name from the enclosure>. Never an
+    /// existing file: feeds that reuse one name get the date in front, then a number.
     public func destination(for episode: PodcastEpisode, channel: PodcastChannel) -> URL {
         let folder = channel.saveLocation.map { URL(fileURLWithPath: $0) }
             ?? downloadFolder.appendingPathComponent(Self.safeName(channel.title), isDirectory: true)
-        var name = URL(string: episode.enclosureURL)?.lastPathComponent ?? ""
-        if name.isEmpty || name == "/" || !name.contains(".") {
-            let ext = episode.enclosureType.flatMap { $0.contains("mp4") || $0.contains("m4a") ? "m4a" : nil } ?? "mp3"
-            name = Self.safeName(episode.title) + "." + ext
+        var name = Self.safeName(URL(string: episode.enclosureURL)?.lastPathComponent ?? "")
+        if !Self.mediaExtensions.contains((name as NSString).pathExtension.lowercased()) {
+            name = Self.safeName(episode.title) + "." + Self.mediaExtension(for: episode.enclosureType)
         }
-        var url = folder.appendingPathComponent(Self.safeName(name))
-        // Feeds that reuse one file name for every episode get the date in front.
-        if FileManager.default.fileExists(atPath: url.path), episode.localPath != url.path {
+        let fm = FileManager.default
+        var url = folder.appendingPathComponent(name)
+        if fm.fileExists(atPath: url.path) {
             let stamp = episode.pubDate.map { ISO8601DateFormatter.string(from: $0, timeZone: .gmt, formatOptions: .withFullDate) } ?? String(episode.id ?? 0)
-            url = folder.appendingPathComponent(stamp + " " + Self.safeName(name))
+            name = stamp + " " + name
+            url = folder.appendingPathComponent(name)
+        }
+        let stem = (name as NSString).deletingPathExtension, ext = (name as NSString).pathExtension
+        var number = 2
+        while fm.fileExists(atPath: url.path) {
+            url = folder.appendingPathComponent("\(stem) \(number).\(ext)")
+            number += 1
         }
         return url
     }
 
-    /// Downloads an episode, reporting progress (0...1), and records the file.
+    static func mediaExtension(for mimeType: String?) -> String {
+        let type = mimeType?.lowercased() ?? ""
+        if type.hasPrefix("video/") { return "mp4" }
+        for (marker, ext) in [("m4a", "m4a"), ("mp4", "m4a"), ("aac", "aac"), ("ogg", "ogg"), ("opus", "opus"), ("flac", "flac"), ("wav", "wav")]
+        where type.contains(marker) { return ext }
+        return "mp3"
+    }
+
+    /// Downloads an episode, reporting progress (0...1), and records the file. An episode that is
+    /// already downloaded is returned as it is.
     @discardableResult
     public func download(_ episode: PodcastEpisode, progress: @escaping @Sendable (Double) -> Void = { _ in }) async throws -> PodcastEpisode {
-        guard let channel = channel(id: episode.channelId), let url = URL(string: episode.enclosureURL) else { throw HTTPError.invalidResponse }
+        if episode.isDownloaded { return episode }
+        guard let channel = channel(id: episode.channelId), let url = URL(string: episode.enclosureURL), url.isWebURL else { throw HTTPError.invalidURL }
         let target = destination(for: episode, channel: channel)
         try await http.download(from: url, to: target, progress: progress)
         var updated = episode
@@ -217,6 +238,6 @@ public struct PodcastService: Sendable {
     static func safeName(_ s: String) -> String {
         let cleaned = s.components(separatedBy: CharacterSet(charactersIn: "/:\\?%*|\"<>\0")).joined(separator: "_")
             .trimmingCharacters(in: .whitespacesAndNewlines.union(CharacterSet(charactersIn: ".")))
-        return cleaned.isEmpty ? "Untitled" : String(cleaned.prefix(120))
+        return cleaned.isEmpty ? "Untitled" : PathComponent.sanitized(String(cleaned.prefix(120)))
     }
 }

@@ -1,3 +1,4 @@
+import AmamacBase
 import AmamacModels
 import Foundation
 import GRDB
@@ -67,10 +68,10 @@ public struct PodcastEpisode: Codable, Sendable, Hashable, Identifiable, Fetchab
 
     public var isDownloaded: Bool { localPath.map { FileManager.default.fileExists(atPath: $0) } ?? false }
 
-    /// The downloaded file when there is one, else the feed's enclosure.
+    /// The downloaded file when there is one, else the feed's enclosure if it is http(s).
     public var playURL: URL? {
         if isDownloaded, let localPath { return URL(fileURLWithPath: localPath) }
-        return URL(string: enclosureURL)
+        return URL(string: enclosureURL).flatMap { $0.isWebURL ? $0 : nil }
     }
 
     public mutating func didInsert(_ inserted: InsertionSuccess) { id = inserted.rowID }
