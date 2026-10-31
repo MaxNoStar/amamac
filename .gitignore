@@ -2,11 +2,23 @@
 Amamac.xcodeproj/
 build/
 .build/
+.swiftpm/
 DerivedData/
+*.xcresult
 *.xcuserstate
 xcuserdata/
-.DS_Store
 Generated/
 
 # Old release disk images (kept out of build/ so `make clean` keeps them)
 archive/
+
+# macOS, editors and scratch files
+.DS_Store
+.vscode/
+.idea/
+.claude/settings.local.json
+/scratch/
+*.log
+*.tmp
+*.swp
+*~
