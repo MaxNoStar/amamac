@@ -161,7 +161,8 @@ Plan: Amarok 2/3 feature parity in milestones M0–M8 (see CLAUDE.md for command
 - Optional Notification Center banners (with cover) while Amamac is in the background; a sleep
   assertion while playing and pause before sleep; "start playing when adding while stopped",
   "keep the playing track in view" and "fetch missing covers" now do what they say.
-- App icon drawn by `scripts/make-icon.swift` (an original record-and-wave design; `make icon`).
+- App icon drawn by `scripts/make-icon.swift`: an original loudspeaker on coral, chosen from six designs
+  (`make icon`; `swift scripts/make-icon.swift --preview DIR` renders all of them side by side).
 - About panel, Help window (layout, filter syntax, keys), Diagnostics (copyable report) and
   Acknowledgements; THIRD_PARTY_NOTICES.md generated from the packages' license files
   (`make notices`) and bundled in the app; README.md.
