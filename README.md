@@ -14,8 +14,8 @@ behaviour in Swift and contains no Amarok code, data or artwork.
   ratings, scores and play counts, Edit Track Details with MusicBrainz lookup, Organize Files,
   Cover Manager, statistics import from Apple Music.
 - **Playback**: gapless, FLAC, ALAC, AAC, MP3, Ogg Vorbis, Opus, WavPack, Musepack, TTA, DSD,
-  modules and more (via SFBAudioEngine); 10-band equalizer with presets; ReplayGain; fades; output
-  device choice; media keys and Now Playing.
+  modules and more (via SFBAudioEngine); 10-band equalizer with presets; ReplayGain; fades and
+  crossfades (albums stay gapless if you like); output device choice; media keys and Now Playing.
 - **Playlist**: album grouping and four layouts, multi-level sort, progressive search, queue,
   stop-after, undo, track progressions (repeat, random tracks/albums with Favor), saved
   playlists, M3U/PLS/XSPF/ASX, dynamic playlists with biases, the Automated Playlist Generator.

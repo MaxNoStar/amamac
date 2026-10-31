@@ -31,7 +31,7 @@ DerivedData lives in `~/Library/Developer/Xcode/DerivedData/Amamac-cli` (not ins
   | `AmamacLibrary` | scanner, watcher, tags, editing, Organize, covers, statistics (`StatisticsStore`) | Database, SFBAudioEngine |
   | `AmamacPlaylist` | model, proxy, navigator, layouts, playlist files, session, saved playlists, bookmarks | Library |
   | `AmamacDynamic` | biases, dynamic playlists, the generator, `GeneratorStore` | Query, Database |
-  | `AmamacPlayback` | local and stream engines, engine bridge, ReplayGain, EQ, devices, spectrum tap, analyzer bar dynamics | Models, SFBAudioEngine |
+  | `AmamacPlayback` | local engine (two decks for crossfades) and stream engine, engine bridge, crossfader, ReplayGain, EQ, devices, spectrum tap, analyzer bar dynamics | Models, SFBAudioEngine |
   | `AmamacWeb` | `HTTPClient`, Wikipedia, MusicBrainz and covers, radio-browser | Database |
   | `AmamacPodcasts` | feeds, OPML, `PodcastService`, directory | Web, FeedKit |
   | `AmamacTestSupport` | audio fixtures, synthetic library, `StubURLProtocol`, in-memory database; compiled only in Debug | Library |
@@ -73,6 +73,8 @@ DerivedData lives in `~/Library/Developer/Xcode/DerivedData/Amamac-cli` (not ins
 - `@preconcurrency import` of SFBAudioEngine / AVFoundation / MediaPlayer only in engine files.
 - The engine bridge enqueues the next track synchronously inside `decodingComplete` — never hop to
   the main actor for gapless decisions. The main actor pushes `upcoming` after every playlist change.
+- The crossfader starts the next deck on its own queue from the same `upcoming` (whichever takes it
+  first wins) — never hop to the main actor for crossfade timing either.
 
 ## Data / privacy
 - App data: `~/Library/Application Support/Amamac/` (override with `--data-dir`).

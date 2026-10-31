@@ -240,6 +240,25 @@ let outside data run code or read files, but these were fixed, each with a test:
   matches roots case-sensitively.
 - **Build**: hardened runtime with one entitlement, `disable-library-validation` (the codec
   frameworks are ad-hoc signed without a Team ID, which library validation rejects at launch);
-  Release without `get-task-allow`; builds use only the versions in `Package.resolved`. New helpers in AmamacBase: `SafeNumbers`, `PathComponent`, `Paths`,
-  `URL.isWebURL`, `String.singleLine`.
+  Release without `get-task-allow`; builds use only the versions in `Package.resolved`. New
+  helpers in AmamacBase: `SafeNumbers`, `PathComponent`, `Paths`, `URL.isWebURL`,
+  `String.singleLine`.
 - Not done: App Sandbox (needs security-scoped bookmarks for every folder; its own project).
+
+## 0.1.5 — Crossfade
+- **Settings › Playback › Fading**: "Crossfade between tracks" (off by default), its duration
+  (1–12 s, default 5 s) and "Don't crossfade within an album" (on), so live albums, DJ mixes and
+  classical keep flowing.
+- Only a track that plays to its end crossfades; Next, Previous and double-click switch at once.
+  Streams, "Stop after this track" and tracks too short for the fade (half of either track, at
+  least 1 s) stay gapless.
+- **Engine**: SFBAudioEngine's player plays one track at a time and queues the next only ~0.4 s
+  before the end, so the local engine now has two decks (each a player with its own equalizer and
+  ReplayGain). `Crossfader` watches the playing deck on its own queue, starts the next track on the
+  other deck and ramps both with an equal-power curve that follows the new track's position, so
+  Pause holds it; seeking and Stop finish it. The new deck's now-playing event takes the gapless
+  path in `PlayerController`, so the old track counts as played and the playlist follows.
+- Fixed in passing: decoders canceled by a skip left stale entries in the bridge.
+- Tests: `CrossfadeTests` (policy, fade length, curve); engine tests for overlap timing, steady
+  loudness, pause, seek, stop, gapless fallback and stale tracks; a snapshot crossfade check
+  through the player. `PlaybackSettingsView` moved to its own file.
