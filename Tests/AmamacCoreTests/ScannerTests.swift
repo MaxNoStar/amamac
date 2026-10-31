@@ -131,6 +131,19 @@ struct ScannerTests {
         try await store.setCover(albumKey: hits, imageData: AudioFixtures.coverPNG(text: "H", hue: 0.3))
         #expect(await store.cover(albumKey: hits, size: 32) != nil)
     }
+
+    @Test func customCoverWinsOverFolderImage() async throws {
+        let root = try copyLibrary()
+        let (db, _, _) = try await scannedDatabase(root: root)
+        let store = CoverStore(database: db, cacheDirectory: temporaryDirectory("covers"))
+        let albums = try await db.writer.read { try CollectionQueries.groups($0, level: .album, constraints: [], filter: CollectionQuery()) }
+        let sine = albums.first { $0.name == "Sine Waves" }!.albumKey!
+        let folder = try Data(contentsOf: root.appendingPathComponent("The Synthetics/Sine Waves/cover.png"))
+        #expect(await store.originalImageData(albumKey: sine) == folder)
+        let custom = AudioFixtures.coverPNG(text: "C", hue: 0.6)
+        try await store.setCover(albumKey: sine, imageData: custom)
+        #expect(await store.originalImageData(albumKey: sine) == custom)
+    }
 }
 
 struct PerformanceTests {
