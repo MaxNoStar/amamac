@@ -92,7 +92,6 @@ targets:
         product: AmamacPodcasts
       - package: AmamacKit
         product: AmamacTestSupport
-      - package: GRDB
       - package: KeyboardShortcuts
       # SFBAudioEngine's codec libraries are dynamic binary frameworks reached only through the
       # AmamacKit package, so embed them in the app explicitly.

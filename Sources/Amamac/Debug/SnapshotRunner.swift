@@ -146,9 +146,7 @@ final class SnapshotRunner {
         }
         NotificationCenter.default.post(name: AppEnvironment.collectionChanged, object: nil)
 
-        let tracks = (try? await env.database.writer.read {
-            try CollectionQueries.tracks($0, constraints: [], filter: CollectionQuery(groups: []), limit: nil)
-        }) ?? []
+        let tracks = (try? await env.database.tracks()) ?? []
         guard !tracks.isEmpty else { fail("scan produced no tracks") }
         env.playlist.replace(with: tracks.map { $0.playlistItem() })
         if let second = env.playlist.order.dropFirst().first { env.playlist.setActive(second) }

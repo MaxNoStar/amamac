@@ -114,7 +114,7 @@ final class DynamicModeController {
             var rng = SystemRandomNumberGenerator()
             let ids = generator.generate(count: upcomingCount - upcoming, history: Array(history), existing: existing,
                                          allowDuplicates: allowDuplicates, rng: &rng)
-            let tracks = (try? await env.database.writer.read { try CollectionQueries.tracks($0, ids: ids) }) ?? []
+            let tracks = (try? await env.database.tracks(ids: ids)) ?? []
             model.append(tracks.map { $0.playlistItem() })
         }
     }

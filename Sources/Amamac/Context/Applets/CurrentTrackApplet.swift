@@ -36,15 +36,13 @@ final class RecentAlbumsModel {
     func reload() {
         let db = env.database
         Task {
-            albums = (try? await db.writer.read { try CollectionQueries.recentlyAddedAlbums($0, limit: 6) }) ?? []
+            albums = (try? await db.recentlyAddedAlbums(limit: 6)) ?? []
         }
     }
 
     func play(_ album: CollectionGroup) {
         guard let key = album.albumKey else { return }
-        let tracks = (try? env.database.writer.read {
-            try CollectionQueries.tracks($0, constraints: [CollectionConstraint(level: .album, key: key)], filter: CollectionQuery())
-        }) ?? []
+        let tracks = (try? env.database.tracks(constraints: [CollectionConstraint(level: .album, key: key)])) ?? []
         Commands.addToPlaylist(tracks, mode: .appendAndPlay)
     }
 }

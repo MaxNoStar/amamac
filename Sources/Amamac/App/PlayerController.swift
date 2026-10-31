@@ -4,7 +4,6 @@ import AmamacModels
 import AmamacPlayback
 import AmamacPlaylist
 import AppKit
-import GRDB
 
 /// Owns playback: picks the engine, follows the navigator, records statistics and keeps the
 /// engine's gapless "upcoming" track in sync with every playlist change.
@@ -446,14 +445,9 @@ final class PlayerController {
         guard let trackId = item.track.id, item.source == .collection else { return }
         let duration = item.duration > 0 ? item.duration : self.duration
         let played = reachedEnd ? duration : lastPosition
-        let db = database
+        let statistics = StatisticsStore(database: database)
         Task {
-            let stats = try? await db.writer.write { db -> TrackStatistics in
-                var stats = try TrackStatistics.fetchOne(db, key: trackId) ?? TrackStatistics(trackId: trackId)
-                PlayStatistics.apply(to: &stats, playedSeconds: played, duration: duration, reachedEnd: reachedEnd)
-                try stats.save(db)
-                return stats
-            }
+            let stats = try? await statistics.recordPlay(trackId: trackId, playedSeconds: played, duration: duration, reachedEnd: reachedEnd)
             if let stats { self.statisticsUpdated(trackId: trackId, stats) }
         }
     }
@@ -485,14 +479,9 @@ final class PlayerController {
 
     /// Sets the rating (0...10) of a track and updates every copy of it.
     func setRating(_ rating: Int, trackId: Int64) {
-        let db = database
+        let statistics = StatisticsStore(database: database)
         Task {
-            let stats = try? await db.writer.write { db -> TrackStatistics in
-                var stats = try TrackStatistics.fetchOne(db, key: trackId) ?? TrackStatistics(trackId: trackId)
-                stats.rating = max(0, min(10, rating))
-                try stats.save(db)
-                return stats
-            }
+            let stats = try? await statistics.setRating(rating, trackIds: [trackId]).first?.statistics
             if let stats {
                 self.statisticsUpdated(trackId: trackId, stats)
                 NotificationCenter.default.post(name: AppEnvironment.collectionChanged, object: nil)

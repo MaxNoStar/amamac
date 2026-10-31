@@ -4,7 +4,7 @@ import GRDB
 
 /// The collection database (SQLite via GRDB).
 public final class LibraryDatabase: Sendable {
-    public let writer: any DatabaseWriter
+    package let writer: any DatabaseWriter
 
     public init(writer: any DatabaseWriter) throws {
         self.writer = writer

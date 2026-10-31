@@ -484,10 +484,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     private func album(from sender: NSMenuItem) -> AlbumReference? {
         guard var album = sender.representedObject as? AlbumReference else { return nil }
         if album.releaseId == nil {
-            album.releaseId = try? env.database.writer.read {
-                try String.fetchOne($0, sql: "SELECT mbReleaseId FROM track WHERE albumKey = ? AND mbReleaseId <> '' LIMIT 1",
-                                    arguments: [album.albumKey])
-            }
+            album.releaseId = try? env.database.releaseID(albumKey: album.albumKey)
         }
         return album
     }
@@ -529,7 +526,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             do {
                 let entries = try await Task.detached { try AppleMusicImporter.parse(url) }.value
                 let report = try await AppleMusicImporter.apply(entries, to: db, overwriteRatings: replace)
-                let ids = (try? await db.writer.read { try Int64.fetchAll($0, sql: "SELECT trackId FROM statistics") }) ?? []
+                let ids = (try? await db.trackIdsWithStatistics()) ?? []
                 Commands.tracksChanged(ids: ids)
                 let alert = NSAlert()
                 alert.messageText = "Statistics imported"

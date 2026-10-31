@@ -1,4 +1,5 @@
 import AmamacDatabase
+import AmamacLibrary
 import AmamacModels
 import AmamacPlaylist
 import AppKit
@@ -66,7 +67,7 @@ enum Commands {
             }
         }
         guard !ids.isEmpty else { return [] }
-        return (try? env.database.writer.read { try CollectionQueries.tracks($0, ids: ids) }) ?? []
+        return (try? env.database.tracks(ids: ids)) ?? []
     }
 
     // MARK: Library actions
@@ -75,7 +76,7 @@ enum Commands {
     static func editTrackDetails(_ tracks: [Track]) {
         guard !tracks.isEmpty else { return }
         let ids = tracks.compactMap(\.id)
-        let known = (try? env.database.writer.read { try CollectionQueries.tracks($0, ids: ids) }) ?? []
+        let known = (try? env.database.tracks(ids: ids)) ?? []
         let byId = Dictionary(uniqueKeysWithValues: known.map { ($0.track.id!, $0) })
         let resolved = tracks.map { track in
             track.id.flatMap { byId[$0] } ?? TrackWithStatistics(track: track, statistics: nil)
@@ -142,7 +143,7 @@ enum Commands {
     /// Re-reads tracks after edits and updates the playlist, the player and the browsers.
     static func tracksChanged(ids: [Int64]) {
         guard !ids.isEmpty else { return }
-        let fresh = (try? env.database.writer.read { try CollectionQueries.tracks($0, ids: ids) }) ?? []
+        let fresh = (try? env.database.tracks(ids: ids)) ?? []
         for t in fresh {
             env.playlist.updateTrack(id: t.track.id!) { item in
                 item.track = t.track
@@ -182,16 +183,9 @@ enum Commands {
             env.player.setRating(rating, trackId: trackIds[0])
             return
         }
-        let db = env.database
+        let statistics = StatisticsStore(database: env.database)
         Task {
-            let updated = (try? await db.writer.write { db -> [(Int64, TrackStatistics)] in
-                try trackIds.map { id in
-                    var stats = try TrackStatistics.fetchOne(db, key: id) ?? TrackStatistics(trackId: id)
-                    stats.rating = max(0, min(10, rating))
-                    try stats.save(db)
-                    return (id, stats)
-                }
-            }) ?? []
+            let updated = (try? await statistics.setRating(rating, trackIds: trackIds)) ?? []
             for (id, stats) in updated { env.player.statisticsUpdated(trackId: id, stats) }
             NotificationCenter.default.post(name: AppEnvironment.collectionChanged, object: nil)
         }

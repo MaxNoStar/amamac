@@ -1,7 +1,7 @@
 import AmamacBase
+import AmamacDatabase
 import AmamacPlayback
 import AppKit
-import GRDB
 import SwiftUI
 
 enum AboutPanel {
@@ -73,13 +73,7 @@ enum Diagnostics {
         #elseif arch(x86_64)
         arch = "x86_64"
         #endif
-        let counts = (try? env.database.writer.read { db -> (Int, Int, Int, Int, Int) in
-            (try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM track") ?? 0,
-             try Int.fetchOne(db, sql: "SELECT COUNT(DISTINCT albumKey) FROM track") ?? 0,
-             try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM statistics WHERE playCount > 0") ?? 0,
-             try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM playlist") ?? 0,
-             try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM podcast_channel") ?? 0)
-        }) ?? (0, 0, 0, 0, 0)
+        let counts = (try? env.database.totals()) ?? LibraryDatabase.Totals()
         let dbSize = ["collection.sqlite", "collection.sqlite-wal"].reduce(Int64(0)) { total, name in
             total + ((try? FileManager.default.attributesOfItem(atPath: env.dataDirectory.appendingPathComponent(name).path)[.size] as? Int64) ?? 0)
         }
@@ -94,8 +88,8 @@ enum Diagnostics {
             "Data folder: \(env.dataDirectory.path)",
             "Database: \(ByteCountFormatter.string(fromByteCount: dbSize, countStyle: .file))",
             "Collection folders: \(env.collectionFolders.map(\.path).joined(separator: ", "))",
-            "Tracks: \(counts.0), albums: \(counts.1), tracks played: \(counts.2)",
-            "Saved playlists: \(counts.3), podcasts: \(counts.4)",
+            "Tracks: \(counts.tracks), albums: \(counts.albums), tracks played: \(counts.playedTracks)",
+            "Saved playlists: \(counts.playlists), podcasts: \(counts.podcasts)",
             "Podcast downloads: \(PodcastController.downloadFolder(env).path)",
             "",
             "Playback: \(player.state), engine: \(player.backend)",

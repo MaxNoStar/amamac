@@ -61,14 +61,7 @@ final class AlbumsAppletModel {
         let db = env.database
         let current = item?.albumKey
         Task {
-            let loaded = (try? await db.writer.read { db -> [Album] in
-                try CollectionQueries.albums(db, artist: name).map { group in
-                    let tracks = try group.albumKey.map {
-                        try CollectionQueries.tracks(db, constraints: [CollectionConstraint(level: .album, key: $0)], filter: CollectionQuery())
-                    } ?? []
-                    return Album(group: group, tracks: tracks)
-                }
-            }) ?? []
+            let loaded = ((try? await db.albumsWithTracks(artist: name)) ?? []).map { Album(group: $0.album, tracks: $0.tracks) }
             guard name == artist else { return }
             albums = loaded
             if let current, let album = loaded.first(where: { $0.group.albumKey == current }) { expanded = [album.id] }

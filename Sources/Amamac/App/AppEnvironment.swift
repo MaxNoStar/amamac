@@ -4,7 +4,6 @@ import AmamacLibrary
 import AmamacPlaylist
 import AmamacWeb
 import AppKit
-import GRDB
 
 /// Shared services for the app (one per process).
 @MainActor
@@ -64,18 +63,11 @@ final class AppEnvironment {
     // MARK: Collection
 
     var collectionFolders: [CollectionFolder] {
-        (try? database.writer.read { try CollectionFolder.fetchAll($0) }) ?? []
+        (try? database.collectionFolders()) ?? []
     }
 
     func setCollectionFolders(_ paths: [String]) {
-        try? database.writer.write { db in
-            let existing = try CollectionFolder.fetchAll(db)
-            for folder in existing where !paths.contains(folder.path) { try folder.delete(db) }
-            for path in paths where !existing.contains(where: { $0.path == path }) {
-                var folder = CollectionFolder(path: path)
-                try folder.insert(db)
-            }
-        }
+        try? database.setCollectionFolders(paths: paths)
         startWatching()
     }
 

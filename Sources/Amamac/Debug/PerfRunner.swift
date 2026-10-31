@@ -71,9 +71,7 @@ final class PerfRunner {
 
         var tracks: [TrackWithStatistics] = []
         measure("load 20,000 tracks with statistics", budget: .milliseconds(800)) {
-            tracks = (try? env.database.writer.read {
-                try CollectionQueries.tracks($0, constraints: [], filter: CollectionQuery(groups: []))
-            }) ?? []
+            tracks = (try? env.database.tracks()) ?? []
         }
         let pane = window.playlistPane
         measure("playlist: replace with 20,000 items", budget: .milliseconds(800)) {

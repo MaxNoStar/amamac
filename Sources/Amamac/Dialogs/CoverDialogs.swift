@@ -200,7 +200,7 @@ final class CoverManagerModel {
     func reload() {
         let db = env.database
         Task {
-            let groups = (try? await db.writer.read { try CollectionQueries.allAlbums($0) }) ?? []
+            let groups = (try? await db.allAlbums()) ?? []
             albums = groups.compactMap { g in
                 guard let key = g.albumKey else { return nil }
                 return Album(group: g, reference: AlbumReference(albumKey: key, album: g.name, artist: g.albumArtist ?? "", releaseId: nil), hasCover: nil)

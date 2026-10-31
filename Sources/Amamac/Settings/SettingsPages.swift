@@ -90,9 +90,7 @@ final class CollectionSettingsModel {
     }
 
     func setWatch(_ folder: CollectionFolder, _ on: Bool) {
-        try? env.database.writer.write { db in
-            try db.execute(sql: "UPDATE collection_folder SET watch = ? WHERE path = ?", arguments: [on, folder.path])
-        }
+        try? env.database.setWatch(on, folderPath: folder.path)
         env.startWatching()
         reload()
     }

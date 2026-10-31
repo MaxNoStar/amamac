@@ -287,7 +287,7 @@ enum LinkHandler {
                 } else {
                     env.player.play(item.id, startAt: seconds)
                 }
-            } else if let track = (try? env.database.writer.read({ try CollectionQueries.tracks($0, ids: [trackId]) }))?.first {
+            } else if let track = (try? env.database.tracks(ids: [trackId]))?.first {
                 if let id = env.playlist.append([track.playlistItem()]).first { env.player.play(id, startAt: seconds) }
             } else {
                 env.status.showMessage("The bookmarked track is no longer in the collection.")

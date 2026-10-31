@@ -3,7 +3,6 @@ import AmamacDatabase
 import AmamacModels
 import AmamacQuery
 import AppKit
-import GRDB
 
 extension NSPasteboard.PasteboardType {
     /// JSON array of collection track ids.
@@ -206,7 +205,7 @@ final class CollectionBrowserViewController: NSViewController, MediaSourcePage, 
     }
 
     private func autoExpand() {
-        let total = (try? env.database.writer.read { try CollectionQueries.count($0, filter: self.filter) }) ?? 0
+        let total = (try? env.database.count(filter: self.filter)) ?? 0
         if total <= 100 {
             outline.expandItem(nil, expandChildren: true)
             return
@@ -225,31 +224,29 @@ final class CollectionBrowserViewController: NSViewController, MediaSourcePage, 
         let filter = self.filter
         let byYear = env.settings.bool(AppSettings.Key.showYears)
         do {
-            return try env.database.writer.read { db -> [CollectionNode] in
-                if depth < levels.count {
-                    let level = levels[depth]
-                    return try CollectionQueries.groups(db, level: level, constraints: constraints, filter: filter,
-                                                        sortAlbumsByYear: byYear && level == .album && depth > 0)
-                        .map { g in
-                            CollectionNode(kind: .group(g), constraints: constraints + [CollectionConstraint(level: level, key: g.key)],
-                                           depth: depth, path: (node?.path ?? "") + "/" + g.id)
-                        }
-                }
-                let tracks = try CollectionQueries.tracks(db, constraints: constraints, filter: filter)
-                var result: [CollectionNode] = []
-                let discs = Set(tracks.map(\.track.discNumber))
-                var lastDisc: Int?
-                for t in tracks {
-                    if discs.count > 1 && levels.last == .album && t.track.discNumber != lastDisc {
-                        lastDisc = t.track.discNumber
-                        result.append(CollectionNode(kind: .disc(t.track.discNumber), constraints: constraints, depth: depth,
-                                                     path: (node?.path ?? "") + "/disc\(t.track.discNumber)"))
+            if depth < levels.count {
+                let level = levels[depth]
+                return try env.database.groups(level: level, constraints: constraints, filter: filter,
+                                               sortAlbumsByYear: byYear && level == .album && depth > 0)
+                    .map { g in
+                        CollectionNode(kind: .group(g), constraints: constraints + [CollectionConstraint(level: level, key: g.key)],
+                                       depth: depth, path: (node?.path ?? "") + "/" + g.id)
                     }
-                    result.append(CollectionNode(kind: .track(t), constraints: constraints, depth: depth,
-                                                 path: (node?.path ?? "") + "/t\(t.track.id ?? 0)"))
-                }
-                return result
             }
+            let tracks = try env.database.tracks(constraints: constraints, filter: filter)
+            var result: [CollectionNode] = []
+            let discs = Set(tracks.map(\.track.discNumber))
+            var lastDisc: Int?
+            for t in tracks {
+                if discs.count > 1 && levels.last == .album && t.track.discNumber != lastDisc {
+                    lastDisc = t.track.discNumber
+                    result.append(CollectionNode(kind: .disc(t.track.discNumber), constraints: constraints, depth: depth,
+                                                 path: (node?.path ?? "") + "/disc\(t.track.discNumber)"))
+                }
+                result.append(CollectionNode(kind: .track(t), constraints: constraints, depth: depth,
+                                             path: (node?.path ?? "") + "/t\(t.track.id ?? 0)"))
+            }
+            return result
         } catch {
             env.status.showMessage("Collection query failed: \(error.localizedDescription)")
             return []
@@ -335,7 +332,7 @@ final class CollectionBrowserViewController: NSViewController, MediaSourcePage, 
             if let t = node.track {
                 list = [t]
             } else if node.group != nil {
-                list = (try? env.database.writer.read { try CollectionQueries.tracks($0, constraints: node.constraints, filter: filter) }) ?? []
+                list = (try? env.database.tracks(constraints: node.constraints, filter: filter)) ?? []
             } else {
                 list = []
             }

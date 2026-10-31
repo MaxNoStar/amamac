@@ -67,11 +67,7 @@ final class TagEditorModel {
         let ids = tracks.map(\.track.id)
         let db = env.database
         Task {
-            let loaded = try? await db.writer.read { db -> ([String?], [[String]], [String]) in
-                let lyrics = try ids.map { id in try id.flatMap { try CollectionQueries.lyrics(db, trackId: $0)?.text } }
-                let labels = try ids.map { id in try id.map { try CollectionQueries.labels(db, trackId: $0) } ?? [] }
-                return (lyrics, labels, try CollectionQueries.allLabels(db).map(\.name))
-            }
+            let loaded = try? await db.lyricsAndLabels(trackIds: ids)
             guard let loaded else { return }
             originalLyrics = loaded.0
             lyrics = loaded.0
@@ -204,9 +200,7 @@ final class TagEditorModel {
             let failures = await TrackEditor.apply(edits, scanner: scanner)
             for (id, text) in lyricEdits { try? await lyricsService.save(text, trackId: id) }
             if !labelEdits.isEmpty {
-                try? await db.writer.write { db in
-                    for (id, names) in labelEdits { try CollectionQueries.setLabels(db, trackId: id, labels: names) }
-                }
+                try? await db.setLabels(labelEdits)
             }
             Commands.tracksChanged(ids: ids)
             isSaving = false

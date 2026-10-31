@@ -652,7 +652,7 @@ final class GeneratorModel {
 
     func use(_ mode: Commands.AddMode) {
         guard let ids = result?.ids else { return }
-        let tracks = (try? env.database.writer.read { try CollectionQueries.tracks($0, ids: ids) }) ?? []
+        let tracks = (try? env.database.tracks(ids: ids)) ?? []
         Commands.addToPlaylist(tracks, mode: mode)
     }
 }
