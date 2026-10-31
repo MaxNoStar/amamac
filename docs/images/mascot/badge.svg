@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 256 256" width="256" height="256">
+  <title>MC Chops, Amamac's mascot: badge with his mustached head on a round stage</title>
+  <defs>
+    <radialGradient id="stage" cx="0.5" cy="0.42" r="0.6">
+      <stop offset="0" stop-color="#4E3D5E"/>
+      <stop offset="1" stop-color="#21162A"/>
+    </radialGradient>
+    <clipPath id="disc"><circle cx="128" cy="128" r="118"/></clipPath>
+  </defs>
+
+  <circle cx="128" cy="128" r="122" fill="url(#stage)"/>
+
+  <g clip-path="url(#disc)" stroke="#2B1D22" stroke-width="5" stroke-linejoin="round">
+    <!-- Jacket shoulders -->
+    <path d="M30 262 C34 214 82 198 128 198 C174 198 222 214 226 262 Z" fill="#4D4470"/>
+    <path d="M110 200 L146 200 L128 244 Z" fill="#FFF4EA"/>
+    <path d="M110 200 L92 218 L104 226 L120 250 Z M146 200 L164 218 L152 226 L136 250 Z" fill="#6B6090"/>
+  </g>
+
+  <!-- The head from mascot.svg, scaled to fit the badge -->
+  <g transform="translate(128 132) scale(0.7) translate(-250 -152)"
+     stroke="#2B1D22" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M166 114 C150 72 140 46 118 28 C160 34 198 54 216 94 Z" fill="#F9A9BC"/>
+    <path d="M170 100 C160 76 152 60 142 48 C166 54 186 68 198 90 Z" fill="#EE8BA4" stroke="none"/>
+    <path d="M284 94 C302 54 340 34 382 28 C360 46 350 72 334 114 Z" fill="#F9A9BC"/>
+    <path d="M302 90 C314 68 334 54 358 48 C348 60 340 76 330 100 Z" fill="#EE8BA4" stroke="none"/>
+
+    <ellipse cx="250" cy="174" rx="114" ry="100" fill="#F9A9BC"/>
+    <ellipse cx="214" cy="118" rx="42" ry="16" fill="#FFD1DC" opacity="0.7" stroke="none" transform="rotate(-14 214 118)"/>
+    <path d="M216 90 C210 64 232 44 264 42 C290 40 312 50 324 64 C306 60 290 62 278 70 C296 70 306 78 306 88 C290 80 270 80 256 88 C242 96 224 98 216 90 Z" fill="#3A2621"/>
+    <ellipse cx="176" cy="212" rx="20" ry="11" fill="#FF6F91" opacity="0.35" stroke="none"/>
+    <ellipse cx="324" cy="212" rx="20" ry="11" fill="#FF6F91" opacity="0.35" stroke="none"/>
+
+    <path d="M178 112 Q202 100 228 108 M274 102 Q300 88 326 100" fill="none" stroke-width="8"/>
+    <path d="M140 140 L166 132 M360 140 L334 132 M240 140 Q250 133 260 140" fill="none"/>
+    <path d="M168 128 L240 128 Q244 128 243 134 L238 162 Q236 172 226 172 L184 172 Q172 172 170 162 L164 136 Q163 128 168 128 Z" fill="#1F1A26"/>
+    <path d="M332 128 L260 128 Q256 128 257 134 L262 162 Q264 172 274 172 L316 172 Q328 172 330 162 L336 136 Q337 128 332 128 Z" fill="#1F1A26"/>
+    <path d="M182 162 L202 134 L212 134 L192 162 Z M278 162 L298 134 L306 134 L286 162 Z" fill="#FFFFFF" opacity="0.45" stroke="none"/>
+
+    <ellipse cx="250" cy="198" rx="44" ry="28" fill="#F591AA"/>
+    <ellipse cx="234" cy="200" rx="7" ry="10" fill="#A24865" stroke="none"/>
+    <ellipse cx="266" cy="200" rx="7" ry="10" fill="#A24865" stroke="none"/>
+
+    <path d="M224 246 C232 270 270 272 278 244 Z" fill="#5A1F33" stroke-width="6"/>
+    <ellipse cx="252" cy="262" rx="11" ry="5" fill="#FF6F91" stroke="none"/>
+
+    <g id="half">
+      <path d="M134 238 C112 230 106 202 122 190 C136 180 154 192 146 206" fill="none" stroke-width="22"/>
+      <path d="M250 228 C232 214 196 210 166 220 C148 226 138 236 130 238 C150 254 198 262 228 254 C240 250 247 246 250 244 Z" fill="#3A2621"/>
+      <path d="M134 238 C112 230 106 202 122 190 C136 180 154 192 146 206" fill="none" stroke="#3A2621" stroke-width="12"/>
+    </g>
+    <use xlink:href="#half" transform="translate(500 0) scale(-1 1)"/>
+  </g>
+
+  <circle cx="128" cy="128" r="122" fill="none" stroke="#F26B3A" stroke-width="8"/>
+</svg>

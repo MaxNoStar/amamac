@@ -12,7 +12,7 @@ RESOLVED_SRC := Package.resolved
 RESOLVED_DST := Amamac.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 SNAPSHOT_DIR ?= $(TMPDIR)amamac-snapshot
 
-.PHONY: project resolve build test test-engine run app dmg snapshot perf icon notices clean
+.PHONY: project resolve build test test-engine run app dmg snapshot perf icon notices mascot clean
 
 project:
 	@xcodegen generate --quiet
@@ -65,6 +65,9 @@ perf: build
 
 icon:
 	@swift scripts/make-icon.swift Resources/Assets.xcassets/AppIcon.appiconset
+
+mascot:
+	@swift scripts/render-mascot.swift docs/images/mascot
 
 notices:
 	@scripts/make-notices.sh THIRD_PARTY_NOTICES.md && cp THIRD_PARTY_NOTICES.md Resources/THIRD_PARTY_NOTICES.md

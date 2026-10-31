@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 520 560" width="520" height="560">
+  <title>MC Chops, Amamac's mascot: a pink pig with a handlebar mustache playing an electric guitar</title>
+  <defs>
+    <linearGradient id="guitar" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF8F52"/>
+      <stop offset="1" stop-color="#D9412E"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Ground shadow -->
+  <ellipse cx="252" cy="546" rx="104" ry="9" fill="#2B1D22" opacity="0.14"/>
+
+  <g stroke="#2B1D22" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+    <!-- Sound arcs and notes -->
+    <g fill="none" stroke="#F26B3A" stroke-width="8">
+      <path d="M98 386 Q80 414 98 444"/>
+      <path d="M72 372 Q44 414 72 458"/>
+    </g>
+    <g fill="#F26B3A" transform="translate(70 96) rotate(-14)">
+      <ellipse cx="0" cy="44" rx="15" ry="11" transform="rotate(-20 0 44)"/>
+      <path d="M13 40 L13 -4 C26 4 34 10 34 26" fill="none" stroke-width="7"/>
+    </g>
+    <g fill="#EE8BA4" transform="translate(410 70) rotate(10)">
+      <ellipse cx="0" cy="48" rx="13" ry="10" transform="rotate(-20 0 48)"/>
+      <ellipse cx="44" cy="40" rx="13" ry="10" transform="rotate(-20 44 40)"/>
+      <path d="M11 44 L11 0 L55 -8 L55 36" fill="none" stroke-width="7"/>
+      <path d="M11 0 L55 -8" fill="none" stroke-width="12"/>
+    </g>
+
+    <!-- Tail -->
+    <path d="M346 400 C372 392 392 404 388 422 C384 438 362 438 362 424 C362 414 376 412 378 420"
+          fill="none" stroke-width="16"/>
+    <path d="M346 400 C372 392 392 404 388 422 C384 438 362 438 362 424 C362 414 376 412 378 420"
+          fill="none" stroke="#F9A9BC" stroke-width="8"/>
+
+    <!-- Legs and hooves -->
+    <path d="M192 446 L188 512 L240 512 L242 446 Z" fill="#34406B"/>
+    <path d="M260 446 L262 512 L314 512 L310 446 Z" fill="#34406B"/>
+    <path d="M182 512 L244 512 L244 530 C244 538 238 542 230 542 L196 542 C188 542 182 538 182 530 Z" fill="#2B1D22"/>
+    <path d="M258 512 L320 512 L320 530 C320 538 314 542 306 542 L272 542 C264 542 258 538 258 530 Z" fill="#2B1D22"/>
+    <path d="M213 520 L213 540 M289 520 L289 540" stroke="#6B5E66" stroke-width="3"/>
+    <path d="M202 456 L200 504 M298 456 L300 504" stroke="#5A6AAE" stroke-width="4"/>
+    <path d="M190 522 Q198 518 206 520 M266 522 Q274 518 282 520" stroke="#6B5E66" stroke-width="3" fill="none"/>
+
+    <!-- Fretting arm (behind the guitar neck) -->
+    <path d="M324 294 C360 316 392 332 384 308" fill="none" stroke-width="38"/>
+    <path d="M324 294 C360 316 392 332 384 308" fill="none" stroke="#3D3550" stroke-width="26"/>
+
+    <!-- Jacket, tee and lapels -->
+    <path d="M178 268 C150 280 140 300 142 330 L150 430 C152 446 166 452 180 452 L320 452 C334 452 348 446 350 430 L358 330 C360 300 350 280 322 268 Z"
+          fill="#3D3550"/>
+    <path d="M302 272 C332 284 348 302 350 330 L344 430 C342 444 334 452 320 452 L302 452 Z" fill="#1A1220" opacity="0.22" stroke="none"/>
+    <path d="M184 278 C166 290 158 306 157 326" fill="none" stroke="#6B6090" stroke-width="4"/>
+    <path d="M226 270 L274 270 L270 452 L230 452 Z" fill="#FFF4EA"/>
+    <path d="M226 270 L196 298 L214 308 L232 384 Z" fill="#574D6E"/>
+    <path d="M274 270 L304 298 L286 308 L268 384 Z" fill="#574D6E"/>
+    <g fill="#E8E2DA" stroke="none">
+      <circle cx="205" cy="302" r="2.6"/><circle cx="213" cy="326" r="2.6"/><circle cx="221" cy="350" r="2.6"/>
+      <circle cx="295" cy="302" r="2.6"/><circle cx="287" cy="326" r="2.6"/><circle cx="279" cy="350" r="2.6"/>
+    </g>
+    <path d="M199 318 L187 338 L197 338 L191 356 L210 332 L200 332 L207 318 Z" fill="#F26B3A" stroke-width="3"/>
+
+    <g transform="rotate(-5 250 262)">
+    <!-- Ears -->
+    <path d="M166 114 C150 72 140 46 118 28 C160 34 198 54 216 94 Z" fill="#F9A9BC"/>
+    <path d="M170 100 C160 76 152 60 142 48 C166 54 186 68 198 90 Z" fill="#EE8BA4" stroke="none"/>
+    <path d="M284 94 C302 54 340 34 382 28 C360 46 350 72 334 114 Z" fill="#F9A9BC"/>
+    <path d="M302 90 C314 68 334 54 358 48 C348 60 340 76 330 100 Z" fill="#EE8BA4" stroke="none"/>
+
+    <!-- Head -->
+    <ellipse cx="250" cy="174" rx="114" ry="100" fill="#F9A9BC"/>
+    <ellipse cx="214" cy="118" rx="42" ry="16" fill="#FFD1DC" opacity="0.7" stroke="none" transform="rotate(-14 214 118)"/>
+    <path d="M216 90 C210 64 232 44 264 42 C290 40 312 50 324 64 C306 60 290 62 278 70 C296 70 306 78 306 88 C290 80 270 80 256 88 C242 96 224 98 216 90 Z" fill="#3A2621"/>
+    <path d="M232 70 C244 56 266 50 290 52" fill="none" stroke="#6A4A3E" stroke-width="3"/>
+    <ellipse cx="176" cy="212" rx="20" ry="11" fill="#FF6F91" opacity="0.35" stroke="none"/>
+    <ellipse cx="324" cy="212" rx="20" ry="11" fill="#FF6F91" opacity="0.35" stroke="none"/>
+
+    <!-- Brows and sunglasses -->
+    <path d="M178 112 Q202 100 228 108 M274 102 Q300 88 326 100" fill="none" stroke-width="7"/>
+    <path d="M140 140 L166 132 M360 140 L334 132" fill="none"/>
+    <path d="M240 140 Q250 133 260 140" fill="none"/>
+    <path d="M168 128 L240 128 Q244 128 243 134 L238 162 Q236 172 226 172 L184 172 Q172 172 170 162 L164 136 Q163 128 168 128 Z" fill="#1F1A26"/>
+    <path d="M332 128 L260 128 Q256 128 257 134 L262 162 Q264 172 274 172 L316 172 Q328 172 330 162 L336 136 Q337 128 332 128 Z" fill="#1F1A26"/>
+    <path d="M182 162 L202 134 L212 134 L192 162 Z M278 162 L298 134 L306 134 L286 162 Z" fill="#FFFFFF" opacity="0.45" stroke="none"/>
+
+    <!-- Snout -->
+    <ellipse cx="250" cy="198" rx="44" ry="28" fill="#F591AA"/>
+    <ellipse cx="238" cy="188" rx="14" ry="6" fill="#FFD1DC" opacity="0.8" stroke="none"/>
+    <ellipse cx="234" cy="200" rx="7" ry="10" fill="#A24865" stroke="none"/>
+    <ellipse cx="266" cy="200" rx="7" ry="10" fill="#A24865" stroke="none"/>
+
+    <!-- Grin -->
+    <path d="M224 246 C232 270 270 272 278 244 Z" fill="#5A1F33" stroke-width="5"/>
+    <ellipse cx="252" cy="262" rx="11" ry="5" fill="#FF6F91" stroke="none"/>
+
+    <!-- Handlebar mustache: two lobes, each ending in an upturned curl -->
+    <g id="stache-half">
+      <path d="M134 238 C112 230 106 202 122 190 C136 180 154 192 146 206" fill="none" stroke-width="20"/>
+      <path d="M250 228 C232 214 196 210 166 220 C148 226 138 236 130 238 C150 254 198 262 228 254 C240 250 247 246 250 244 Z" fill="#3A2621"/>
+      <path d="M134 238 C112 230 106 202 122 190 C136 180 154 192 146 206" fill="none" stroke="#3A2621" stroke-width="12"/>
+      <path d="M238 228 C220 220 194 220 172 228" fill="none" stroke="#6A4A3E" stroke-width="3"/>
+    </g>
+    <use xlink:href="#stache-half" transform="translate(500 0) scale(-1 1)"/>
+    </g>
+
+    <!-- Guitar -->
+    <g transform="translate(196 392) rotate(-24)">
+      <rect x="60" y="-11" width="212" height="22" rx="4" fill="#D9A066"/>
+      <rect x="64" y="-8" width="206" height="16" fill="#6A3F2C" stroke="none"/>
+      <path d="M92 -8 V8 M116 -8 V8 M138 -8 V8 M158 -8 V8 M176 -8 V8 M192 -8 V8 M207 -8 V8 M221 -8 V8 M234 -8 V8 M246 -8 V8 M257 -8 V8"
+            stroke="#E8D9C4" stroke-width="2"/>
+      <path d="M268 -14 L330 -28 C346 -31 352 -18 347 -6 L340 12 C336 22 322 24 310 21 L268 14 Z" fill="url(#guitar)"/>
+      <g fill="#EDE6DE" stroke-width="3">
+        <circle cx="290" cy="-10" r="4.5"/><circle cx="308" cy="-14" r="4.5"/><circle cx="326" cy="-18" r="4.5"/>
+        <circle cx="292" cy="9" r="4.5"/><circle cx="310" cy="11" r="4.5"/><circle cx="328" cy="10" r="4.5"/>
+      </g>
+      <path d="M-92 6 C-96 -34 -66 -62 -30 -58 C-6 -56 8 -44 26 -50 C46 -58 66 -66 82 -54 C94 -44 84 -26 66 -18 L66 18 C80 26 92 42 80 54 C68 66 46 58 30 52 C10 60 -24 70 -54 60 C-80 52 -90 32 -92 6 Z"
+            fill="url(#guitar)"/>
+      <path d="M-74 -26 C-62 -46 -36 -54 -14 -50" fill="none" stroke="#FFFFFF" stroke-width="5" opacity="0.55"/>
+      <path d="M-50 22 C-40 -6 -6 -30 30 -28 C46 -27 56 -16 56 -6 L56 30 C40 40 10 44 -14 44 C-34 44 -50 38 -50 22 Z" fill="#FFF4EA" stroke-width="4"/>
+      <rect x="-8" y="-20" width="16" height="40" rx="3" fill="#2B1D22" stroke-width="3"/>
+      <rect x="22" y="-22" width="16" height="44" rx="3" fill="#2B1D22" stroke-width="3"/>
+      <rect x="-48" y="-18" width="10" height="36" rx="2" fill="#C9C2BA" stroke-width="3"/>
+      <circle cx="-30" cy="32" r="7" fill="#F26B3A" stroke-width="3"/>
+      <circle cx="-10" cy="38" r="6" fill="#F26B3A" stroke-width="3"/>
+      <path d="M-44 -6 H300 M-44 -2 H300 M-44 2 H300 M-44 6 H300" stroke="#F2ECE6" stroke-width="1.3"/>
+    </g>
+
+    <!-- Strumming arm and hand with a pick -->
+    <path d="M180 290 C146 320 148 362 190 372" fill="none" stroke-width="38"/>
+    <path d="M180 290 C146 320 148 362 190 372" fill="none" stroke="#3D3550" stroke-width="26"/>
+    <circle cx="198" cy="372" r="17" fill="#F9A9BC"/>
+    <path d="M192 357 Q196 365 194 373" fill="none" stroke-width="4"/>
+    <path d="M206 378 L224 386 L210 396 Z" fill="#F26B3A" stroke-width="3"/>
+
+    <!-- Fretting hand on the neck -->
+    <circle cx="380" cy="308" r="16" fill="#F9A9BC"/>
+    <path d="M375 293 Q379 301 377 308" fill="none" stroke-width="4"/>
+    <path d="M478 168 L483 182 L497 187 L483 192 L478 206 L473 192 L459 187 L473 182 Z" fill="#FFC857" stroke-width="4"/>
+  </g>
+</svg>
