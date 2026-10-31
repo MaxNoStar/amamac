@@ -1,6 +1,7 @@
 import Foundation
 
-/// Command-line options used for automation (`make snapshot`, self tests).
+/// Command-line options. Release builds honour only `--data-dir`; the automation options
+/// (`make snapshot`, `make perf`, self tests) exist in Debug builds.
 struct LaunchOptions {
     var snapshotDir: URL?
     var dataDir: URL?
@@ -19,12 +20,14 @@ struct LaunchOptions {
         }
         while i < arguments.count {
             switch arguments[i] {
-            case "--snapshot": snapshotDir = value().map { URL(fileURLWithPath: $0) }
             case "--data-dir": dataDir = value().map { URL(fileURLWithPath: $0) }
+            #if DEBUG
+            case "--snapshot": snapshotDir = value().map { URL(fileURLWithPath: $0) }
             case "--dump-layout": dumpLayout = value().map { URL(fileURLWithPath: $0) }
             case "--selftest-decoders": selfTestDecoders = true
             case "--canary": canaryDir = value().map { URL(fileURLWithPath: $0) }
             case "--perf": perfOutput = value().map { URL(fileURLWithPath: $0) }
+            #endif
             default: break
             }
             i += 1

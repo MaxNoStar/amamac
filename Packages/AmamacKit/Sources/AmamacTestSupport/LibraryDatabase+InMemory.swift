@@ -1,3 +1,5 @@
+// Debug builds and tests only: Release builds compile this out.
+#if DEBUG
 import AmamacDatabase
 import GRDB
 
@@ -7,3 +9,4 @@ extension LibraryDatabase {
         try LibraryDatabase(writer: DatabaseQueue(configuration: configuration()))
     }
 }
+#endif

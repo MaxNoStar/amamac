@@ -1,3 +1,5 @@
+// Debug builds and tests only: Release builds compile this out.
+#if DEBUG
 import Foundation
 import Synchronization
 
@@ -36,3 +38,4 @@ public final class StubURLProtocol: URLProtocol {
 
     override public func stopLoading() {}
 }
+#endif

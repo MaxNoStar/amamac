@@ -1,3 +1,5 @@
+// Debug builds and tests only: Release builds compile this out.
+#if DEBUG
 import AmamacDatabase
 import AmamacPlaylist
 import AmamacQuery
@@ -130,3 +132,4 @@ final class PerfRunner {
         exit(lines.contains { $0.contains("SLOW") } ? 2 : 0)
     }
 }
+#endif

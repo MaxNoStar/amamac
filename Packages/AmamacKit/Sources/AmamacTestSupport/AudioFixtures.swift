@@ -1,3 +1,5 @@
+// Debug builds and tests only: Release builds compile this out.
+#if DEBUG
 @preconcurrency import AVFoundation
 import AmamacLibrary
 import Foundation
@@ -194,3 +196,4 @@ public enum AudioFixtures {
         }
     }
 }
+#endif

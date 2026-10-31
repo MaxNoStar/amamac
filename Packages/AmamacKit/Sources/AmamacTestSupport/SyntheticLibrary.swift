@@ -1,3 +1,5 @@
+// Debug builds and tests only: Release builds compile this out.
+#if DEBUG
 import AmamacBase
 import AmamacDatabase
 import AmamacModels
@@ -42,3 +44,4 @@ public enum SyntheticLibrary {
         }
     }
 }
+#endif

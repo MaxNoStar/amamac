@@ -1,3 +1,5 @@
+// Debug builds and tests only: Release builds compile this out.
+#if DEBUG
 import AmamacBase
 import AmamacLibrary
 import AmamacTestSupport
@@ -32,3 +34,4 @@ enum SelfTest {
         return failures == 0 ? 0 : 1
     }
 }
+#endif

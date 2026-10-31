@@ -1,11 +1,11 @@
 import AppKit
 
+let app = NSApplication.shared
+#if DEBUG
 let options = LaunchOptions.current
 if options.selfTestDecoders {
     exit(SelfTest.runDecoders())
 }
-
-let app = NSApplication.shared
 if let canaryDir = options.canaryDir {
     app.setActivationPolicy(.accessory)
     let canary = CanaryController()
@@ -13,6 +13,7 @@ if let canaryDir = options.canaryDir {
     Snapshotter.startWatchdog(seconds: 30)
     app.run()
 }
+#endif
 let delegate = AppDelegate()
 app.delegate = delegate
 app.setActivationPolicy(.regular)

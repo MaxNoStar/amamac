@@ -1,3 +1,5 @@
+// Debug builds and tests only: Release builds compile this out.
+#if DEBUG
 import AmamacBase
 import AmamacDatabase
 import AmamacDynamic
@@ -471,3 +473,4 @@ final class SnapshotRunner {
         exit(1)
     }
 }
+#endif

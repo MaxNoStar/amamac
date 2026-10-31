@@ -1,3 +1,5 @@
+// Debug builds and tests only: Release builds compile this out.
+#if DEBUG
 import AppKit
 import WebKit
 
@@ -83,3 +85,4 @@ enum Snapshotter {
         }
     }
 }
+#endif

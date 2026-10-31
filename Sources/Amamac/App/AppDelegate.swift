@@ -29,9 +29,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         } else {
             defaults = .standard
         }
+        #if DEBUG
+        let http = options.snapshotDir != nil ? SnapshotRunner.stubNetwork() : .ephemeral
+        #else
+        let http = URLSessionConfiguration.ephemeral
+        #endif
         do {
-            env = try AppEnvironment(dataDirectory: dataDir, defaults: defaults,
-                                     httpConfiguration: options.snapshotDir != nil ? SnapshotRunner.stubNetwork() : .ephemeral)
+            env = try AppEnvironment(dataDirectory: dataDir, defaults: defaults, httpConfiguration: http)
         } catch {
             let alert = NSAlert(error: error)
             alert.messageText = "Amamac could not open its collection database."
@@ -50,6 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         let session = SessionController(env: env)
         self.session = session
 
+        #if DEBUG
         if let perfOutput = options.perfOutput {
             PerfRunner(env: env, window: mainWindow, output: perfOutput).run()
             return
@@ -58,6 +63,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             SnapshotRunner(env: env, window: mainWindow, output: snapshotDir, layoutDump: options.dumpLayout).run()
             return
         }
+        #endif
 
         mainWindow.showWindow(nil)
         desktop = DesktopIntegration(env: env, mainWindow: mainWindow)

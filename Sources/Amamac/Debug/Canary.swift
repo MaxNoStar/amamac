@@ -1,3 +1,5 @@
+// Debug builds and tests only: Release builds compile this out.
+#if DEBUG
 import AppKit
 import SwiftUI
 import WebKit
@@ -73,3 +75,4 @@ private struct CanarySwiftUIView: View {
         .padding()
     }
 }
+#endif
