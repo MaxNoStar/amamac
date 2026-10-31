@@ -44,6 +44,14 @@ final class Deck: @unchecked Sendable {
         applyEqualizer()
     }
 
+    /// SFBAudioEngine's event thread holds the player while it reports a stop or a canceled
+    /// decoder. Were that the last reference, the player would be destroyed on its own event thread,
+    /// which aborts (its destructor joins that thread), so a released deck keeps it a moment longer.
+    deinit {
+        let player = self.player
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 1) { withExtendedLifetime(player) {} }
+    }
+
     private func configureEqualizerBands() {
         for (i, band) in eq.bands.enumerated() {
             band.filterType = .parametric
