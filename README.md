@@ -66,7 +66,7 @@ make perf         # times collection, playlist and session work on 20,000 tracks
 
 Amamac has no accounts and no analytics. Lookups go to LRCLIB, Wikipedia/Wikidata, MusicBrainz,
 the Cover Art Archive, the iTunes Search API and radio-browser.info, sending only titles, artists
-and album names, with the User-Agent `Amamac/0.1 (macOS music player)`.
+and album names, with the User-Agent `Amamac/<version> (macOS music player)`.
 
 ## Licenses
 

@@ -183,3 +183,21 @@ Plan: Amarok 2/3 feature parity in milestones M0–M8 (see CLAUDE.md for command
 
   Random Albums with Favor rebuilt its album index on every step (≈10 ms per advance); it is now
   cached until the playlist changes (50 advances: 480 → 28 ms), and Favor now weights albums too.
+
+## Refactor — modules ✅
+- The core moved into the local package `Packages/AmamacKit` and was split into eleven modules
+  (Base, Models, Query, Database, Library, Playlist, Dynamic, Playback, Web, Podcasts,
+  TestSupport) whose imports the compiler checks. Cycles inside the old core were broken first:
+  `PlaylistItem` and the file formats moved to Models, SQL generation to Database, `SplitMix64` and
+  the duplicated hashing, XML and time helpers to Base.
+- The app no longer runs SQL or imports GRDB; `LibraryDatabase.writer` is package-only and the app
+  uses named methods and `StatisticsStore`.
+- `AppEnvironment.shared` and `AppDelegate.shared` are gone. `AppDelegate` keeps the lifecycle;
+  menu commands live in `App/Commands` controllers, Now Playing and session saving in their own
+  controllers, navigation behind `AppRouter`, shared actions in `LibraryActions`, and the stores
+  are built once. Grab-bag files were split per feature and shared UI pieces moved to `Shared/`.
+- Debug runners and TestSupport are compiled only in Debug; the Release binary contains none of them.
+- Behaviour, UI, data format and settings are unchanged: the schema and cache-name tests pin the
+  persisted formats, and the snapshot run gained a check that all menu commands still reach their
+  controllers.
+

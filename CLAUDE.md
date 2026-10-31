@@ -18,10 +18,40 @@ No Amarok code, data tables, or artwork is copied; behaviour is reimplemented fr
 DerivedData lives in `~/Library/Developer/Xcode/DerivedData/Amamac-cli` (not inside `~/Documents`).
 
 ## Layout
-- `Sources/AmamacCore` — framework, default isolation **nonisolated**: models, database (GRDB),
-  scanner, query language, playback engines (SFBAudioEngine + AVPlayer), playlist logic, web clients.
-- `Sources/Amamac` — app, default isolation **MainActor**: AppKit lifecycle, windows, panes, dialogs.
-- `Tests/AmamacCoreTests` — Swift Testing; fixtures are generated under `$TMPDIR` at test time.
+- `Packages/AmamacKit` — local Swift package, default isolation **nonisolated**, one module per layer.
+  Modules link statically into the app; a module may only import the ones it lists in `Package.swift`
+  (the table names the nearest layers):
+
+  | Module | Contents | Builds on |
+  |---|---|---|
+  | `AmamacBase` | text folding, time formatting, hashing, XML escaping, `SplitMix64`, `Amamac` (version, User-Agent) | — |
+  | `AmamacModels` | `Track`, `TagChanges`, `PlaylistItem`, file formats, `AmamacLink`, LRC | Base |
+  | `AmamacQuery` | filter language: parser, AST, dates, in-memory matching | Base, Models |
+  | `AmamacDatabase` | `LibraryDatabase` (`writer` is package-only), migration `"v1"`, records, collection queries, query → SQL | Query, GRDB |
+  | `AmamacLibrary` | scanner, watcher, tags, editing, Organize, covers, statistics (`StatisticsStore`) | Database, SFBAudioEngine |
+  | `AmamacPlaylist` | model, proxy, navigator, layouts, playlist files, session, saved playlists, bookmarks | Library |
+  | `AmamacDynamic` | biases, dynamic playlists, the generator, `GeneratorStore` | Query, Database |
+  | `AmamacPlayback` | local and stream engines, engine bridge, ReplayGain, EQ, devices, spectrum tap | Models, SFBAudioEngine |
+  | `AmamacWeb` | `HTTPClient`, lyrics, Wikipedia, MusicBrainz and covers, radio-browser | Database |
+  | `AmamacPodcasts` | feeds, OPML, `PodcastService`, directory | Web, FeedKit |
+  | `AmamacTestSupport` | audio fixtures, synthetic library, `StubURLProtocol`, in-memory database; compiled only in Debug | Library |
+- `Sources/Amamac` — app, default isolation **MainActor**, one folder per feature:
+  `App` (lifecycle, `AppEnvironment`, `AppRouter`, `LibraryActions`, menu command controllers in
+  `App/Commands`, desktop integration in `App/Desktop`), `MainWindow`, `MediaSources`, `Context`,
+  `Playlist`, `Dialogs`, `Settings`, `Shared` (UI pieces several features use) and `Debug`
+  (snapshot, perf and self-test runners; compiled only in Debug).
+- `Tests/AmamacKitTests` — Swift Testing, `@testable import` per module; fixtures are generated
+  under `$TMPDIR` at test time.
+
+## App structure rules
+- The app never runs SQL or imports GRDB: database work goes through `LibraryDatabase` methods and
+  the stores (`StatisticsStore`, `BookmarkStore`, …), which `AppEnvironment` builds once.
+- No global singletons: windows, panes and dialogs get the `AppEnvironment`; navigation goes
+  through `env.router` (`AppRouter`), shared actions through `env.actions` (`LibraryActions`).
+- Menu items keep a nil target. Their actions live in the `App/Commands` controllers, which
+  `AppDelegate` forwards to at the end of the responder chain; `make snapshot` checks every one.
+- Automation options (`--snapshot`, `--perf`, `--selftest-decoders`, `--canary`) exist only in
+  Debug builds; Release honours `--data-dir` only.
 
 ## Concurrency rules
 - In the app target every closure literal is inferred `@MainActor`. Closures that the system calls
