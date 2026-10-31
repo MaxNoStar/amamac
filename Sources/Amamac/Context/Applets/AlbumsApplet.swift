@@ -69,7 +69,7 @@ final class AlbumsAppletModel {
     }
 
     func add(_ tracks: [TrackWithStatistics], play: Bool) {
-        Commands.addToPlaylist(tracks, mode: play ? .appendAndPlay : .append)
+        env.actions.addToPlaylist(tracks, mode: play ? .appendAndPlay : .append)
     }
 }
 

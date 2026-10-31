@@ -125,6 +125,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitV
         window.tabbingMode = .disallowed
         window.collectionBehavior.insert(.fullScreenPrimary)
         super.init(window: window)
+        env.router = self
         window.delegate = self
         buildContent()
         bindToolbar()
@@ -333,14 +334,14 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitV
             toolbar.slider.markers = []
             return
         }
-        toolbar.slider.markers = BookmarkStore(database: env.database).positions(trackId: trackId)
+        toolbar.slider.markers = env.bookmarks.positions(trackId: trackId)
     }
 
     @objc func playPause() { env.player.playPause() }
 
     @objc func addPositionMarker(_ sender: Any?) {
         guard let item = env.player.currentItem, let trackId = item.track.id, env.player.isActive else { return }
-        BookmarkStore(database: env.database).addPosition(trackId: trackId, title: item.track.displayTitle, position: env.player.currentTime)
+        env.bookmarks.addPosition(trackId: trackId, title: item.track.displayTitle, position: env.player.currentTime)
     }
 
     // MARK: NSWindowDelegate
@@ -355,6 +356,29 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitV
         sender.orderOut(nil)
         return false
     }
+}
+
+extension MainWindowController: AppRouter {
+    var windowScreen: NSScreen? { window?.screen }
+
+    func showActiveTrack() { playlistPane.scrollToActive() }
+
+    func showInCollection(filter: String) {
+        if !isPaneVisible(.mediaSources) { setPane(.mediaSources, visible: true) }
+        mediaSources.open(category: .localMusic)
+        mediaSources.collectionBrowser.setFilterText(filter)
+        mediaSources.collectionBrowser.reload()
+    }
+
+    @discardableResult
+    func showMediaSources(_ category: MediaCategory) -> NSViewController {
+        if !isPaneVisible(.mediaSources) { setPane(.mediaSources, visible: true) }
+        mediaSources.open(category: category)
+        return mediaSources.page(for: category)
+    }
+
+    func showDropTargets(for session: NSDraggingSession) { context.dropper.show(for: session) }
+    func hideDropTargets() { context.dropper.hide() }
 }
 
 /// The main window's undo manager. Text fields register their edits here as usual; when there is

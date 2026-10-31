@@ -4,9 +4,10 @@ import AmamacModels
 import AmamacPlaylist
 import AppKit
 
-/// Actions shared by menus, browsers, the playlist and the Pop-Up Dropper.
+/// Actions shared by menus, browsers, the playlist and the Pop-Up Dropper. One instance, owned
+/// by `AppEnvironment` (`env.actions`).
 @MainActor
-enum Commands {
+final class LibraryActions: NSObject {
     enum AddMode {
         /// Add to the end of the playlist.
         case append
@@ -18,13 +19,15 @@ enum Commands {
         case queue
     }
 
-    static var env: AppEnvironment { AppEnvironment.shared }
+    private unowned let env: AppEnvironment
 
-    static func addToPlaylist(_ tracks: [TrackWithStatistics], mode: AddMode, at index: Int? = nil) {
+    init(env: AppEnvironment) { self.env = env }
+
+    func addToPlaylist(_ tracks: [TrackWithStatistics], mode: AddMode, at index: Int? = nil) {
         add(tracks.map { $0.playlistItem() }, mode: mode, at: index)
     }
 
-    static func add(_ items: [PlaylistItem], mode: AddMode, at index: Int? = nil) {
+    func add(_ items: [PlaylistItem], mode: AddMode, at index: Int? = nil) {
         guard !items.isEmpty else { return }
         let model = env.playlist
         switch mode {
@@ -45,7 +48,7 @@ enum Commands {
     }
 
     /// Adds files, folders, playlist files or stream URLs (expanded off the main thread).
-    static func addURLs(_ urls: [URL], mode: AddMode, at index: Int? = nil) {
+    func addURLs(_ urls: [URL], mode: AddMode, at index: Int? = nil) {
         guard !urls.isEmpty else { return }
         let database = env.database
         Task {
@@ -54,12 +57,12 @@ enum Commands {
                 env.status.showMessage("Nothing playable was found.")
                 return
             }
-            add(items, mode: mode, at: index)
+            self.add(items, mode: mode, at: index)
         }
     }
 
     /// Track ids written by the collection browser, resolved to tracks (in order).
-    static func tracks(fromPasteboard pasteboard: NSPasteboard) -> [TrackWithStatistics] {
+    func tracks(fromPasteboard pasteboard: NSPasteboard) -> [TrackWithStatistics] {
         var ids: [Int64] = []
         for item in pasteboard.pasteboardItems ?? [] {
             if let data = item.data(forType: .amamacTracks), let decoded = try? JSONDecoder().decode([Int64].self, from: data) {
@@ -73,7 +76,7 @@ enum Commands {
     // MARK: Library actions
 
     /// Opens Edit Track Details. Tracks outside the collection are edited from their files.
-    static func editTrackDetails(_ tracks: [Track]) {
+    func editTrackDetails(_ tracks: [Track]) {
         guard !tracks.isEmpty else { return }
         let ids = tracks.compactMap(\.id)
         let known = (try? env.database.tracks(ids: ids)) ?? []
@@ -84,27 +87,27 @@ enum Commands {
         TagEditorWindow.show(tracks: resolved, env: env)
     }
 
-    static func organizeFiles(_ tracks: [Track]) {
+    func organizeFiles(_ tracks: [Track]) {
         OrganizeFilesWindow.show(tracks: tracks, env: env)
     }
 
-    static func showInFinder(_ urls: [URL]) {
+    func showInFinder(_ urls: [URL]) {
         let files = urls.filter(\.isFileURL)
         guard !files.isEmpty else { return }
         NSWorkspace.shared.activateFileViewerSelecting(files)
     }
 
     /// Moves the files to the Trash after confirmation and removes them from the collection.
-    static func moveToTrash(_ tracks: [Track]) {
+    func moveToTrash(_ tracks: [Track]) {
         removeFiles(tracks, permanently: false)
     }
 
     /// Deletes the files permanently after a stronger confirmation.
-    static func deleteFiles(_ tracks: [Track]) {
+    func deleteFiles(_ tracks: [Track]) {
         removeFiles(tracks, permanently: true)
     }
 
-    private static func removeFiles(_ tracks: [Track], permanently: Bool) {
+    private func removeFiles(_ tracks: [Track], permanently: Bool) {
         let files = tracks.filter { FileManager.default.fileExists(atPath: $0.path) }
         guard !files.isEmpty else { return }
         let alert = NSAlert()
@@ -141,7 +144,7 @@ enum Commands {
     }
 
     /// Re-reads tracks after edits and updates the playlist, the player and the browsers.
-    static func tracksChanged(ids: [Int64]) {
+    func tracksChanged(ids: [Int64]) {
         guard !ids.isEmpty else { return }
         let fresh = (try? env.database.tracks(ids: ids)) ?? []
         for t in fresh {
@@ -158,14 +161,14 @@ enum Commands {
     // MARK: Ratings
 
     /// "Rating" submenu (no rating, ½ … 5 stars) for the given collection tracks.
-    static func ratingMenuItem(trackIds: [Int64], current: Int?) -> NSMenuItem {
+    func ratingMenuItem(trackIds: [Int64], current: Int?) -> NSMenuItem {
         let item = NSMenuItem(title: "Rating", action: nil, keyEquivalent: "")
         item.image = NSImage(systemSymbolName: "star", accessibilityDescription: nil)
         let menu = NSMenu()
         for value in 0...10 {
             let title = value == 0 ? "No Rating" : RatingText.stars(value)
-            let entry = NSMenuItem(title: title, action: #selector(RatingTarget.setRating(_:)), keyEquivalent: "")
-            entry.target = RatingTarget.shared
+            let entry = NSMenuItem(title: title, action: #selector(setRating(fromMenu:)), keyEquivalent: "")
+            entry.target = self
             entry.tag = value
             entry.representedObject = trackIds
             entry.state = current == value ? .on : .off
@@ -177,7 +180,7 @@ enum Commands {
     }
 
     /// Sets the rating (0...10) of several tracks at once.
-    static func setRating(_ rating: Int, trackIds: [Int64]) {
+    func setRating(_ rating: Int, trackIds: [Int64]) {
         guard !trackIds.isEmpty else { return }
         if trackIds.count == 1 {
             env.player.setRating(rating, trackId: trackIds[0])
@@ -190,14 +193,9 @@ enum Commands {
             NotificationCenter.default.post(name: AppEnvironment.collectionChanged, object: nil)
         }
     }
-}
 
-/// Menu target for rating items (menus built outside a responder).
-final class RatingTarget: NSObject {
-    static let shared = RatingTarget()
-
-    @objc func setRating(_ sender: NSMenuItem) {
+    @objc private func setRating(fromMenu sender: NSMenuItem) {
         guard let ids = sender.representedObject as? [Int64] else { return }
-        Commands.setRating(sender.tag, trackIds: ids)
+        setRating(sender.tag, trackIds: ids)
     }
 }

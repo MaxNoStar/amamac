@@ -35,6 +35,19 @@ enum TextPrompt {
     }
 }
 
+/// Open panel for audio files, folders and playlist files (Play Media, Add Media).
+@MainActor
+enum MediaOpenPanel {
+    static func run(prompt: String) -> [URL]? {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = true
+        panel.prompt = prompt
+        panel.allowedContentTypes = [.audio, .folder] + PlaylistFileFormat.contentTypes
+        return panel.runModal() == .OK ? panel.urls : nil
+    }
+}
+
 extension PlaylistFileFormat {
     /// Open and save panel types for the playlist file formats.
     static var contentTypes: [UTType] { allCases.compactMap { UTType(filenameExtension: $0.rawValue) } }

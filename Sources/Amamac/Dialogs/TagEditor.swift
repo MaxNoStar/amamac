@@ -202,7 +202,7 @@ final class TagEditorModel {
             if !labelEdits.isEmpty {
                 try? await db.setLabels(labelEdits)
             }
-            Commands.tracksChanged(ids: ids)
+            env.actions.tracksChanged(ids: ids)
             isSaving = false
             if failures.isEmpty {
                 onClose?()

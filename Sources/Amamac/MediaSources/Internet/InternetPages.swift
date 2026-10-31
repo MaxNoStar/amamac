@@ -105,14 +105,14 @@ final class RadioListModel {
     }
 
     private func reloadFavorites() {
-        favoriteIDs = Set(RadioFavorites(database: env.database).all().map(\.id))
+        favoriteIDs = Set(env.radioFavorites.all().map(\.id))
     }
 
     func stations(for ids: Set<String>) -> [RadioBrowserStation] { visible.filter { ids.contains($0.id) } }
 
-    func add(_ stations: [RadioBrowserStation], mode: Commands.AddMode) {
+    func add(_ stations: [RadioBrowserStation], mode: LibraryActions.AddMode) {
         let items = stations.compactMap { s in s.streamURL.map { PlaylistItem.stream(url: $0, title: s.name) } }
-        Commands.add(items, mode: mode)
+        env.actions.add(items, mode: mode)
         if mode == .appendAndPlay || mode == .replace, let first = stations.first {
             Task { await Self.connect(env).reportClick(first) }
         }
@@ -121,7 +121,7 @@ final class RadioListModel {
     func isFavorite(_ station: RadioBrowserStation) -> Bool { favoriteIDs.contains(station.id) }
 
     func toggleFavorite(_ station: RadioBrowserStation) {
-        let favorites = RadioFavorites(database: env.database)
+        let favorites = env.radioFavorites
         isFavorite(station) ? favorites.remove(station) : favorites.add(station)
     }
 }
@@ -160,11 +160,11 @@ final class RadioModel {
     init(env: AppEnvironment, owner: MediaSourcesViewController?) {
         self.env = env
         self.owner = owner
-        favorites = RadioListModel(env: env) { _ in RadioFavorites(database: env.database).all() }
+        favorites = RadioListModel(env: env) { _ in env.radioFavorites.all() }
         top = RadioListModel(env: env) { try await $0.topStations() }
         searchList = RadioListModel(env: env) { _ in [] }
         // Start on Favorites once there are some.
-        let hasFavorites = !RadioFavorites(database: env.database).all().isEmpty
+        let hasFavorites = !env.radioFavorites.all().isEmpty
         section = hasFavorites ? .favorites : .top
         sectionChanged()
     }
@@ -298,7 +298,7 @@ struct RadioStationList: View {
             } else {
                 List(selection: $model.selection) {
                     ForEach(model.visible) { station in
-                        StationRow(station: station, isFavorite: model.isFavorite(station)) { model.toggleFavorite(station) }
+                        StationRow(station: station, images: model.env.remoteImages, isFavorite: model.isFavorite(station)) { model.toggleFavorite(station) }
                             .tag(station.id)
                     }
                 }
@@ -350,12 +350,13 @@ struct RadioStationList: View {
 
 struct StationRow: View {
     let station: RadioBrowserStation
+    let images: RemoteImageCache
     let isFavorite: Bool
     let onFavorite: () -> Void
 
     var body: some View {
         HStack(spacing: 8) {
-            RemoteImage(url: station.favicon.flatMap(URL.init(string:)), symbol: "radio", size: 28)
+            RemoteImage(url: station.favicon.flatMap(URL.init(string:)), images: images, symbol: "radio", size: 28)
             VStack(alignment: .leading, spacing: 1) {
                 Text(station.name.trimmingCharacters(in: .whitespaces)).lineLimit(1)
                 Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -444,7 +445,8 @@ struct PodcastDirectoryView: View {
             } else {
                 List(model.results) { result in
                     HStack(spacing: 8) {
-                        RemoteImage(url: (result.artworkUrl600 ?? result.artworkUrl100).flatMap(URL.init(string:)), symbol: "mic", size: 40)
+                        RemoteImage(url: (result.artworkUrl600 ?? result.artworkUrl100).flatMap(URL.init(string:)), images: model.env.remoteImages,
+                                    symbol: "mic", size: 40)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(result.collectionName).lineLimit(2)
                             Text([result.artistName, result.primaryGenreName].compactMap { $0 }.joined(separator: " · "))

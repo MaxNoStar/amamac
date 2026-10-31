@@ -3,19 +3,17 @@ import AppKit
 /// Amarok's Pop-Up Dropper: while tracks are dragged out of Media Sources, large drop targets
 /// appear over the Context pane (Append, Replace, Queue, Append and Play).
 final class PopUpDropper: NSView {
-    /// Installed by the Context pane over its own view.
-    static weak var shared: PopUpDropper?
-
-    private let items: [PopUpDropperItem] = [
-        PopUpDropperItem(title: "Append to Playlist", symbol: "text.badge.plus", mode: .append),
-        PopUpDropperItem(title: "Replace Playlist", symbol: "arrow.triangle.2.circlepath", mode: .replace),
-        PopUpDropperItem(title: "Queue Tracks", symbol: "list.number", mode: .queue),
-        PopUpDropperItem(title: "Append and Play", symbol: "play.circle", mode: .appendAndPlay),
-    ]
+    private let items: [PopUpDropperItem]
     private let stack = NSStackView()
 
-    override init(frame: NSRect) {
-        super.init(frame: frame)
+    init(actions: LibraryActions) {
+        items = [
+            PopUpDropperItem(title: "Append to Playlist", symbol: "text.badge.plus", mode: .append, actions: actions),
+            PopUpDropperItem(title: "Replace Playlist", symbol: "arrow.triangle.2.circlepath", mode: .replace, actions: actions),
+            PopUpDropperItem(title: "Queue Tracks", symbol: "list.number", mode: .queue, actions: actions),
+            PopUpDropperItem(title: "Append and Play", symbol: "play.circle", mode: .appendAndPlay, actions: actions),
+        ]
+        super.init(frame: .zero)
         identifier = NSUserInterfaceItemIdentifier("popUpDropper")
         wantsLayer = true
         isHidden = true
@@ -73,14 +71,16 @@ final class PopUpDropper: NSView {
 final class PopUpDropperItem: NSView {
     let title: String
     let symbol: String
-    let mode: Commands.AddMode
+    let mode: LibraryActions.AddMode
+    private unowned let actions: LibraryActions
     var onDrop: (() -> Void)?
     var highlighted = false { didSet { needsDisplay = true } }
 
-    init(title: String, symbol: String, mode: Commands.AddMode) {
+    init(title: String, symbol: String, mode: LibraryActions.AddMode, actions: LibraryActions) {
         self.title = title
         self.symbol = symbol
         self.mode = mode
+        self.actions = actions
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
         registerForDraggedTypes([.amamacTracks, .fileURL])
@@ -119,11 +119,11 @@ final class PopUpDropperItem: NSView {
     override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
         highlighted = false
         let pasteboard = sender.draggingPasteboard
-        let tracks = Commands.tracks(fromPasteboard: pasteboard)
+        let tracks = actions.tracks(fromPasteboard: pasteboard)
         if !tracks.isEmpty {
-            Commands.addToPlaylist(tracks, mode: mode)
+            actions.addToPlaylist(tracks, mode: mode)
         } else if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL] {
-            Commands.addURLs(urls, mode: mode)
+            actions.addURLs(urls, mode: mode)
         }
         onDrop?()
         return true

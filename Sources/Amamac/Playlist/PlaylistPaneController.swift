@@ -316,13 +316,13 @@ final class PlaylistPaneController: NSViewController, NSTableViewDataSource, NST
             DispatchQueue.main.async { self.table.selectRowIndexes(rows, byExtendingSelection: false) }
             return true
         }
-        let tracks = Commands.tracks(fromPasteboard: pb)
+        let tracks = env.actions.tracks(fromPasteboard: pb)
         if !tracks.isEmpty {
-            Commands.addToPlaylist(tracks, mode: .append, at: destination)
+            env.actions.addToPlaylist(tracks, mode: .append, at: destination)
             return true
         }
         if let urls = pb.readObjects(forClasses: [NSURL.self], options: nil) as? [URL], !urls.isEmpty {
-            Commands.addURLs(urls, mode: .append, at: destination)
+            env.actions.addURLs(urls, mode: .append, at: destination)
             return true
         }
         return false
@@ -419,15 +419,15 @@ final class PlaylistPaneController: NSViewController, NSTableViewDataSource, NST
     }
 
     @objc private func editContext() {
-        Commands.editTrackDetails(contextIDs.compactMap { model.item($0) }.filter { $0.source != .stream }.map(\.track))
+        env.actions.editTrackDetails(contextIDs.compactMap { model.item($0) }.filter { $0.source != .stream }.map(\.track))
     }
 
     @objc private func organizeContext() {
-        Commands.organizeFiles(contextIDs.compactMap { model.item($0) }.filter { $0.source == .collection }.map(\.track))
+        env.actions.organizeFiles(contextIDs.compactMap { model.item($0) }.filter { $0.source == .collection }.map(\.track))
     }
 
     @objc private func showInFinderContext() {
-        Commands.showInFinder(contextIDs.compactMap { model.item($0)?.url })
+        env.actions.showInFinder(contextIDs.compactMap { model.item($0)?.url })
     }
 
     @objc private func copyContext() {
@@ -445,12 +445,12 @@ final class PlaylistPaneController: NSViewController, NSTableViewDataSource, NST
     @objc private func showAlbumInMediaSources() {
         guard let item = contextIDs.first.flatMap({ model.item($0) }), !item.isStream else { return }
         let query = "album:\"\(item.track.album)\""
-        AppDelegate.shared?.showInCollection(filter: query)
+        env.router?.showInCollection(filter: query)
     }
 
     @objc private func showArtistInMediaSources() {
         guard let item = contextIDs.first.flatMap({ model.item($0) }), !item.isStream else { return }
-        AppDelegate.shared?.showInCollection(filter: "artist:\"\(item.track.artist)\"")
+        env.router?.showInCollection(filter: "artist:\"\(item.track.artist)\"")
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
@@ -476,7 +476,7 @@ final class PlaylistPaneController: NSViewController, NSTableViewDataSource, NST
         let collectionItems = ids.compactMap { model.item($0) }.filter { $0.source == .collection && $0.track.id != nil }
         if !collectionItems.isEmpty {
             let ratings = Set(collectionItems.map { $0.statistics?.rating ?? 0 })
-            menu.addItem(Commands.ratingMenuItem(trackIds: collectionItems.compactMap(\.track.id),
+            menu.addItem(env.actions.ratingMenuItem(trackIds: collectionItems.compactMap(\.track.id),
                                                  current: ratings.count == 1 ? ratings.first : nil))
         }
         add("Edit Track Details…", #selector(editContext), "pencil")
@@ -539,15 +539,15 @@ final class PlaylistPaneController: NSViewController, NSTableViewDataSource, NST
 
     @objc private func showSaveMenu(_ sender: NSButton) {
         let menu = NSMenu()
-        let save = NSMenuItem(title: "Save Playlist…", action: #selector(AppDelegate.savePlaylist(_:)), keyEquivalent: "")
-        let export = NSMenuItem(title: "Export Playlist As…", action: #selector(AppDelegate.exportPlaylist(_:)), keyEquivalent: "")
+        let save = NSMenuItem(title: "Save Playlist…", action: #selector(PlaylistCommands.savePlaylist(_:)), keyEquivalent: "")
+        let export = NSMenuItem(title: "Export Playlist As…", action: #selector(PlaylistCommands.exportPlaylist(_:)), keyEquivalent: "")
         menu.addItem(save)
         menu.addItem(export)
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: sender.bounds.height + 2), in: sender)
     }
 
     @objc private func showProgressionMenu(_ sender: NSButton) {
-        let menu = AppDelegate.makeProgressionMenu()
+        let menu = PlaylistCommands.makeProgressionMenu()
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: sender.bounds.height + 2), in: sender)
     }
 

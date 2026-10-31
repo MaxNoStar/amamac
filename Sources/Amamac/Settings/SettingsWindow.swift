@@ -32,13 +32,13 @@ enum SettingsPane: String, CaseIterable {
         }
     }
 
-    @MainActor func makeView(env: AppEnvironment) -> AnyView {
+    @MainActor func makeView(env: AppEnvironment, osd: OSDController?) -> AnyView {
         switch self {
         case .general: AnyView(GeneralSettingsView(env: env))
         case .collection: AnyView(CollectionSettingsView(env: env))
         case .metadata: AnyView(MetadataSettingsView(env: env))
         case .playback: AnyView(PlaybackSettingsView(env: env))
-        case .notifications: AnyView(NotificationSettingsView(env: env))
+        case .notifications: AnyView(NotificationSettingsView(env: env, osd: osd))
         case .internet: AnyView(InternetSettingsView(env: env))
         case .shortcuts: AnyView(ShortcutSettingsView())
         }
@@ -50,8 +50,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private static var shared: SettingsWindowController?
     private let tabs = SettingsTabViewController()
 
-    static func show(env: AppEnvironment, pane: SettingsPane? = nil) {
-        let controller = shared ?? SettingsWindowController(env: env)
+    /// `osd` drives the on-screen display preview (nil in automation runs).
+    static func show(env: AppEnvironment, osd: OSDController? = nil, pane: SettingsPane? = nil) {
+        let controller = shared ?? SettingsWindowController(env: env, osd: osd)
         shared = controller
         if let pane, let index = SettingsPane.allCases.firstIndex(of: pane) { controller.tabs.selectedTabViewItemIndex = index }
         controller.window?.title = controller.tabs.tabViewItems[controller.tabs.selectedTabViewItemIndex].label
@@ -59,10 +60,10 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         controller.window?.makeKeyAndOrderFront(nil)
     }
 
-    private init(env: AppEnvironment) {
+    private init(env: AppEnvironment, osd: OSDController?) {
         tabs.tabStyle = .toolbar
         for pane in SettingsPane.allCases {
-            let host = NSHostingController(rootView: pane.makeView(env: env))
+            let host = NSHostingController(rootView: pane.makeView(env: env, osd: osd))
             host.sizingOptions = [.preferredContentSize]
             let item = NSTabViewItem(viewController: host)
             item.label = pane.title

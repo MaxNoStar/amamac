@@ -56,7 +56,7 @@ final class OrganizeModel {
                     item.url = URL(fileURLWithPath: move.destination)
                 }
             }
-            Commands.tracksChanged(ids: result.moved.compactMap(\.trackId))
+            env.actions.tracksChanged(ids: result.moved.compactMap(\.trackId))
             running = false
             if result.failures.isEmpty {
                 env.status.showMessage("Moved \(result.moved.count) files.")

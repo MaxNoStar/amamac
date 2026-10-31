@@ -141,7 +141,7 @@ final class BookmarkManagerModel {
 
     init(env: AppEnvironment) {
         self.env = env
-        store = BookmarkStore(database: env.database)
+        store = env.bookmarks
         NotificationCenter.default.addObserver(forName: BookmarkStore.changed, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.reload() }
         }
@@ -154,7 +154,7 @@ final class BookmarkManagerModel {
 
     func goTo(_ bookmark: BookmarkRecord) {
         guard let url = URL(string: bookmark.url) else { return }
-        LinkHandler.open(url)
+        LinkHandler.open(url, env: env)
     }
 
     func beginRename(_ bookmark: BookmarkRecord) {
@@ -248,17 +248,16 @@ enum BookmarkManagerWindow {
 
 @MainActor
 enum LinkHandler {
-    static func open(_ url: URL) {
+    static func open(_ url: URL, env: AppEnvironment) {
         guard let link = AmamacLink(url: url) else {
-            AppEnvironment.shared.status.showMessage("Amamac does not understand the link \(url.absoluteString).")
+            env.status.showMessage("Amamac does not understand the link \(url.absoluteString).")
             return
         }
-        open(link)
+        open(link, env: env)
     }
 
-    static func open(_ link: AmamacLink) {
-        let env = AppEnvironment.shared!
-        guard let app = AppDelegate.shared else { return }
+    static func open(_ link: AmamacLink, env: AppEnvironment) {
+        guard let router = env.router else { return }
         switch link {
         case .position(let trackId, let seconds):
             if let item = env.playlist.items.first(where: { $0.source == .collection && $0.track.id == trackId }) {
@@ -275,13 +274,13 @@ enum LinkHandler {
         case .collection(let filter, let levels):
             let parsed = levels.compactMap(CollectionLevel.init(rawValue:))
             if !parsed.isEmpty { env.settings.collectionGrouping = CollectionGrouping(parsed) }
-            app.showInCollection(filter: filter)
+            router.showInCollection(filter: filter)
         case .category(let name, let path):
             guard let category = MediaCategory(rawValue: name) else {
                 env.status.showMessage("Unknown Media Sources category “\(name)”.")
                 return
             }
-            let page = app.showMediaSources(category)
+            let page = router.showMediaSources(category)
             if let path, let files = page as? FileBrowserPage { files.model.go(to: URL(fileURLWithPath: path)) }
         }
     }

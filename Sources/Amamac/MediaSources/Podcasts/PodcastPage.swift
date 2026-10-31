@@ -140,7 +140,7 @@ struct PodcastsView: View {
                                     .tag(PodcastItem.episode(episode.id ?? 0))
                             }
                         } label: {
-                            ChannelRow(channel: channel, newCount: podcasts.newCounts[id] ?? 0).tag(PodcastItem.channel(id))
+                            ChannelRow(channel: channel, images: model.env.remoteImages, newCount: podcasts.newCounts[id] ?? 0).tag(PodcastItem.channel(id))
                         }
                     }
                 }
@@ -238,11 +238,12 @@ struct PodcastsView: View {
 
 struct ChannelRow: View {
     let channel: PodcastChannel
+    let images: RemoteImageCache
     let newCount: Int
 
     var body: some View {
         HStack(spacing: 8) {
-            RemoteImage(url: channel.imageURL.flatMap(URL.init(string:)), symbol: "mic", size: 28)
+            RemoteImage(url: channel.imageURL.flatMap(URL.init(string:)), images: images, symbol: "mic", size: 28)
             VStack(alignment: .leading, spacing: 1) {
                 Text(channel.title).lineLimit(1)
                 if let author = channel.author, !author.isEmpty {

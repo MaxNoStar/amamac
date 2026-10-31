@@ -5,7 +5,8 @@ import SwiftUI
 /// "Configure Applets", and the Pop-Up Dropper overlay.
 final class ContextPaneController: NSViewController {
     let env: AppEnvironment
-    private let dropper = PopUpDropper()
+    /// Drop targets shown while tracks are dragged out of Media Sources.
+    let dropper: PopUpDropper
     private let scroll = NSScrollView()
     private let column = NSStackView()
     private let tabBar = AppletTabBar()
@@ -16,6 +17,7 @@ final class ContextPaneController: NSViewController {
 
     init(env: AppEnvironment) {
         self.env = env
+        dropper = PopUpDropper(actions: env.actions)
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -84,7 +86,6 @@ final class ContextPaneController: NSViewController {
             dropper.bottomAnchor.constraint(equalTo: root.bottomAnchor),
         ])
         view = root
-        PopUpDropper.shared = dropper
         rebuild()
     }
 

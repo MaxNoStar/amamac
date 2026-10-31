@@ -26,6 +26,9 @@ final class PlayerController {
     @ObservationIgnored let navigator: PlaylistNavigator
     @ObservationIgnored let database: LibraryDatabase
     @ObservationIgnored let settings: AppSettings
+    @ObservationIgnored private let status: StatusCenter
+    /// Called before statistics are written into a file, so the folder watcher ignores the change.
+    @ObservationIgnored var willWriteFile: ((String) -> Void)?
     @ObservationIgnored let local = LocalAudioEngine()
     @ObservationIgnored let stream = StreamEngine()
     @ObservationIgnored private(set) var backend: Backend = .none
@@ -48,12 +51,13 @@ final class PlayerController {
     }
 
     init(model: PlaylistModel, proxy: PlaylistProxy, navigator: PlaylistNavigator, database: LibraryDatabase,
-         settings: AppSettings) {
+         settings: AppSettings, status: StatusCenter) {
         self.model = model
         self.proxy = proxy
         self.navigator = navigator
         self.database = database
         self.settings = settings
+        self.status = status
         volume = settings.volume
         isMuted = settings.bool(AppSettings.Key.muted)
         applyVolume()
@@ -109,7 +113,7 @@ final class PlayerController {
             do {
                 try local.setOutputDevice(target)
             } catch {
-                AppEnvironment.shared?.status.showMessage("Could not switch the output device: \(error.localizedDescription)")
+                status.showMessage("Could not switch the output device: \(error.localizedDescription)")
             }
         }
         stream.setOutputDevice(uid: chosen != nil ? uid : nil)
@@ -393,7 +397,7 @@ final class PlayerController {
 
     private func handlePlaybackError(_ message: String, item: PlaylistItemID?) {
         let name = item.flatMap { model.item($0)?.track.displayTitle } ?? "track"
-        AppEnvironment.shared?.status.showMessage("Could not play “\(name)”: \(message)")
+        status.showMessage("Could not play “\(name)”: \(message)")
         consecutiveErrors += 1
         guard consecutiveErrors < 5, let next = navigator.peekNext(), next != item, let nextItem = model.item(next) else {
             halt(moveTo: nil)
@@ -472,7 +476,7 @@ final class PlayerController {
         guard settings.bool(AppSettings.Key.writeStatisticsToFile),
               let path = model.items.first(where: { $0.track.id == trackId })?.track.path ?? (currentItem?.track.id == trackId ? currentItem?.track.path : nil)
         else { return }
-        AppEnvironment.shared?.ignoreWatcherEvents(for: path)
+        willWriteFile?(path)
         let rating = stats.rating, plays = stats.playCount
         Task { await StatisticsTagWriter.write(rating: rating, playCount: plays, to: path) }
     }

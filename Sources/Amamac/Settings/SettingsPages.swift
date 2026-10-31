@@ -174,7 +174,7 @@ struct MetadataSettingsView: View {
                 Text("Uses the FMPS tags other players understand, so statistics survive moving files to another collection.")
                     .font(.caption).foregroundStyle(.secondary)
                 LabeledContent("Apple Music") {
-                    Button("Import Statistics…") { AppDelegate.shared?.importAppleMusicStatistics(nil) }
+                    Button("Import Statistics…") { NSApp.sendAction(#selector(AppleMusicImport.importAppleMusicStatistics(_:)), to: nil, from: nil) }
                 }
             }
             Section("Wikipedia") {
@@ -208,8 +208,9 @@ struct NotificationSettingsView: View {
     @State private var previewing = false
     @State private var notificationsDenied = false
 
-    init(env: AppEnvironment) {
+    init(env: AppEnvironment, osd: OSDController?) {
         self.env = env
+        self.osd = osd
         let d = env.settings.defaults
         typealias K = AppSettings.Key
         _osdEnabled = AppStorage(wrappedValue: true, K.osdEnabled, store: d)
@@ -222,7 +223,7 @@ struct NotificationSettingsView: View {
         _systemNotifications = AppStorage(wrappedValue: false, K.systemNotifications, store: d)
     }
 
-    private var osd: OSDController? { AppDelegate.shared?.desktop?.osd }
+    private let osd: OSDController?
 
     var body: some View {
         Form {

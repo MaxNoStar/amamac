@@ -304,12 +304,12 @@ final class CollectionBrowserViewController: NSViewController, MediaSourcePage, 
 
     func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, willBeginAt screenPoint: NSPoint,
                      forItems draggedItems: [Any]) {
-        PopUpDropper.shared?.show(for: session)
+        env.router?.showDropTargets(for: session)
     }
 
     func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, endedAt screenPoint: NSPoint,
                      operation: NSDragOperation) {
-        PopUpDropper.shared?.hide()
+        env.router?.hideDropTargets()
     }
 
     // MARK: Track resolution
@@ -360,16 +360,16 @@ final class CollectionBrowserViewController: NSViewController, MediaSourcePage, 
         if node.isExpandable && node.track == nil {
             // Amarok 3.3: single click expands, double click adds to the playlist.
         }
-        Commands.addToPlaylist(tracks(for: [node]), mode: .append)
+        env.actions.addToPlaylist(tracks(for: [node]), mode: .append)
     }
 
     private func middleClicked(row: Int) {
         guard let node = outline.item(atRow: row) as? CollectionNode else { return }
-        Commands.addToPlaylist(tracks(for: [node]), mode: .appendAndPlay)
+        env.actions.addToPlaylist(tracks(for: [node]), mode: .appendAndPlay)
     }
 
     func playSelection() {
-        Commands.addToPlaylist(tracks(for: selectedNodes), mode: .appendAndPlay)
+        env.actions.addToPlaylist(tracks(for: selectedNodes), mode: .appendAndPlay)
     }
 
     @objc func searchChanged(_ sender: NSSearchField) {
@@ -507,10 +507,10 @@ final class CollectionBrowserViewController: NSViewController, MediaSourcePage, 
         if let album = nodes.first?.group, album.level == .album, let key = album.albumKey {
             menu.addItem(.separator())
             let albumMenu = NSMenu()
-            for (title, symbol, action) in [("Fetch Cover…", "arrow.down.circle", #selector(AppDelegate.fetchCover(_:))),
-                                            ("Display Cover", "photo", #selector(AppDelegate.displayCover(_:))),
-                                            ("Set Custom Cover…", "photo.badge.plus", #selector(AppDelegate.setCustomCover(_:))),
-                                            ("Unset Cover", "photo.badge.minus", #selector(AppDelegate.unsetCover(_:)))] {
+            for (title, symbol, action) in [("Fetch Cover…", "arrow.down.circle", #selector(ToolsCommands.fetchCover(_:))),
+                                            ("Display Cover", "photo", #selector(ToolsCommands.displayCover(_:))),
+                                            ("Set Custom Cover…", "photo.badge.plus", #selector(ToolsCommands.setCustomCover(_:))),
+                                            ("Unset Cover", "photo.badge.minus", #selector(ToolsCommands.unsetCover(_:)))] {
                 let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
                 item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
                 item.representedObject = AlbumReference(albumKey: key, album: album.name, artist: album.albumArtist ?? "")
@@ -524,7 +524,7 @@ final class CollectionBrowserViewController: NSViewController, MediaSourcePage, 
         if nodes.allSatisfy({ $0.track != nil }) {
             let ids = nodes.compactMap { $0.track?.track.id }
             let ratings = Set(nodes.map { $0.track?.statistics?.rating ?? 0 })
-            menu.addItem(Commands.ratingMenuItem(trackIds: ids, current: ratings.count == 1 ? ratings.first : nil))
+            menu.addItem(env.actions.ratingMenuItem(trackIds: ids, current: ratings.count == 1 ? ratings.first : nil))
         }
         add("Edit Track Details…", #selector(menuEdit), symbol: "pencil")
         add("Organize Files…", #selector(menuOrganize), symbol: "folder.badge.gearshape")
@@ -534,18 +534,18 @@ final class CollectionBrowserViewController: NSViewController, MediaSourcePage, 
         add("Delete Tracks…", #selector(menuDelete), symbol: "xmark.bin")
     }
 
-    @objc private func menuAppend() { Commands.addToPlaylist(tracks(for: contextNodes), mode: .append) }
-    @objc private func menuReplace() { Commands.addToPlaylist(tracks(for: contextNodes), mode: .replace) }
-    @objc private func menuPlay() { Commands.addToPlaylist(tracks(for: contextNodes), mode: .appendAndPlay) }
-    @objc private func menuQueue() { Commands.addToPlaylist(tracks(for: contextNodes), mode: .queue) }
+    @objc private func menuAppend() { env.actions.addToPlaylist(tracks(for: contextNodes), mode: .append) }
+    @objc private func menuReplace() { env.actions.addToPlaylist(tracks(for: contextNodes), mode: .replace) }
+    @objc private func menuPlay() { env.actions.addToPlaylist(tracks(for: contextNodes), mode: .appendAndPlay) }
+    @objc private func menuQueue() { env.actions.addToPlaylist(tracks(for: contextNodes), mode: .queue) }
     @objc private func collapseAll() { outline.collapseItem(nil, collapseChildren: true) }
-    @objc private func menuEdit() { Commands.editTrackDetails(tracks(for: contextNodes).map(\.track)) }
-    @objc private func menuOrganize() { Commands.organizeFiles(tracks(for: contextNodes).map(\.track)) }
-    @objc private func menuShowInFinder() { Commands.showInFinder(tracks(for: contextNodes).map(\.track.url)) }
-    @objc private func menuTrash() { Commands.moveToTrash(tracks(for: contextNodes).map(\.track)) }
-    @objc private func menuDelete() { Commands.deleteFiles(tracks(for: contextNodes).map(\.track)) }
+    @objc private func menuEdit() { env.actions.editTrackDetails(tracks(for: contextNodes).map(\.track)) }
+    @objc private func menuOrganize() { env.actions.organizeFiles(tracks(for: contextNodes).map(\.track)) }
+    @objc private func menuShowInFinder() { env.actions.showInFinder(tracks(for: contextNodes).map(\.track.url)) }
+    @objc private func menuTrash() { env.actions.moveToTrash(tracks(for: contextNodes).map(\.track)) }
+    @objc private func menuDelete() { env.actions.deleteFiles(tracks(for: contextNodes).map(\.track)) }
 
-    @objc func deleteSelection(_ sender: Any?) { Commands.moveToTrash(tracks(for: selectedNodes).map(\.track)) }
+    @objc func deleteSelection(_ sender: Any?) { env.actions.moveToTrash(tracks(for: selectedNodes).map(\.track)) }
 }
 
 /// Outline view with Return / middle-click / Delete handling.

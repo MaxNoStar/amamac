@@ -43,7 +43,7 @@ final class RecentAlbumsModel {
     func play(_ album: CollectionGroup) {
         guard let key = album.albumKey else { return }
         let tracks = (try? env.database.tracks(constraints: [CollectionConstraint(level: .album, key: key)])) ?? []
-        Commands.addToPlaylist(tracks, mode: .appendAndPlay)
+        env.actions.addToPlaylist(tracks, mode: .appendAndPlay)
     }
 }
 

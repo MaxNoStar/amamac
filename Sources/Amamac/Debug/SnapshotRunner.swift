@@ -226,7 +226,7 @@ final class SnapshotRunner {
                 await Snapshotter.capture(view, to: output.appendingPathComponent(name))
             }
         }
-        _ = try? SavedPlaylistStore(database: env.database).save(name: "Snapshot Mix", items: Array(env.playlist.items.prefix(5)))
+        _ = try? env.savedPlaylists.save(name: "Snapshot Mix", items: Array(env.playlist.items.prefix(5)))
         sources.open(category: .playlists)
         await captureSources("playlists-home.png")
         guard let playlists = sources.page(for: .playlists) as? PlaylistsBrowserPage else { fail("no playlists page") }
@@ -236,7 +236,7 @@ final class SnapshotRunner {
         sources.open(category: .playlists)
         playlists.open(.dynamic)
         let mode = env.dynamicMode
-        guard let random = GeneratorStore(database: env.database).dynamicPlaylists().first else { fail("no dynamic playlists") }
+        guard let random = env.generators.dynamicPlaylists().first else { fail("no dynamic playlists") }
         // A fixed current track: the 2-second fixtures would otherwise keep advancing.
         env.player.stop()
         let model = env.playlist
@@ -269,17 +269,50 @@ final class SnapshotRunner {
 
         // A view bookmark round trip: Local Music grouped by artist with a filter.
         let grouping = env.settings.collectionGrouping
-        LinkHandler.open(AmamacLink.collection(filter: "artist:a", levels: ["artist"]).url)
+        LinkHandler.open(AmamacLink.collection(filter: "artist:a", levels: ["artist"]).url, env: env)
         guard sources.currentCategory == .localMusic, sources.collectionBrowser.searchField.stringValue == "artist:a",
               env.settings.collectionGrouping.levels == [.artist] else { fail("collection link did not apply") }
-        BookmarkStore(database: env.database).addView(name: sources.currentViewLink!.name, link: sources.currentViewLink!.link)
+        env.bookmarks.addView(name: sources.currentViewLink!.name, link: sources.currentViewLink!.link)
         env.settings.collectionGrouping = grouping
         sources.collectionBrowser.setFilterText("")
         sources.collectionBrowser.reload()
         if let track = tracks.first?.track.id {
-            BookmarkStore(database: env.database).addPosition(trackId: track, title: tracks[0].track.displayTitle, position: 1)
+            env.bookmarks.addPosition(trackId: track, title: tracks[0].track.displayTitle, position: 1)
         }
         print("snapshot: link check passed")
+        checkMenus()
+    }
+
+    /// Every menu bar command of the App/Commands controllers reaches its controller through the
+    /// responder chain, validates, and runs.
+    private func checkMenus() {
+        let owners: [NSObject.Type] = [PlaybackCommands.self, PlaylistCommands.self, ViewCommands.self, ToolsCommands.self,
+                                       CollectionSetup.self, AppleMusicImport.self]
+        var checked = 0
+        func visit(_ menu: NSMenu) {
+            for item in menu.items {
+                if let submenu = item.submenu { visit(submenu) }
+                guard let action = item.action, item.target == nil, owners.contains(where: { $0.instancesRespond(to: action) })
+                else { continue }
+                guard let target = NSApp.target(forAction: action, to: nil, from: item) as? NSObject, target === NSApp.delegate
+                else { fail("menu item “\(item.title)” does not reach its controller") }
+                _ = (target as? NSMenuItemValidation)?.validateMenuItem(item)
+                checked += 1
+            }
+        }
+        guard let bar = NSApp.mainMenu else { fail("no main menu") }
+        visit(bar)
+        guard checked > 50 else { fail("only \(checked) menu commands found") }
+        guard let play = bar.items.lazy.compactMap(\.submenu).flatMap(\.items).first(where: { $0.action == #selector(PlaybackCommands.playPause(_:)) }),
+              let delegate = NSApp.delegate as? NSMenuItemValidation else { fail("no Play menu item") }
+        _ = delegate.validateMenuItem(play)
+        let playing = env.player.state == .playing || env.player.state == .buffering
+        guard play.title == (playing ? "Pause" : "Play") else { fail("Play menu item was not validated") }
+        let locked = env.settings.bool(AppSettings.Key.lockLayout)
+        NSApp.sendAction(#selector(ViewCommands.toggleLockLayout(_:)), to: nil, from: nil)
+        guard env.settings.bool(AppSettings.Key.lockLayout) == !locked else { fail("Lock Layout did not run") }
+        NSApp.sendAction(#selector(ViewCommands.toggleLockLayout(_:)), to: nil, from: nil)
+        print("snapshot: menu check passed (\(checked) commands)")
     }
 
     /// Internet radio, the podcast directory and the Podcasts page, against the stubbed network.

@@ -1,15 +1,14 @@
 import AmamacBase
 import AmamacDatabase
+import AmamacDynamic
 import AmamacLibrary
 import AmamacPlaylist
 import AmamacWeb
 import AppKit
 
-/// Shared services for the app (one per process).
+/// Shared services for the app (one per process), handed to every window, pane and dialog.
 @MainActor
 final class AppEnvironment {
-    static var shared: AppEnvironment!
-
     let dataDirectory: URL
     let cacheDirectory: URL
     let settings: AppSettings
@@ -24,6 +23,14 @@ final class AppEnvironment {
     let player: PlayerController
     let http: HTTPClient
     let lyrics: LyricsService
+    let remoteImages: RemoteImageCache
+    let bookmarks: BookmarkStore
+    let savedPlaylists: SavedPlaylistStore
+    let radioFavorites: RadioFavorites
+    let generators: GeneratorStore
+    /// Navigation in the main window; set once the window exists.
+    weak var router: (any AppRouter)?
+    private(set) lazy var actions = LibraryActions(env: self)
     private(set) lazy var dynamicMode = DynamicModeController(env: self)
     private(set) lazy var equalizer = EqualizerController(settings: settings, engine: player.local)
     private(set) lazy var podcasts = PodcastController(env: self)
@@ -47,9 +54,16 @@ final class AppEnvironment {
         navigator = PlaylistNavigator(proxy: proxy)
         navigator.progression = settings.trackProgression
         navigator.favor = settings.favor
-        player = PlayerController(model: playlist, proxy: proxy, navigator: navigator, database: database, settings: settings)
+        player = PlayerController(model: playlist, proxy: proxy, navigator: navigator, database: database, settings: settings,
+                                  status: status)
         http = HTTPClient(cacheDirectory: cacheDirectory.appendingPathComponent("http"), configuration: httpConfiguration)
         lyrics = LyricsService(database: database, http: http)
+        remoteImages = RemoteImageCache(http: http)
+        bookmarks = BookmarkStore(database: database)
+        savedPlaylists = SavedPlaylistStore(database: database)
+        radioFavorites = RadioFavorites(database: database)
+        generators = GeneratorStore(database: database)
+        player.willWriteFile = { [unowned self] path in self.ignoreWatcherEvents(for: path) }
     }
 
     func wikipedia() -> WikipediaClient {
@@ -104,8 +118,8 @@ final class AppEnvironment {
     func startWatching() {
         let folders = collectionFolders.filter(\.watch).map(\.path)
         if watcher == nil {
-            watcher = FolderWatcher { dirs in
-                Task { @MainActor in AppEnvironment.shared.scanCollection(onlyPaths: dirs) }
+            watcher = FolderWatcher { [weak self] dirs in
+                Task { @MainActor in self?.scanCollection(onlyPaths: dirs) }
             }
         }
         watcher?.watch(paths: folders)

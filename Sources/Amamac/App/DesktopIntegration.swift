@@ -222,7 +222,7 @@ final class OSDController {
     private var screen: NSScreen {
         let index = env.settings.int(AppSettings.Key.osdScreen)
         if index > 0, NSScreen.screens.indices.contains(index - 1) { return NSScreen.screens[index - 1] }
-        return AppDelegate.shared?.mainWindow?.window?.screen ?? NSScreen.main ?? NSScreen.screens[0]
+        return env.router?.windowScreen ?? NSScreen.main ?? NSScreen.screens[0]
     }
 
     /// Position as fractions of the screen's visible area (0,0 bottom left).
@@ -431,10 +431,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             menu.addItem(.separator())
         }
         let playing = player.state == .playing || player.state == .buffering
-        for (title, selector) in [(playing ? "Pause" : "Play", #selector(AppDelegate.playPause(_:))),
-                                  ("Stop", #selector(AppDelegate.stopPlayback(_:))),
-                                  ("Previous Track", #selector(AppDelegate.previousTrack(_:))),
-                                  ("Next Track", #selector(AppDelegate.nextTrack(_:)))] {
+        for (title, selector) in [(playing ? "Pause" : "Play", #selector(PlaybackCommands.playPause(_:))),
+                                  ("Stop", #selector(PlaybackCommands.stopPlayback(_:))),
+                                  ("Previous Track", #selector(PlaybackCommands.previousTrack(_:))),
+                                  ("Next Track", #selector(PlaybackCommands.nextTrack(_:)))] {
             menu.addItem(NSMenuItem(title: title, action: selector, keyEquivalent: ""))
         }
         menu.addItem(.separator())
@@ -500,7 +500,7 @@ enum HotKeys {
         }
         KeyboardShortcuts.onKeyUp(for: .addMedia) {
             NSApp.activate()
-            AppDelegate.shared?.addMedia(nil)
+            NSApp.sendAction(#selector(PlaylistCommands.addMedia(_:)), to: nil, from: nil)
         }
         for (stars, name) in [(1, KeyboardShortcuts.Name.rate1), (2, .rate2), (3, .rate3), (4, .rate4), (5, .rate5)] {
             KeyboardShortcuts.onKeyUp(for: name) {

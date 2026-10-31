@@ -43,7 +43,7 @@ final class DynamicModeController {
     /// Turns dynamic mode back on after a relaunch.
     func resumeIfNeeded() {
         let id = env.settings.int(AppSettings.Key.activeDynamicPlaylist)
-        guard id > 0, let playlist = GeneratorStore(database: env.database).dynamicPlaylists().first(where: { $0.id == Int64(id) }) else { return }
+        guard id > 0, let playlist = env.generators.dynamicPlaylists().first(where: { $0.id == Int64(id) }) else { return }
         start(playlist, repopulate: false)
     }
 

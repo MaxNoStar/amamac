@@ -141,7 +141,7 @@ final class SavedPlaylistsModel {
 
     init(env: AppEnvironment) {
         self.env = env
-        store = SavedPlaylistStore(database: env.database)
+        store = env.savedPlaylists
         NotificationCenter.default.addObserver(forName: SavedPlaylistStore.changed, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.reload() }
         }
@@ -171,14 +171,14 @@ final class SavedPlaylistsModel {
         }
     }
 
-    func load(_ id: Int64, mode: Commands.AddMode) {
-        Task { Commands.add(await store.items(playlistId: id), mode: mode) }
+    func load(_ id: Int64, mode: LibraryActions.AddMode) {
+        Task { env.actions.add(await store.items(playlistId: id), mode: mode) }
     }
 
-    func load(file: URL, mode: Commands.AddMode) { Commands.addURLs([file], mode: mode) }
+    func load(file: URL, mode: LibraryActions.AddMode) { env.actions.addURLs([file], mode: mode) }
 
     func saveCurrent() {
-        AppDelegate.shared?.savePlaylist(nil)
+        NSApp.sendAction(#selector(PlaylistCommands.savePlaylist(_:)), to: nil, from: nil)
     }
 
     func importFile() {
@@ -321,7 +321,7 @@ final class DynamicPlaylistsModel {
 
     init(env: AppEnvironment) {
         self.env = env
-        store = GeneratorStore(database: env.database)
+        store = env.generators
         playlists = store.dynamicPlaylists()
         selectedId = env.dynamicMode.active?.id ?? playlists.first?.id
     }
@@ -592,7 +592,7 @@ final class GeneratorModel {
 
     init(env: AppEnvironment) {
         self.env = env
-        store = GeneratorStore(database: env.database)
+        store = env.generators
         presets = store.generatorPresets()
         select(presets.first?.id)
     }
@@ -646,10 +646,10 @@ final class GeneratorModel {
         }
     }
 
-    func use(_ mode: Commands.AddMode) {
+    func use(_ mode: LibraryActions.AddMode) {
         guard let ids = result?.ids else { return }
         let tracks = (try? env.database.tracks(ids: ids)) ?? []
-        Commands.addToPlaylist(tracks, mode: mode)
+        env.actions.addToPlaylist(tracks, mode: mode)
     }
 }
 

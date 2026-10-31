@@ -190,7 +190,7 @@ final class MediaSourcesViewController: NSViewController {
         add.isEnabled = currentViewLink != nil
         menu.autoenablesItems = false
         menu.addItem(add)
-        let views = BookmarkStore(database: env.database).all().filter { $0.kind == .view }
+        let views = env.bookmarks.all().filter { $0.kind == .view }
         if !views.isEmpty {
             menu.addItem(.separator())
             for bookmark in views {
@@ -201,19 +201,19 @@ final class MediaSourcesViewController: NSViewController {
             }
         }
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Bookmark Manager", action: #selector(AppDelegate.showBookmarkManager(_:)), keyEquivalent: "")
+        menu.addItem(withTitle: "Bookmark Manager", action: #selector(ToolsCommands.showBookmarkManager(_:)), keyEquivalent: "")
         return menu
     }
 
     @objc private func bookmarkCurrentView(_ sender: Any?) {
         guard let view = currentViewLink else { return }
-        BookmarkStore(database: env.database).addView(name: view.name, link: view.link)
+        env.bookmarks.addView(name: view.name, link: view.link)
         env.status.showMessage("Bookmarked “\(view.name)”.")
     }
 
     @objc private func openBookmark(_ sender: NSMenuItem) {
         guard let raw = sender.representedObject as? String, let url = URL(string: raw) else { return }
-        LinkHandler.open(url)
+        LinkHandler.open(url, env: env)
     }
 
     func makeInternetPage() -> NSViewController { InternetBrowserPage(env: env, owner: self) }
@@ -296,7 +296,7 @@ final class BreadcrumbBar: NSView {
 
     private func defaultBookmarkMenu() -> NSMenu? {
         let menu = NSMenu()
-        menu.addItem(withTitle: "Bookmark Manager", action: #selector(AppDelegate.showBookmarkManager(_:)), keyEquivalent: "")
+        menu.addItem(withTitle: "Bookmark Manager", action: #selector(ToolsCommands.showBookmarkManager(_:)), keyEquivalent: "")
         return menu
     }
 

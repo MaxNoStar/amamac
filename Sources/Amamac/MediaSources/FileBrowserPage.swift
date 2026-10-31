@@ -147,7 +147,7 @@ final class FileBrowserModel {
     }
 
     func activate(_ entry: Entry) {
-        if entry.isFolder { go(to: entry.url) } else { Commands.addURLs([entry.url], mode: .append) }
+        if entry.isFolder { go(to: entry.url) } else { env.actions.addURLs([entry.url], mode: .append) }
     }
 
     func urls(for targets: [Entry]) -> [URL] { targets.map(\.url) }
@@ -204,16 +204,16 @@ struct FileBrowserView: View {
                 .listStyle(.plain)
                 .contextMenu(forSelectionType: URL.self) { urls in
                     let targets = model.entries.filter { urls.contains($0.url) }
-                    Button("Add to Playlist") { Commands.addURLs(targets.map(\.url), mode: .append) }
-                    Button("Replace Playlist") { Commands.addURLs(targets.map(\.url), mode: .replace) }
-                    Button("Queue") { Commands.addURLs(targets.map(\.url), mode: .queue) }
+                    Button("Add to Playlist") { model.env.actions.addURLs(targets.map(\.url), mode: .append) }
+                    Button("Replace Playlist") { model.env.actions.addURLs(targets.map(\.url), mode: .replace) }
+                    Button("Queue") { model.env.actions.addURLs(targets.map(\.url), mode: .queue) }
                     Divider()
                     Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting(targets.map(\.url)) }
                 } primaryAction: { urls in
                     if let entry = model.entries.first(where: { urls.contains($0.url) }), urls.count == 1 {
                         model.activate(entry)
                     } else {
-                        Commands.addURLs(Array(urls), mode: .append)
+                        model.env.actions.addURLs(Array(urls), mode: .append)
                     }
                 }
             }
