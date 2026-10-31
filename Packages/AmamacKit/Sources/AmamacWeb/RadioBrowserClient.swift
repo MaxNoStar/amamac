@@ -1,3 +1,4 @@
+import AmamacBase
 import Foundation
 import GRDB
 
@@ -34,8 +35,10 @@ public struct RadioBrowserStation: Decodable, Sendable, Hashable, Identifiable {
         self.hls = hls
     }
 
+    /// The station's stream; nil unless it is http(s), since anyone can add stations to the directory.
     public var streamURL: URL? {
         URL(string: (url_resolved?.isEmpty == false ? url_resolved! : url).trimmingCharacters(in: .whitespaces))
+            .flatMap { $0.isWebURL ? $0 : nil }
     }
 
     /// Display name of the codec, "HLS" for HTTP Live Streaming.
@@ -79,7 +82,10 @@ public struct RadioBrowserClient: Sendable {
     public static func connect(http: HTTPClient) async -> RadioBrowserClient {
         struct Server: Decodable { var name: String }
         let servers = (try? await http.json([Server].self, from: URL(string: "https://all.api.radio-browser.info/json/servers")!)) ?? []
-        let names = Set(servers.map(\.name).filter { $0.hasSuffix("radio-browser.info") })
+        // Mirror names go into URLs, so only plain host names under radio-browser.info are used.
+        let names = Set(servers.map(\.name).filter { name in
+            name.hasSuffix(".radio-browser.info") && name.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "." || $0 == "-") }
+        })
         return RadioBrowserClient(http: http, server: names.sorted().first ?? fallbackServer)
     }
 
@@ -96,22 +102,22 @@ public struct RadioBrowserClient: Sendable {
         }
     }
 
-    private func url(_ path: String, _ query: [(String, String)] = []) -> URL {
-        HTTPClient.url("https://\(server)/json/\(path)", query)
+    private func url(_ path: String, _ query: [(String, String)] = []) throws -> URL {
+        try HTTPClient.url("https://\(server)/json/\(path)", query)
     }
 
     public func topStations(limit: Int = 100) async throws -> [RadioBrowserStation] {
-        try await http.json([RadioBrowserStation].self, from: url("stations/topclick", [("limit", String(limit)), ("hidebroken", "true")]))
+        try await http.json([RadioBrowserStation].self, from: try url("stations/topclick", [("limit", String(limit)), ("hidebroken", "true")]))
     }
 
     public func tags(limit: Int = 150) async throws -> [RadioFacet] {
-        try await http.json([RadioFacet].self, from: url("tags", [("order", "stationcount"), ("reverse", "true"),
+        try await http.json([RadioFacet].self, from: try url("tags", [("order", "stationcount"), ("reverse", "true"),
                                                                   ("hidebroken", "true"), ("limit", String(limit))]))
             .filter { $0.stationcount > 0 }
     }
 
     public func countries() async throws -> [RadioFacet] {
-        try await http.json([RadioFacet].self, from: url("countries", [("order", "name"), ("hidebroken", "true")]))
+        try await http.json([RadioFacet].self, from: try url("countries", [("order", "name"), ("hidebroken", "true")]))
             .filter { $0.stationcount > 0 }
     }
 
@@ -128,12 +134,12 @@ public struct RadioBrowserClient: Sendable {
         case .country(let code): query += [("countrycode", code)]
         case .name(let name): query += [("name", name)]
         }
-        return try await http.json([RadioBrowserStation].self, from: url("stations/search", query))
+        return try await http.json([RadioBrowserStation].self, from: try url("stations/search", query))
     }
 
     /// Tells the directory a station was played (its popularity ranking depends on it).
     public func reportClick(_ station: RadioBrowserStation) async {
         guard !station.stationuuid.isEmpty else { return }
-        _ = try? await http.data(from: url("url/\(station.stationuuid)"), useCache: false)
+        _ = try? await http.data(from: try url("url/\(station.stationuuid)"), useCache: false)
     }
 }

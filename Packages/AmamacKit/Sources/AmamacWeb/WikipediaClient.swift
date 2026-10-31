@@ -76,7 +76,7 @@ public struct WikipediaClient: Sendable {
 
     /// Fetches an article by title (also used for links followed inside the applet).
     public func page(title: String) async throws -> Page {
-        let url = HTTPClient.url("https://\(language).wikipedia.org/w/api.php", [
+        let url = try HTTPClient.url("https://\(language).wikipedia.org/w/api.php", [
             ("action", "parse"), ("page", title), ("prop", "text"), ("format", "json"), ("formatversion", "2"),
             ("redirects", "1"), ("disableeditsection", "1"), ("disabletoc", "1"),
         ])
@@ -89,7 +89,7 @@ public struct WikipediaClient: Sendable {
 
     /// Title of the best search hit, or nil.
     func search(_ query: String) async throws -> String? {
-        let url = HTTPClient.url("https://\(language).wikipedia.org/w/api.php", [
+        let url = try HTTPClient.url("https://\(language).wikipedia.org/w/api.php", [
             ("action", "query"), ("list", "search"), ("srsearch", query), ("srlimit", "1"),
             ("format", "json"), ("formatversion", "2"),
         ])
@@ -100,7 +100,7 @@ public struct WikipediaClient: Sendable {
 
     /// MusicBrainz artist (exact name match) → its Wikidata item → the sitelink for `language`.
     func titleFromMusicBrainz(artist: String) async throws -> String? {
-        let searchURL = HTTPClient.url("https://musicbrainz.org/ws/2/artist/", [
+        let searchURL = try HTTPClient.url("https://musicbrainz.org/ws/2/artist/", [
             ("query", "artist:\"\(artist.replacingOccurrences(of: "\"", with: ""))\""), ("fmt", "json"), ("limit", "5"),
         ])
         let root = try await http.jsonObject(from: searchURL) as? [String: Any]
@@ -109,7 +109,7 @@ public struct WikipediaClient: Sendable {
         guard let match = artists.first(where: { TextFolding.fold($0["name"] as? String ?? "") == wanted && ($0["score"] as? Int ?? 0) >= 90 }),
               let id = match["id"] as? String else { return nil }
 
-        let lookupURL = HTTPClient.url("https://musicbrainz.org/ws/2/artist/\(id)", [("inc", "url-rels"), ("fmt", "json")])
+        let lookupURL = try HTTPClient.url("https://musicbrainz.org/ws/2/artist/\(id)", [("inc", "url-rels"), ("fmt", "json")])
         let lookup = try await http.jsonObject(from: lookupURL) as? [String: Any]
         let relations = lookup?["relations"] as? [[String: Any]] ?? []
         let resources = relations.compactMap { relation -> (String, String)? in

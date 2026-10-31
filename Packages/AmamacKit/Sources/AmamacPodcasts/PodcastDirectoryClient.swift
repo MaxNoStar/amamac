@@ -20,7 +20,7 @@ public struct PodcastDirectoryClient: Sendable {
 
     public func search(_ term: String, limit: Int = 50) async throws -> [Result] {
         struct Response: Decodable { var results: [Result] }
-        let url = HTTPClient.url("https://itunes.apple.com/search", [("media", "podcast"), ("entity", "podcast"),
+        let url = try HTTPClient.url("https://itunes.apple.com/search", [("media", "podcast"), ("entity", "podcast"),
                                                                      ("term", term), ("limit", String(limit))])
         return try await http.json(Response.self, from: url).results.filter { $0.feedUrl != nil }
     }

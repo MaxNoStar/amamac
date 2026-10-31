@@ -46,7 +46,7 @@ public struct CoverFetcher: Sendable {
     func iTunes(album: String, artist: String) async throws -> [Candidate] {
         let term = [artist, album].filter { !$0.isEmpty && TextFolding.fold($0) != TextFolding.fold(TrackText.variousArtists) }
             .joined(separator: " ")
-        let url = HTTPClient.url("https://itunes.apple.com/search", [("term", term), ("entity", "album"), ("limit", "6")])
+        let url = try HTTPClient.url("https://itunes.apple.com/search", [("term", term), ("entity", "album"), ("limit", "6")])
         let root = try await http.jsonObject(from: url) as? [String: Any]
         return (root?["results"] as? [[String: Any]] ?? []).compactMap { r in
             guard let art = r["artworkUrl100"] as? String,

@@ -43,7 +43,7 @@ public struct MusicBrainzClient: Sendable {
         var terms = ["recording:" + Self.quoted(title)]
         if !artist.isEmpty { terms.append("artist:" + Self.quoted(artist)) }
         if !album.isEmpty { terms.append("release:" + Self.quoted(album)) }
-        let url = HTTPClient.url(base + "/recording/", [("query", terms.joined(separator: " AND ")), ("fmt", "json"), ("limit", "15")])
+        let url = try HTTPClient.url(base + "/recording/", [("query", terms.joined(separator: " AND ")), ("fmt", "json"), ("limit", "15")])
         let root = try await http.jsonObject(from: url) as? [String: Any]
         var result: [Candidate] = []
         for recording in root?["recordings"] as? [[String: Any]] ?? [] {
@@ -75,7 +75,7 @@ public struct MusicBrainzClient: Sendable {
         if !artist.isEmpty && TextFolding.fold(artist) != TextFolding.fold(TrackText.variousArtists) {
             terms.append("artist:" + Self.quoted(artist))
         }
-        let url = HTTPClient.url(base + "/release/", [("query", terms.joined(separator: " AND ")), ("fmt", "json"), ("limit", "8")])
+        let url = try HTTPClient.url(base + "/release/", [("query", terms.joined(separator: " AND ")), ("fmt", "json"), ("limit", "8")])
         let root = try await http.jsonObject(from: url) as? [String: Any]
         return (root?["releases"] as? [[String: Any]] ?? []).compactMap { r in
             guard let id = r["id"] as? String else { return nil }
