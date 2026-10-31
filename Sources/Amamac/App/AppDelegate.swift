@@ -77,9 +77,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     func application(_ application: NSApplication, open urls: [URL]) {
         let files = urls.filter(\.isFileURL)
         if !files.isEmpty { Commands.addURLs(files, mode: .appendAndPlay) }
-        for url in urls where url.scheme == "amamac" {
-            env.status.showMessage("Amamac links are not supported yet: \(url.absoluteString)")
-        }
+        for url in urls where url.scheme?.lowercased() == "amamac" { LinkHandler.open(url) }
     }
 
     func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
@@ -229,6 +227,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
                 env.player.play(active, startAt: session.position ?? 0)
             }
             mainWindow.playlistPane.scrollToActive()
+            env.dynamicMode.resumeIfNeeded()
         }
     }
 
@@ -314,18 +313,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         alert.window.initialFirstResponder = field
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         let name = field.stringValue.trimmingCharacters(in: .whitespaces).nilIfEmpty ?? defaultPlaylistName()
-        let items = env.playlist.items
         do {
-            try env.database.writer.write { db in
-                var playlist = SavedPlaylist(name: name)
-                try playlist.insert(db)
-                for (i, item) in items.enumerated() {
-                    try SavedPlaylistEntry(playlistId: playlist.id!, position: i,
-                                           trackId: item.source == .collection ? item.track.id : nil,
-                                           url: item.url.absoluteString, title: item.track.title, artist: item.track.artist,
-                                           album: item.track.album, durationMs: item.track.durationMs).insert(db)
-                }
-            }
+            try SavedPlaylistStore(database: env.database).save(name: name, items: env.playlist.items)
             env.status.showMessage("Saved playlist “\(name)”.")
         } catch {
             env.status.showMessage("Could not save the playlist: \(error.localizedDescription)")
@@ -460,10 +449,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         if !mainWindow.isPaneVisible(.mediaSources) { mainWindow.setPane(.mediaSources, visible: true) }
         mainWindow.mediaSources.open(category: .localMusic)
         mainWindow.mediaSources.collectionBrowser.setFilterText(filter)
+        mainWindow.mediaSources.collectionBrowser.reload()
     }
 
-    @objc func showBookmarkManager(_ sender: Any?) {
-        env.status.showMessage("The Bookmark Manager is not available yet.")
+    @objc func showBookmarkManager(_ sender: Any?) { BookmarkManagerWindow.show(env: env) }
+
+    @objc func editQueue(_ sender: Any?) { QueueEditorWindow.show(env: env) }
+
+    /// Shows Media Sources at a root category and returns its page.
+    @discardableResult
+    func showMediaSources(_ category: MediaCategory) -> NSViewController {
+        if !mainWindow.isPaneVisible(.mediaSources) { mainWindow.setPane(.mediaSources, visible: true) }
+        mainWindow.mediaSources.open(category: category)
+        return mainWindow.mediaSources.page(for: category)
     }
 
     // MARK: Covers
@@ -568,7 +566,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             return true
         case #selector(setTrackProgression(_:)):
             menuItem.state = (menuItem.representedObject as? String) == env.navigator.progression.rawValue ? .on : .off
-            return true
+            // Dynamic mode always plays the playlist in order.
+            return env.dynamicMode.active == nil
         case #selector(setFavorMode(_:)):
             menuItem.state = (menuItem.representedObject as? String) == env.navigator.favor.rawValue ? .on : .off
             return env.navigator.progression.isRandom
@@ -598,8 +597,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             return env.playlist.activeID != nil || player.currentItem != nil
         case #selector(removeCollectionFolders(_:)):
             return !env.collectionFolders.isEmpty
-        case #selector(showBookmarkManager(_:)):
-            return false
         default:
             return true
         }

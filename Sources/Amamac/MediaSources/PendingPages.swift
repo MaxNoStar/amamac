@@ -35,20 +35,6 @@ final class InternetBrowserPage: PendingCategoryPage {
     required init?(coder: NSCoder) { fatalError() }
 }
 
-final class PlaylistsBrowserPage: PendingCategoryPage {
-    weak var owner: MediaSourcesViewController?
-    init(env: AppEnvironment, owner: MediaSourcesViewController) {
-        self.owner = owner
-        super.init(env: env, category: .playlists)
-    }
-    required init?(coder: NSCoder) { fatalError() }
-}
-
-final class FileBrowserPage: PendingCategoryPage {
-    init(env: AppEnvironment) { super.init(env: env, category: .files) }
-    required init?(coder: NSCoder) { fatalError() }
-}
-
 final class PodcastBrowserPage: PendingCategoryPage {
     init(env: AppEnvironment) { super.init(env: env, category: .podcasts) }
     required init?(coder: NSCoder) { fatalError() }

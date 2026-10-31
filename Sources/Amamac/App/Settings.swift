@@ -124,6 +124,7 @@ final class AppSettings {
         static let dynamicUpcoming = "dynamicUpcoming"
         static let dynamicAllowDuplicates = "dynamicAllowDuplicates"
         static let activeDynamicPlaylist = "activeDynamicPlaylist"
+        static let fileBrowserFolder = "fileBrowserFolder"
         static let podcastUpdateMinutes = "podcastUpdateMinutes"
         static let paneWidths = "paneWidths"
         static let hiddenPanes = "hiddenPanes"

@@ -140,6 +140,7 @@ enum MainMenu {
         item("Remove Duplicate and Dead Entries", #selector(AppDelegate.removeDuplicatesAndDead(_:)), in: m)
         m.addItem(.separator())
         item("Queue Track", #selector(AppDelegate.queueSelected(_:)), "d", in: m)
+        item("Edit Queue…", #selector(AppDelegate.editQueue(_:)), "u", [.control, .option], in: m)
         m.addItem(.separator())
         let progression = NSMenuItem(title: "Track Progression", action: nil, keyEquivalent: "")
         progression.submenu = AppDelegate.makeProgressionMenu()

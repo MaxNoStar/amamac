@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import AmamacCore
 
 extension NSPasteboard.PasteboardType {
@@ -74,7 +75,10 @@ final class PlaylistPaneController: NSViewController, NSTableViewDataSource, NST
         scroll.drawsBackground = true
         scroll.borderType = .noBorder
 
-        for v in [sortBar, searchBar, scroll, bottomBar] {
+        let banner = NSHostingView(rootView: DynamicModeBanner(mode: env.dynamicMode))
+        banner.sizingOptions = [.intrinsicContentSize]
+        banner.safeAreaRegions = []
+        for v in [sortBar, searchBar, banner, scroll, bottomBar] {
             v.translatesAutoresizingMaskIntoConstraints = false
             root.addSubview(v)
         }
@@ -85,7 +89,10 @@ final class PlaylistPaneController: NSViewController, NSTableViewDataSource, NST
             searchBar.topAnchor.constraint(equalTo: sortBar.bottomAnchor),
             searchBar.leadingAnchor.constraint(equalTo: root.leadingAnchor),
             searchBar.trailingAnchor.constraint(equalTo: root.trailingAnchor),
-            scroll.topAnchor.constraint(equalTo: searchBar.bottomAnchor),
+            banner.topAnchor.constraint(equalTo: searchBar.bottomAnchor),
+            banner.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+            banner.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+            scroll.topAnchor.constraint(equalTo: banner.bottomAnchor),
             scroll.leadingAnchor.constraint(equalTo: root.leadingAnchor),
             scroll.trailingAnchor.constraint(equalTo: root.trailingAnchor),
             bottomBar.topAnchor.constraint(equalTo: scroll.bottomAnchor),

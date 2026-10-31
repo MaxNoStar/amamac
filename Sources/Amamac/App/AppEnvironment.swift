@@ -21,6 +21,7 @@ final class AppEnvironment {
     let player: PlayerController
     let http: HTTPClient
     let lyrics: LyricsService
+    private(set) lazy var dynamicMode = DynamicModeController(env: self)
     private var watcher: FolderWatcher?
 
     /// Posted when the collection database changed (scan, tag edit, statistics).

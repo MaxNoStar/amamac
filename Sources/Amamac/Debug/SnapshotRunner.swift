@@ -103,6 +103,7 @@ final class SnapshotRunner {
             await Snapshotter.capture(column, to: output.appendingPathComponent("context-applets.png"))
         }
         await captureVariants(win)
+        await capturePlaylistPages(win, tracks: tracks, music: music)
         await captureDialogs(tracks: tracks)
         if let layoutDump { Snapshotter.dumpLayout(of: win, to: layoutDump) }
         env.player.stop()
@@ -138,6 +139,72 @@ final class SnapshotRunner {
         window.mediaSources.open(category: .localMusic)
     }
 
+    /// Media Sources › Playlists (saved, dynamic with its banner, generator), Files, and links.
+    private func capturePlaylistPages(_ win: NSWindow, tracks: [TrackWithStatistics], music: URL) async {
+        let sources = window.mediaSources
+        func captureSources(_ name: String) async {
+            try? await Task.sleep(for: .milliseconds(500))
+            win.contentView?.layoutSubtreeIfNeeded()
+            if let view = window.panes[.mediaSources]?.view {
+                await Snapshotter.capture(view, to: output.appendingPathComponent(name))
+            }
+        }
+        _ = try? SavedPlaylistStore(database: env.database).save(name: "Snapshot Mix", items: Array(env.playlist.items.prefix(5)))
+        sources.open(category: .playlists)
+        await captureSources("playlists-home.png")
+        guard let playlists = sources.page(for: .playlists) as? PlaylistsBrowserPage else { fail("no playlists page") }
+        playlists.open(.saved)
+        await captureSources("playlists-saved.png")
+
+        sources.open(category: .playlists)
+        playlists.open(.dynamic)
+        let mode = env.dynamicMode
+        guard let random = GeneratorStore(database: env.database).dynamicPlaylists().first else { fail("no dynamic playlists") }
+        // A fixed current track: the 2-second fixtures would otherwise keep advancing.
+        env.player.stop()
+        let model = env.playlist
+        model.setActive(model.order[min(7, model.count - 1)])
+        mode.start(random)
+        func upcoming() -> Int { (model.activeIndex ?? -1) < 0 ? model.count : model.count - model.activeIndex! - 1 }
+        await Snapshotter.waitUntil(timeout: 5) { upcoming() == mode.upcomingCount }
+        guard upcoming() == mode.upcomingCount else { fail("dynamic mode filled \(upcoming()) of \(mode.upcomingCount) upcoming tracks "
+                 + "(count \(model.count), active \(String(describing: model.activeIndex)), working \(mode.isWorking), "
+                 + "current \(String(describing: env.player.currentItem.flatMap { model.index(of: $0.id) })))") }
+        await captureSources("playlists-dynamic.png")
+        if let view = window.panes[.playlist]?.view {
+            await Snapshotter.capture(view, to: output.appendingPathComponent("pane-playlist-dynamic.png"))
+        }
+        mode.stop()
+        print("snapshot: dynamic mode check passed")
+
+        sources.open(category: .playlists)
+        guard let generator = playlists.open(.generator) as? HostedPage<GeneratorView> else { fail("no generator page") }
+        generator.root.model.run()
+        await Snapshotter.waitUntil(timeout: 10) { generator.root.model.result != nil }
+        guard let result = generator.root.model.result, !result.ids.isEmpty else { fail("the playlist generator produced nothing") }
+        await captureSources("playlists-generator.png")
+
+        guard let files = sources.page(for: .files) as? FileBrowserPage else { fail("no files page") }
+        sources.open(category: .files)
+        files.model.go(to: music)
+        await Snapshotter.waitUntil(timeout: 3) { !files.model.entries.isEmpty }
+        await captureSources("files-browser.png")
+
+        // A view bookmark round trip: Local Music grouped by artist with a filter.
+        let grouping = env.settings.collectionGrouping
+        LinkHandler.open(AmamacLink.collection(filter: "artist:a", levels: ["artist"]).url)
+        guard sources.currentCategory == .localMusic, sources.collectionBrowser.searchField.stringValue == "artist:a",
+              env.settings.collectionGrouping.levels == [.artist] else { fail("collection link did not apply") }
+        BookmarkStore(database: env.database).addView(name: sources.currentViewLink!.name, link: sources.currentViewLink!.link)
+        env.settings.collectionGrouping = grouping
+        sources.collectionBrowser.setFilterText("")
+        sources.collectionBrowser.reload()
+        if let track = tracks.first?.track.id {
+            BookmarkStore(database: env.database).addPosition(trackId: track, title: tracks[0].track.displayTitle, position: 1)
+        }
+        print("snapshot: link check passed")
+    }
+
     /// Opens each library dialog, captures it and closes it again.
     private func captureDialogs(tracks: [TrackWithStatistics]) async {
         func capture(_ prefix: String, _ name: String) async {
@@ -159,6 +226,11 @@ final class SnapshotRunner {
         await capture("Edit Filter", "dialog-edit-filter.png")
         CoverManagerWindow.show(env: env)
         await capture("Cover Manager", "dialog-cover-manager.png")
+        env.playlist.enqueue(Array(env.playlist.order.suffix(3)))
+        QueueEditorWindow.show(env: env)
+        await capture("Queue Editor", "dialog-edit-queue.png")
+        BookmarkManagerWindow.show(env: env)
+        await capture("Bookmark Manager", "dialog-bookmarks.png")
     }
 
     /// Plays silently through PlayerController and checks state, position and Next. The window is

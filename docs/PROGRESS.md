@@ -84,7 +84,30 @@ Plan: Amarok 2/3 feature parity in milestones M0–M8 (see CLAUDE.md for command
 - Import Statistics from Apple Music (exported Library.xml): matched by path, then tags; play
   counts and dates only grow, ratings fill gaps unless replacing is chosen.
 - Snapshot run captures the tag editor, Organize Files, Edit Filter and Cover Manager.
-## M5 — Playlists
+## M5 — Playlists ✅
+- Media Sources › Playlists has three pages:
+  - Saved Playlists: playlists stored in Amamac plus playlist files found in the collection
+    folders. Replace, Add, Queue, Rename, Export As, Delete, Import, and Copy to Saved Playlists.
+    The playlist bottom bar's Save writes here.
+  - Dynamic Playlists: biases (Random, Match All/Any, Not, Partition, If/Else, Search, Album
+    Play, Quiz Play) in a recursive editor, six presets, Previous/Upcoming counts, Allow
+    duplicates. Dynamic mode trims played tracks, tops up the upcoming ones on every track change,
+    forces Standard progression and resumes after relaunch. A banner above the playlist offers
+    Repopulate and Turn Off.
+  - Automated Playlist Generator: constraint tree (Match Tags, Duration, Playlist Length, Total
+    Size, Prevent Duplicates, Spread Artists, Checkpoint, with strength and all/any groups) solved
+    by simulated annealing. Presets can be saved; results are added or replace the playlist.
+- Files browser: Back, Forward, Up, Home, Reload, a folder path menu, a filter, double-click to
+  enter folders or add files, context menu and dragging into the playlist. The last folder is
+  remembered.
+- Edit Queue (⌃⌥U): reorder by dragging or Move Up/Down, Dequeue, Clear Queue.
+- Bookmark Manager: position markers and saved views, with Go To, Rename, Copy Link and Delete.
+  The Media Sources bookmark button offers "Bookmark This View" and the saved views.
+- `amamac://navigate/position?track=ID&pos=SECONDS`, `amamac://navigate/collection?filter=…&levels=…`
+  and `amamac://navigate/<category>?path=…` open from other apps, bookmarks and the manager.
+- The four built-in playlist layouts were already in place from M2b.
+- Snapshot run checks dynamic mode (5 previous, 10 upcoming), the generator and a collection link,
+  and captures the Playlists pages, the Files browser, the Queue Editor and the Bookmark Manager.
 ## M6 — Audio extras
 ## M7 — Internet
 ## M8 — Desktop integration and polish
