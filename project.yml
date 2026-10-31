@@ -24,15 +24,11 @@ settings:
       SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG $(inherited)"
       ONLY_ACTIVE_ARCH: YES
 packages:
-  SFBAudioEngine:
-    url: https://github.com/sbooth/SFBAudioEngine
-    exactVersion: 0.14.0
+  AmamacKit:
+    path: Packages/AmamacKit
   GRDB:
     url: https://github.com/groue/GRDB.swift
     exactVersion: 7.11.1
-  FeedKit:
-    url: https://github.com/nmdias/FeedKit
-    minorVersion: 10.10.0
   KeyboardShortcuts:
     url: https://github.com/sindresorhus/KeyboardShortcuts
     minorVersion: 3.1.0
@@ -67,23 +63,6 @@ packages:
     url: https://github.com/sbooth/tta-cpp-binary-xcframework
     exactVersion: 0.1.2
 targets:
-  AmamacCore:
-    type: framework
-    platform: macOS
-    sources:
-      - Sources/AmamacCore
-    dependencies:
-      - package: SFBAudioEngine
-      - package: GRDB
-      - package: FeedKit
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: local.amamac.core
-        GENERATE_INFOPLIST_FILE: YES
-        SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
-        SKIP_INSTALL: YES
-        DYLIB_INSTALL_NAME_BASE: "@rpath"
-        LD_RUNPATH_SEARCH_PATHS: ["$(inherited)", "@executable_path/../Frameworks", "@loader_path/../Frameworks"]
   Amamac:
     type: application
     platform: macOS
@@ -91,10 +70,12 @@ targets:
       - Sources/Amamac
       - Resources
     dependencies:
-      - target: AmamacCore
+      - package: AmamacKit
+        product: AmamacCore
+      - package: GRDB
       - package: KeyboardShortcuts
-      # SFBAudioEngine's codec libraries are dynamic binary frameworks; they are only linked
-      # through AmamacCore, so embed them in the app explicitly.
+      # SFBAudioEngine's codec libraries are dynamic binary frameworks reached only through the
+      # AmamacKit package, so embed them in the app explicitly.
       - package: ogg-binary-xcframework
         product: ogg
         embed: false
@@ -168,7 +149,9 @@ targets:
         type: folder
         buildPhase: resources
     dependencies:
-      - target: AmamacCore
+      - package: AmamacKit
+        product: AmamacCore
+      - package: GRDB
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
