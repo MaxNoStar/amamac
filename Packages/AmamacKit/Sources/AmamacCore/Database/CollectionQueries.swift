@@ -1,108 +1,6 @@
 import Foundation
 import GRDB
 
-/// A level of the collection tree (Amarok's "Group By" categories).
-public enum CollectionLevel: String, CaseIterable, Sendable, Codable {
-    case albumArtist, artist, album, genre, composer, label, year
-
-    public var displayName: String {
-        switch self {
-        case .albumArtist: "Album Artist"
-        case .artist: "Artist"
-        case .album: "Album"
-        case .genre: "Genre"
-        case .composer: "Composer"
-        case .label: "Label"
-        case .year: "Year"
-        }
-    }
-
-    /// SQL expression for the display value of this level.
-    var valueExpression: String {
-        switch self {
-        case .albumArtist: "(CASE WHEN t.compilation THEN '\(TrackText.variousArtists)' WHEN t.albumArtist = '' THEN t.artist ELSE t.albumArtist END)"
-        case .artist: "t.artist"
-        case .album: "t.album"
-        case .genre: "t.genre"
-        case .composer: "t.composer"
-        case .label: "COALESCE(l.name, '')"
-        case .year: "t.year"
-        }
-    }
-
-    /// SQL expression identifying a node at this level (pre-folded, indexed columns).
-    var keyExpression: String {
-        switch self {
-        case .albumArtist: "t.albumArtistKey"
-        case .artist: "t.artistKey"
-        case .album: "t.albumKey"
-        case .genre: "t.genreKey"
-        case .composer: "t.composerKey"
-        case .year: "t.year"
-        case .label: "amamac_fold(COALESCE(l.name, ''))"
-        }
-    }
-
-    public func emptyName() -> String {
-        switch self {
-        case .albumArtist, .artist: TrackText.unknownArtist
-        case .album: TrackText.unknownAlbum
-        case .genre: TrackText.unknownGenre
-        case .composer: TrackText.unknownComposer
-        case .label: "No Label"
-        case .year: "Unknown Year"
-        }
-    }
-}
-
-/// Collection browser grouping presets (Sort Options menu).
-public struct CollectionGrouping: Sendable, Codable, Hashable {
-    public var levels: [CollectionLevel]
-
-    public init(_ levels: [CollectionLevel]) { self.levels = Array(levels.prefix(3)) }
-
-    public static let albumArtistAlbum = CollectionGrouping([.albumArtist, .album])
-    public static let albumArtist = CollectionGrouping([.album, .artist])
-    public static let genreAlbumArtist = CollectionGrouping([.genre, .albumArtist])
-    public static let genreAlbumArtistAlbum = CollectionGrouping([.genre, .albumArtist, .album])
-
-    public static let presets: [(String, CollectionGrouping)] = [
-        ("Album Artist / Album", .albumArtistAlbum),
-        ("Album / Artist", .albumArtist),
-        ("Genre / Album Artist", .genreAlbumArtist),
-        ("Genre / Album Artist / Album", .genreAlbumArtistAlbum),
-    ]
-
-    public var displayName: String { levels.map(\.displayName).joined(separator: " / ") }
-}
-
-/// Restricts a query to one node of a level.
-public struct CollectionConstraint: Sendable, Hashable, Codable {
-    public var level: CollectionLevel
-    public var key: String
-
-    public init(level: CollectionLevel, key: String) {
-        self.level = level
-        self.key = key
-    }
-}
-
-/// A non-leaf node in the collection tree.
-public struct CollectionGroup: Sendable, Hashable, Identifiable {
-    public var level: CollectionLevel
-    public var key: String
-    public var name: String
-    public var trackCount: Int
-    /// For album nodes: the release year, album key and the album's artist.
-    public var year: Int
-    public var albumKey: String?
-    public var albumArtist: String?
-    public var isCompilation: Bool
-
-    public var id: String { level.rawValue + "\u{1F}" + key }
-    public var displayName: String { name.isEmpty ? level.emptyName() : name }
-}
-
 public enum CollectionQueries {
     struct WhereClause {
         var sql: String
@@ -119,10 +17,8 @@ public enum CollectionQueries {
             parts.append(filterSQL.sql)
             args.append(contentsOf: filterSQL.arguments.map(\.databaseValue))
         }
-        var labelJoin = extraLevel == .label
         for c in constraints {
             if c.level == .label {
-                labelJoin = true
                 if c.key.isEmpty {
                     parts.append("NOT EXISTS (SELECT 1 FROM track_label x WHERE x.trackId = t.id)")
                 } else {
@@ -134,7 +30,6 @@ public enum CollectionQueries {
             parts.append("\(c.level.keyExpression) = ?")
             if c.level == .year { args.append(Int(c.key) ?? 0) } else { args.append(c.key) }
         }
-        _ = labelJoin
         return WhereClause(sql: parts.isEmpty ? "1" : parts.joined(separator: " AND "), arguments: args,
                            needsLabelJoin: extraLevel == .label)
     }
@@ -155,7 +50,7 @@ public enum CollectionQueries {
         let sql = """
             SELECT \(level.keyExpression) AS k, MIN(\(level.valueExpression)) AS name, COUNT(DISTINCT t.id) AS n,
                    MAX(t.year) AS year, MIN(t.albumKey) AS albumKey,
-                   MIN(CASE WHEN t.compilation THEN '\(TrackText.variousArtists)' WHEN t.albumArtist = '' THEN t.artist ELSE t.albumArtist END) AS albumArtist,
+                   MIN\(CollectionLevel.albumArtist.valueExpression) AS albumArtist,
                    MAX(t.compilation) AS compilation, \(sortExpr) AS sortKey
             FROM track t LEFT JOIN statistics s ON s.trackId = t.id \(join)
             WHERE \(w.sql)
@@ -242,7 +137,7 @@ public enum CollectionQueries {
         let rows = try Row.fetchAll(db, sql: """
             SELECT t.albumKey AS k, MIN(t.album) AS name, COUNT(*) AS n, MAX(t.year) AS year,
                    MAX(t.compilation) AS compilation,
-                   MIN(CASE WHEN t.compilation THEN '\(TrackText.variousArtists)' WHEN t.albumArtist = '' THEN t.artist ELSE t.albumArtist END) AS albumArtist
+                   MIN\(CollectionLevel.albumArtist.valueExpression) AS albumArtist
             FROM track t
             WHERE t.artistKey = ? OR t.albumArtistKey = ?
             GROUP BY t.albumKey ORDER BY MAX(t.year) DESC, MIN(t.albumSort)
@@ -259,7 +154,7 @@ public enum CollectionQueries {
         let rows = try Row.fetchAll(db, sql: """
             SELECT t.albumKey AS k, MIN(t.album) AS name, COUNT(*) AS n, MAX(t.year) AS year,
                    MAX(t.compilation) AS compilation,
-                   MIN(CASE WHEN t.compilation THEN '\(TrackText.variousArtists)' WHEN t.albumArtist = '' THEN t.artist ELSE t.albumArtist END) AS albumArtist
+                   MIN\(CollectionLevel.albumArtist.valueExpression) AS albumArtist
             FROM track t WHERE t.album <> ''
             GROUP BY t.albumKey ORDER BY albumArtist COLLATE NOCASE, name COLLATE NOCASE
             """)
@@ -275,7 +170,7 @@ public enum CollectionQueries {
         let rows = try Row.fetchAll(db, sql: """
             SELECT t.albumKey AS k, MIN(t.album) AS name, COUNT(*) AS n, MAX(t.year) AS year, MAX(t.dateAdded) AS added,
                    MAX(t.compilation) AS compilation,
-                   MIN(CASE WHEN t.compilation THEN '\(TrackText.variousArtists)' WHEN t.albumArtist = '' THEN t.artist ELSE t.albumArtist END) AS albumArtist
+                   MIN\(CollectionLevel.albumArtist.valueExpression) AS albumArtist
             FROM track t WHERE t.album <> ''
             GROUP BY t.albumKey ORDER BY added DESC LIMIT ?
             """, arguments: [limit])

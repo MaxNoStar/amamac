@@ -43,16 +43,7 @@ public enum AmamacLink: Equatable, Sendable {
             c.path = "/" + name
             if let path { c.queryItems = [URLQueryItem(name: "path", value: path)] }
         }
-        // Keep "+" literal-safe: URLComponents leaves it unescaped in queries.
-        c.percentEncodedQuery = c.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
+        c.escapePlusInQuery()
         return c.url!
-    }
-}
-
-extension BookmarkStore {
-    /// Saves a Media Sources view as a bookmark.
-    @discardableResult
-    public func addView(name: String, link: AmamacLink) -> BookmarkRecord? {
-        add(BookmarkRecord(kind: .view, name: name, url: link.url.absoluteString))
     }
 }

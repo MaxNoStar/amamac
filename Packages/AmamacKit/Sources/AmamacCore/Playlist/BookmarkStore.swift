@@ -23,7 +23,7 @@ public struct BookmarkStore: Sendable {
     @discardableResult
     public func addPosition(trackId: Int64, title: String, position: TimeInterval) -> BookmarkRecord? {
         let name = "\(title) – \(TimeFormatting.duration(position))"
-        let url = "amamac://navigate/position?track=\(trackId)&pos=\(Int(position))"
+        let url = AmamacLink.position(trackId: trackId, seconds: position).url.absoluteString
         return add(BookmarkRecord(kind: .position, name: name, url: url, trackId: trackId, position: position))
     }
 
@@ -50,4 +50,37 @@ public struct BookmarkStore: Sendable {
         }
         NotificationCenter.default.post(name: Self.changed, object: nil)
     }
+}
+
+extension BookmarkStore {
+    /// Saves a Media Sources view as a bookmark.
+    @discardableResult
+    public func addView(name: String, link: AmamacLink) -> BookmarkRecord? {
+        add(BookmarkRecord(kind: .view, name: name, url: link.url.absoluteString))
+    }
+}
+
+public struct BookmarkRecord: Codable, Sendable, Hashable, Identifiable, FetchableRecord, MutablePersistableRecord {
+    public static let databaseTableName = "bookmark"
+    public enum Kind: String, Codable, Sendable { case position, view, playlist }
+    public var id: Int64?
+    public var kind: Kind
+    public var name: String
+    public var url: String
+    public var trackId: Int64?
+    public var position: Double?
+    public var created: Date
+
+    public init(id: Int64? = nil, kind: Kind, name: String, url: String, trackId: Int64? = nil,
+                position: Double? = nil, created: Date = Date()) {
+        self.id = id
+        self.kind = kind
+        self.name = name
+        self.url = url
+        self.trackId = trackId
+        self.position = position
+        self.created = created
+    }
+
+    public mutating func didInsert(_ inserted: InsertionSuccess) { id = inserted.rowID }
 }

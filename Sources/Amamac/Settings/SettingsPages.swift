@@ -355,7 +355,7 @@ struct InternetSettingsView: View {
             } header: {
                 Text("Online Services")
             } footer: {
-                Text("Amamac identifies itself as “\(HTTPClient.userAgent)” and sends only what a lookup needs: titles, artists and album names. No account or personal information is used.")
+                Text("Amamac identifies itself as “\(Amamac.userAgent)” and sends only what a lookup needs: titles, artists and album names. No account or personal information is used.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }

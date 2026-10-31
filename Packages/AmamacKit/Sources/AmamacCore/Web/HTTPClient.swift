@@ -1,4 +1,3 @@
-import CryptoKit
 import Foundation
 import Synchronization
 
@@ -19,7 +18,6 @@ public enum HTTPError: Error, LocalizedError, Equatable {
 /// HTTP for the online features: a fixed User-Agent, per-host rate limits (MusicBrainz: one request
 /// per second), retries on 429/503 honouring Retry-After, and an on-disk cache with per-host lifetimes.
 public final class HTTPClient: Sendable {
-    public static let userAgent = "Amamac/0.1 (macOS music player)"
 
     struct HostPolicy {
         var minInterval: Double
@@ -32,7 +30,7 @@ public final class HTTPClient: Sendable {
 
     /// `configuration` lets tests and snapshots install `StubURLProtocol`.
     public init(cacheDirectory: URL?, configuration: URLSessionConfiguration = .ephemeral) {
-        configuration.httpAdditionalHeaders = ["User-Agent": Self.userAgent]
+        configuration.httpAdditionalHeaders = ["User-Agent": Amamac.userAgent]
         configuration.timeoutIntervalForRequest = 20
         session = URLSession(configuration: configuration)
         self.cacheDirectory = cacheDirectory
@@ -65,7 +63,7 @@ public final class HTTPClient: Sendable {
         while true {
             await limiter.wait(host: host, interval: policy.minInterval)
             var request = URLRequest(url: url)
-            request.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
+            request.setValue(Amamac.userAgent, forHTTPHeaderField: "User-Agent")
             let (data, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse else { throw HTTPError.invalidResponse }
             switch http.statusCode {
@@ -88,7 +86,7 @@ public final class HTTPClient: Sendable {
     /// Downloads `url` to `destination` (replacing it), reporting progress 0...1. Not cached.
     public func download(from url: URL, to destination: URL, progress: @escaping @Sendable (Double) -> Void) async throws {
         var request = URLRequest(url: url)
-        request.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue(Amamac.userAgent, forHTTPHeaderField: "User-Agent")
         let delegate = DownloadProgressDelegate(progress)
         let (temporary, response) = try await session.download(for: request, delegate: delegate)
         defer { try? FileManager.default.removeItem(at: temporary) }
@@ -116,7 +114,7 @@ public final class HTTPClient: Sendable {
 
     private func cacheURL(for url: URL) -> URL? {
         guard let cacheDirectory else { return nil }
-        let digest = SHA256.hash(data: Data(url.absoluteString.utf8)).prefix(16).map { String(format: "%02x", $0) }.joined()
+        let digest = Hashing.sha256Hex(url.absoluteString, bytes: 16)
         return cacheDirectory.appendingPathComponent(digest + ".cache")
     }
 
@@ -131,8 +129,7 @@ public final class HTTPClient: Sendable {
     public static func url(_ base: String, _ query: [(String, String)]) -> URL {
         var components = URLComponents(string: base)!
         components.queryItems = query.map { URLQueryItem(name: $0.0, value: $0.1) }
-        // URLComponents leaves "+" unescaped, which servers read as a space.
-        components.percentEncodedQuery = components.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
+        components.escapePlusInQuery()
         return components.url!
     }
 }
@@ -148,42 +145,6 @@ actor HostRateLimiter {
         nextSlot[host] = slot + .seconds(interval)
         if slot > now { try? await Task.sleep(until: slot) }
     }
-}
-
-/// Serves canned responses instead of the network (tests and `--snapshot`). Install it with
-/// `StubURLProtocol.configuration { request in ... }`.
-public final class StubURLProtocol: URLProtocol {
-    public typealias Responder = @Sendable (URLRequest) -> (status: Int, body: Data)?
-    static let responder = Mutex<Responder?>(nil)
-    static let requests = Mutex<[URL]>([])
-
-    /// A session configuration whose requests are answered by `responder` (nil → 404).
-    public static func configuration(_ responder: @escaping Responder) -> URLSessionConfiguration {
-        self.responder.withLock { $0 = responder }
-        requests.withLock { $0 = [] }
-        let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [StubURLProtocol.self]
-        return config
-    }
-
-    /// URLs requested since the stub was installed.
-    public static var requestedURLs: [URL] { requests.withLock { $0 } }
-
-    override public class func canInit(with request: URLRequest) -> Bool { true }
-    override public class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
-
-    override public func startLoading() {
-        let request = self.request
-        if let url = request.url { Self.requests.withLock { $0.append(url) } }
-        let answer = Self.responder.withLock { $0 }?(request) ?? (404, Data())
-        let response = HTTPURLResponse(url: request.url!, statusCode: answer.status, httpVersion: "HTTP/1.1",
-                                       headerFields: ["Content-Type": "application/json"])!
-        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-        client?.urlProtocol(self, didLoad: answer.body)
-        client?.urlProtocolDidFinishLoading(self)
-    }
-
-    override public func stopLoading() {}
 }
 
 /// Forwards a download task's progress.

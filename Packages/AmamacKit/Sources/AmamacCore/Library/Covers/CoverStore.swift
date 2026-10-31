@@ -1,4 +1,3 @@
-import CryptoKit
 import Foundation
 import GRDB
 import ImageIO
@@ -23,7 +22,7 @@ public actor CoverStore {
     }
 
     nonisolated func cacheKey(_ albumKey: String) -> String {
-        SHA256.hash(data: Data(albumKey.utf8)).prefix(12).map { String(format: "%02x", $0) }.joined()
+        Hashing.sha256Hex(albumKey, bytes: 12)
     }
 
     nonisolated func thumbnailURL(albumKey: String, size: Int) -> URL {

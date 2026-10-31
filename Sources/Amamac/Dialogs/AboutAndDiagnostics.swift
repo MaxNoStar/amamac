@@ -107,7 +107,7 @@ enum Diagnostics {
             "",
             "Bundled frameworks (\(frameworks.count)): \(frameworks.sorted().joined(separator: ", "))",
         ]
-        lines.append("User-Agent: \(HTTPClient.userAgent)")
+        lines.append("User-Agent: \(Amamac.userAgent)")
         return lines.joined(separator: "\n")
     }
 }

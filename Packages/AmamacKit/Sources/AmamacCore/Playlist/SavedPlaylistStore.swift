@@ -107,3 +107,47 @@ extension PlaylistFileEntry {
                   durationMs: item.track.durationMs, trackNumber: item.track.trackNumber > 0 ? item.track.trackNumber : nil)
     }
 }
+
+public struct SavedPlaylist: Codable, Sendable, Hashable, Identifiable, FetchableRecord, MutablePersistableRecord {
+    public static let databaseTableName = "playlist"
+    public var id: Int64?
+    public var name: String
+    public var created: Date
+    public var modified: Date
+
+    public init(id: Int64? = nil, name: String, created: Date = Date(), modified: Date = Date()) {
+        self.id = id
+        self.name = name
+        self.created = created
+        self.modified = modified
+    }
+
+    public mutating func didInsert(_ inserted: InsertionSuccess) { id = inserted.rowID }
+}
+
+public struct SavedPlaylistEntry: Codable, Sendable, Hashable, FetchableRecord, PersistableRecord {
+    public static let databaseTableName = "playlist_entry"
+    public var playlistId: Int64
+    public var position: Int
+    public var trackId: Int64?
+    public var url: String
+    public var title: String?
+    public var artist: String?
+    public var album: String?
+    public var durationMs: Int?
+    /// Preserved playlist item id (used for the current-playlist session).
+    public var itemId: String?
+
+    public init(playlistId: Int64, position: Int, trackId: Int64?, url: String, title: String?, artist: String?,
+                album: String?, durationMs: Int?, itemId: String? = nil) {
+        self.playlistId = playlistId
+        self.position = position
+        self.trackId = trackId
+        self.url = url
+        self.title = title
+        self.artist = artist
+        self.album = album
+        self.durationMs = durationMs
+        self.itemId = itemId
+    }
+}

@@ -74,7 +74,7 @@ struct WebTests {
         #expect(page.title == "Björk (Sängerin)")
         #expect(page.html.contains("Isländische"))
         #expect(page.url.absoluteString == "https://de.wikipedia.org/wiki/Bj%C3%B6rk_(S%C3%A4ngerin)")
-        #expect(agents.values.withLock { $0 } == [HTTPClient.userAgent])
+        #expect(agents.values.withLock { $0 } == [Amamac.userAgent])
         let parse = try #require(StubURLProtocol.requestedURLs.last)
         #expect(query(parse, "page") == "Björk (Sängerin)")
     }

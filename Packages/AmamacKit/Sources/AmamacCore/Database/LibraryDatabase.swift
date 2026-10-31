@@ -17,11 +17,6 @@ public final class LibraryDatabase: Sendable {
         return try LibraryDatabase(writer: pool)
     }
 
-    /// An in-memory database for tests.
-    public static func inMemory() throws -> LibraryDatabase {
-        try LibraryDatabase(writer: DatabaseQueue(configuration: configuration()))
-    }
-
     static let foldFunction = DatabaseFunction("amamac_fold", argumentCount: 1, pure: true) { values in
         guard let s = String.fromDatabaseValue(values[0]) else { return nil }
         return TextFolding.fold(s)
@@ -208,22 +203,5 @@ public final class LibraryDatabase: Sendable {
             }
         }
         return migrator
-    }
-}
-
-extension SQLValue {
-    var databaseValue: any DatabaseValueConvertible {
-        switch self {
-        case .text(let s): s
-        case .int(let i): i
-        case .double(let d): d
-        case .date(let d): d
-        }
-    }
-}
-
-extension SQLFragment {
-    var statementArguments: StatementArguments {
-        StatementArguments(arguments.map(\.databaseValue))
     }
 }

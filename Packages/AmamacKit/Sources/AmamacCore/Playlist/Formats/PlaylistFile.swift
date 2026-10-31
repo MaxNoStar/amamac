@@ -20,26 +20,6 @@ public struct PlaylistFileEntry: Sendable, Equatable {
     }
 }
 
-public enum PlaylistFileFormat: String, CaseIterable, Sendable {
-    case m3u, m3u8, pls, xspf, asx
-
-    public static func from(url: URL) -> PlaylistFileFormat? {
-        PlaylistFileFormat(rawValue: url.pathExtension.lowercased())
-    }
-
-    public var displayName: String {
-        switch self {
-        case .m3u: "M3U Playlist"
-        case .m3u8: "M3U8 Playlist (UTF-8)"
-        case .pls: "PLS Playlist"
-        case .xspf: "XSPF Playlist"
-        case .asx: "ASX Playlist"
-        }
-    }
-
-    public static let fileExtensions = allCases.map(\.rawValue)
-}
-
 public enum PlaylistFileError: Error, LocalizedError {
     case unsupportedFormat(String)
     case unreadable(URL)
@@ -210,15 +190,15 @@ public enum PlaylistFile {
             return lines.joined(separator: "\n") + "\n"
         case .xspf:
             var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<playlist version=\"1\" xmlns=\"http://xspf.org/ns/0/\">\n"
-            if let title { xml += "  <title>\(escapeXML(title))</title>\n" }
+            if let title { xml += "  <title>\(XMLText.escape(title))</title>\n" }
             xml += "  <creator>\(Amamac.appName)</creator>\n  <trackList>\n"
             for e in entries {
                 xml += "    <track>\n"
                 let loc = e.url.isFileURL && base != nil ? location(e.url).addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? location(e.url) : e.url.absoluteString
-                xml += "      <location>\(escapeXML(loc))</location>\n"
-                if let t = e.title { xml += "      <title>\(escapeXML(t))</title>\n" }
-                if let a = e.artist { xml += "      <creator>\(escapeXML(a))</creator>\n" }
-                if let a = e.album { xml += "      <album>\(escapeXML(a))</album>\n" }
+                xml += "      <location>\(XMLText.escape(loc))</location>\n"
+                if let t = e.title { xml += "      <title>\(XMLText.escape(t))</title>\n" }
+                if let a = e.artist { xml += "      <creator>\(XMLText.escape(a))</creator>\n" }
+                if let a = e.album { xml += "      <album>\(XMLText.escape(a))</album>\n" }
                 if let n = e.trackNumber, n > 0 { xml += "      <trackNum>\(n)</trackNum>\n" }
                 if let d = e.durationMs, d > 0 { xml += "      <duration>\(d)</duration>\n" }
                 xml += "    </track>\n"
@@ -227,12 +207,12 @@ public enum PlaylistFile {
             return xml
         case .asx:
             var xml = "<asx version=\"3.0\">\n"
-            if let title { xml += "  <title>\(escapeXML(title))</title>\n" }
+            if let title { xml += "  <title>\(XMLText.escape(title))</title>\n" }
             for e in entries {
                 xml += "  <entry>\n"
-                if let t = e.title { xml += "    <title>\(escapeXML(t))</title>\n" }
-                if let a = e.artist { xml += "    <author>\(escapeXML(a))</author>\n" }
-                xml += "    <ref href=\"\(escapeXML(e.url.isFileURL ? e.url.absoluteString : e.url.absoluteString))\"/>\n"
+                if let t = e.title { xml += "    <title>\(XMLText.escape(t))</title>\n" }
+                if let a = e.artist { xml += "    <author>\(XMLText.escape(a))</author>\n" }
+                xml += "    <ref href=\"\(XMLText.escape(e.url.isFileURL ? e.url.absoluteString : e.url.absoluteString))\"/>\n"
                 xml += "  </entry>\n"
             }
             xml += "</asx>\n"
@@ -255,13 +235,6 @@ public enum PlaylistFile {
             .replacingOccurrences(of: "&quot;", with: "\"")
             .replacingOccurrences(of: "&apos;", with: "'")
             .replacingOccurrences(of: "&amp;", with: "&")
-    }
-
-    static func escapeXML(_ s: String) -> String {
-        s.replacingOccurrences(of: "&", with: "&amp;")
-            .replacingOccurrences(of: "<", with: "&lt;")
-            .replacingOccurrences(of: ">", with: "&gt;")
-            .replacingOccurrences(of: "\"", with: "&quot;")
     }
 }
 

@@ -615,10 +615,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     }
 }
 
-private extension String {
-    var nilIfEmpty: String? { isEmpty ? nil : self }
-}
-
 /// A simple window showing a full-size cover.
 enum CoverViewerWindow {
     @MainActor private static var windows: [NSWindow] = []
