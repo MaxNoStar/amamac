@@ -94,9 +94,21 @@ final class EngineBridge: NSObject, AudioPlayer.Delegate, @unchecked Sendable {
         forward(.endOfAudio)
     }
 
+    /// On macOS SFBAudioEngine reports only engine-level failures here (an engine that couldn't
+    /// restart after a device change, an allocation failure); a track's own errors come through
+    /// `decodingAborted`.
     func audioPlayer(_ audioPlayer: AudioPlayer, encounteredError error: Error) {
-        engine?.eventLog.add("Player error: \(error.localizedDescription)")
-        forward(.error(error.localizedDescription, nil))
+        engine?.eventLog.add("Output error on deck \(deck?.index ?? -1): \(error.localizedDescription)")
+        forward(.outputFailed(error.localizedDescription))
+    }
+
+    /// The hardware's rate or channels changed and SFBAudioEngine has reconnected (or, while the
+    /// device reported 0 Hz, skipped reconnecting): check again once the device has settled.
+    func audioPlayer(_ audioPlayer: AudioPlayer, audioEngineConfigurationChange userInfo: [AnyHashable: Any]?) {
+        guard let engine, let deck else { return }
+        let format = audioPlayer.mainMixerNode.outputFormat(forBus: 0)
+        engine.eventLog.add("Deck \(deck.index) output now \(Int(format.sampleRate)) Hz, \(format.channelCount) ch")
+        engine.scheduleOutputCheck()
     }
 
     /// SFBAudioEngine stops without an end of audio after this, so without the event playback would
@@ -105,7 +117,10 @@ final class EngineBridge: NSObject, AudioPlayer.Delegate, @unchecked Sendable {
     func audioPlayer(_ audioPlayer: AudioPlayer, decodingAborted decoder: PCMDecoding, error: Error, framesRendered: AVAudioFramePosition) {
         let name = (decoder as? PlaybackDecoder)?.fileName ?? "a track"
         engine?.eventLog.add("Decoding of \(name) stopped after \(framesRendered) frames: \(error.localizedDescription)")
-        forward(.endedEarly(item(for: decoder), error.localizedDescription))
+        // A track that never played a frame couldn't be played at all: an error, which the
+        // controller counts so a playlist of broken files doesn't spin forever.
+        forward(framesRendered > 0 ? .endedEarly(item(for: decoder), error.localizedDescription)
+                                   : .error(error.localizedDescription, item(for: decoder)))
     }
 
     func audioPlayer(_ audioPlayer: AudioPlayer, reconfigureProcessingGraph engine: AVAudioEngine, with format: AVAudioFormat) -> AVAudioNode {

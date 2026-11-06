@@ -68,6 +68,34 @@ final class Deck: @unchecked Sendable {
         return eq
     }
 
+    enum OutputCheck {
+        case unchanged
+        case reconnected(AVAudioFormat)
+        case failed(Error)
+    }
+
+    /// Reconnects the mixer to the output in the hardware's format if they differ, restarting the
+    /// engine if it was running. Waits while the hardware reports no valid format.
+    func revalidateOutput() -> OutputCheck {
+        var result = OutputCheck.unchanged
+        player.modifyProcessingGraph { engine in
+            let hardware = engine.outputNode.outputFormat(forBus: 0)
+            let mixer = engine.mainMixerNode.outputFormat(forBus: 0)
+            guard hardware.sampleRate > 0, hardware.channelCount > 0,
+                  hardware.sampleRate != mixer.sampleRate || hardware.channelCount != mixer.channelCount else { return }
+            let running = engine.isRunning
+            if running { engine.stop() }
+            engine.disconnectNodeInput(engine.outputNode, bus: 0)
+            engine.connect(engine.mainMixerNode, to: engine.outputNode, format: hardware)
+            engine.prepare()
+            result = .reconnected(hardware)
+            if running {
+                do { try engine.start() } catch { result = .failed(error) }
+            }
+        }
+        return result
+    }
+
     // MARK: Transport
 
     /// Starts `decoder` now on this deck, replacing whatever it was playing.

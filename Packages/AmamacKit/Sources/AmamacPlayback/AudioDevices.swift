@@ -8,16 +8,11 @@ public struct AudioOutputDevice: Sendable, Hashable, Identifiable {
     public var name: String
 }
 
-/// Output device lookup and change notifications.
+/// Output device lookup. (Route changes that playback follows come from `AudioRouteMonitor`; the
+/// change notifications here only refresh device lists in Settings.)
 public enum AudioDevices {
     public static func outputDevices() -> [AudioOutputDevice] {
-        var address = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyDevices, mScope: kAudioObjectPropertyScopeGlobal,
-                                                 mElement: kAudioObjectPropertyElementMain)
-        var size: UInt32 = 0
-        guard AudioObjectGetPropertyDataSize(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size) == noErr else { return [] }
-        var ids = [AudioObjectID](repeating: 0, count: Int(size) / MemoryLayout<AudioObjectID>.size)
-        guard AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &ids) == noErr else { return [] }
-        return ids.compactMap { id in
+        CoreAudioProperty.objects(CoreAudioProperty.system, kAudioHardwarePropertyDevices).compactMap { id in
             guard hasOutput(id), let uid = string(id, kAudioDevicePropertyDeviceUID) else { return nil }
             return AudioOutputDevice(id: id, uid: uid, name: string(id, kAudioObjectPropertyName) ?? uid)
         }
@@ -56,13 +51,7 @@ public enum AudioDevices {
     }
 
     private static func string(_ id: AudioObjectID, _ selector: AudioObjectPropertySelector) -> String? {
-        var address = AudioObjectPropertyAddress(mSelector: selector, mScope: kAudioObjectPropertyScopeGlobal,
-                                                 mElement: kAudioObjectPropertyElementMain)
-        var value: Unmanaged<CFString>?
-        var size = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
-        let status = withUnsafeMutablePointer(to: &value) { AudioObjectGetPropertyData(id, &address, 0, nil, &size, $0) }
-        guard status == noErr, let value else { return nil }
-        return value.takeRetainedValue() as String
+        CoreAudioProperty.string(id, selector)
     }
 
     /// Calls `handler` on the main queue when devices come or go or the default output changes.

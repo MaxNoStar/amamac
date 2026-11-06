@@ -38,6 +38,9 @@ public enum EngineEvent: Sendable, Equatable {
     case endedEarly(PlaylistItemID?, String)
     /// The track meant to follow the current one could not be started; the controller skips it.
     case upcomingFailed(PlaylistItemID, String)
+    /// The audio output failed (the engine could not restart after a device change), not the
+    /// track: the controller resumes the same track at the same place once the route settles.
+    case outputFailed(String)
     /// A stream reported a new title (ICY metadata).
     case streamTitle(String, PlaylistItemID)
     /// A stream is buffering / became ready.

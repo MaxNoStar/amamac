@@ -16,6 +16,7 @@ public final class LocalAudioEngine: @unchecked Sendable {
     public let eventLog = PlaybackEventLog()
     let decks: [Deck]
     let crossfader = Crossfader()
+    private let outputCheckQueue = DispatchQueue(label: "amamac.output-check", qos: .userInitiated)
     /// The track to play after the current one, with its decoder once it has been opened ahead of
     /// time; taken by the gapless path or the crossfader.
     private let upcoming = Mutex<Queued?>(nil)
@@ -210,9 +211,51 @@ public final class LocalAudioEngine: @unchecked Sendable {
     public func restoreMixerVolume() { cancelFade() }
 
     public var outputDeviceID: AudioObjectID { activeDeck.player.outputDeviceID }
+    /// Each deck's device; they differ only after a failed switch.
+    public var outputDeviceIDs: [AudioObjectID] { decks.map(\.player.outputDeviceID) }
 
+    /// Moves every deck that isn't on `id` yet. A deck that fails doesn't stop the others; the
+    /// first failure is thrown afterwards. A failed switch leaves the output unit on no device at
+    /// all (silence), so that deck goes back to where it was, or else to the system default.
     public func setOutputDevice(_ id: AudioObjectID) throws {
-        for deck in decks { try deck.player.setOutputDeviceID(id) }
+        var failure: Error?
+        for deck in decks where deck.player.outputDeviceID != id {
+            let previous = deck.player.outputDeviceID
+            do {
+                try deck.player.setOutputDeviceID(id)
+            } catch {
+                eventLog.add("Deck \(deck.index) could not move to device #\(id): \(error.localizedDescription)")
+                failure = failure ?? error
+                let fallbacks = [previous, AudioDevices.defaultOutputDevice() ?? 0].filter { $0 != 0 && $0 != id }
+                for fallback in fallbacks where (try? deck.player.setOutputDeviceID(fallback)) != nil { break }
+            }
+        }
+        if failure == nil { eventLog.add("Output device #\(id)") }
+        if let failure { throw failure }
+    }
+
+    /// Makes each deck's mixer → output connection match the hardware's current format again.
+    /// SFBAudioEngine does this on a configuration change, except while the device reports 0 Hz
+    /// (mid-switch), after which the old format would stay: mono or a call's low rate after a call.
+    public func revalidateOutput() {
+        for deck in decks {
+            switch deck.revalidateOutput() {
+            case .unchanged: break
+            case .reconnected(let format):
+                eventLog.add("Deck \(deck.index) reconnected to the output at \(Int(format.sampleRate)) Hz, \(format.channelCount) ch")
+            case .failed(let error):
+                eventLog.add("Deck \(deck.index) could not restart its output: \(error.localizedDescription)")
+                if isActive(deck) { emit(.outputFailed(error.localizedDescription)) }
+            }
+        }
+    }
+
+    /// Checks the output half a second and two seconds after a configuration change: a switching
+    /// device can take that long to report its final format.
+    func scheduleOutputCheck() {
+        for delay in [0.5, 2.0] {
+            outputCheckQueue.asyncAfter(deadline: .now() + delay) { [weak self] in self?.revalidateOutput() }
+        }
     }
 
     // MARK: Equalizer / gain

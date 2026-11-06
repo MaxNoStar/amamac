@@ -44,6 +44,8 @@ extension PlayerController {
             updateUpcoming()
         case .error(let message, let id):
             handlePlaybackError(message, item: id ?? currentItem?.id)
+        case .outputFailed(let message):
+            handlePlaybackError(message, item: currentItem?.id)
         case .streamTitle(let title, let id):
             model.updateItem(id) { $0.streamTitle = title }
             if currentItem?.id == id { currentItem?.streamTitle = title }

@@ -41,4 +41,19 @@ extension EngineTests {
         #expect(!engine.isCrossfading)
         #expect(engine.eventLog.all.contains { $0.message.contains("broken.flac") }, "the failure is in the event log")
     }
+
+    @Test func aTrackThatNeverPlaysIsAnError() async throws {
+        let dir = temporaryDirectory()
+        let broken = try Self.unreadableFile(in: dir)
+        let engine = LocalAudioEngine()
+        let recorder = EngineEventRecorder(engine)
+        engine.setVolume(0)
+        let id = PlaylistItemID()
+        try engine.play(url: broken, itemID: id)
+        let events = try await recorder.collect(seconds: 4) { !Self.errors($0).isEmpty }
+        engine.stop()
+        #expect(!events.contains { if case .endedEarly = $0 { true } else { false } },
+                "an early end would advance without counting the error")
+        #expect(events.contains { if case .error(_, id) = $0 { true } else { false } })
+    }
 }
