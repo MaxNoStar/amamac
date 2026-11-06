@@ -51,6 +51,13 @@ public struct Track: Codable, Sendable, Hashable, Identifiable {
     public var albumArtistKey: String = ""
     public var genreKey: String = ""
     public var composerKey: String = ""
+    /// The release date at its tag's precision (`1998`, `1998-03` or `1998-03-12`, see `ReleaseDate`),
+    /// "" when none. `year` mirrors it.
+    public var releaseDate: String = ""
+    /// The original release date, same format.
+    public var originalDate: String = ""
+    public var grouping: String = ""
+    public var isrc: String = ""
 
     public init(id: Int64? = nil, path: String, folderId: Int64? = nil, uniqueId: String = "",
                 title: String = "", titleSort: String = "", artist: String = "", artistSort: String = "",
@@ -124,8 +131,14 @@ public struct Track: Codable, Sendable, Hashable, Identifiable {
     public var displayArtist: String { artist.isEmpty ? TrackText.unknownArtist : artist }
     public var displayAlbum: String { album.isEmpty ? TrackText.unknownAlbum : album }
 
-    /// Recomputes the derived columns (`albumKey`, sort keys, `searchFolded`).
+    /// Recomputes the derived columns (`year`, `albumKey`, sort keys, `searchFolded`). `year` follows
+    /// the release date; a track built from a year alone gets that year as its release date.
     public mutating func updateDerivedFields() {
+        if let date = ReleaseDate(releaseDate) {
+            year = date.year
+        } else if releaseDate.isEmpty, let date = ReleaseDate(year: year) {
+            releaseDate = date.isoString
+        }
         if titleSort.isEmpty { titleSort = TextFolding.sortKey(title) }
         if artistSort.isEmpty { artistSort = TextFolding.sortKey(artist) }
         if albumArtistSort.isEmpty { albumArtistSort = TextFolding.sortKey(effectiveAlbumArtist) }

@@ -12,12 +12,16 @@ public struct MusicBrainzClient: Sendable {
         public var artist: String
         public var album: String
         public var albumArtist: String
-        public var year: Int
+        /// The release's date at the precision MusicBrainz gives (`1998`, `1998-03` or `1998-03-12`), or "".
+        public var releaseDate: String
         public var trackNumber: Int
+        /// Tracks on this track's medium (disc).
+        public var trackTotal: Int
         public var discNumber: Int
         public var durationMs: Int
         public var score: Int
         public var id: String { recordingId + "/" + releaseId }
+        public var year: Int { ReleaseDate(releaseDate)?.year ?? 0 }
     }
 
     public struct Release: Sendable, Equatable {
@@ -53,14 +57,15 @@ public struct MusicBrainzClient: Sendable {
             for release in recording["releases"] as? [[String: Any]] ?? [] {
                 let media = (release["media"] as? [[String: Any]])?.first
                 let track = (media?["track"] as? [[String: Any]])?.first
-                let date = release["date"] as? String ?? ""
+                let date = ReleaseDate.lenient(release["date"] as? String)?.isoString ?? ""
                 result.append(Candidate(
                     recordingId: recording["id"] as? String ?? "", releaseId: release["id"] as? String ?? "",
                     title: recording["title"] as? String ?? title, artist: credit,
                     album: release["title"] as? String ?? "",
                     albumArtist: Self.artistCredit(release["artist-credit"]).nilIfEmpty ?? credit,
-                    year: Int(date.prefix(4)) ?? 0,
+                    releaseDate: date,
                     trackNumber: Int(track?["number"] as? String ?? "") ?? (track?["position"] as? Int ?? 0),
+                    trackTotal: min(max(media?["track-count"] as? Int ?? 0, 0), 9999),
                     discNumber: media?["position"] as? Int ?? 0,
                     durationMs: length, score: recording["score"] as? Int ?? 0))
             }

@@ -31,4 +31,19 @@ public struct StatisticsStore: Sendable {
             }
         }
     }
+
+    /// Sets a track's play count (Edit Track Details › Summary). Library only: never written to the
+    /// file, whatever "write statistics to files" says. First and last played stay as they are.
+    @discardableResult
+    public func setPlayCount(_ count: Int, for trackId: Int64) async throws -> TrackStatistics {
+        try await database.writer.write { db in
+            var stats = try TrackStatistics.fetchOne(db, key: trackId) ?? TrackStatistics(trackId: trackId)
+            stats.playCount = min(max(0, count), Self.maxPlayCount)
+            try stats.save(db)
+            return stats
+        }
+    }
+
+    /// Highest play count the editor accepts.
+    public static let maxPlayCount = 1_000_000
 }
