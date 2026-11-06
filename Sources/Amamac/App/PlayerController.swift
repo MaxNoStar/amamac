@@ -41,10 +41,21 @@ final class PlayerController {
     /// are played on purpose.
     @ObservationIgnored var failedItems: Set<PlaylistItemID> = []
     @ObservationIgnored private var listeners: [UUID: (PlayerEvent) -> Void] = [:]
-    @ObservationIgnored private var appliedGainSettings: [String] = []
-    @ObservationIgnored private var appliedCrossfade = CrossfadePolicy()
-    @ObservationIgnored private var appliedOutputUID: String?
-    @ObservationIgnored private var deviceObservation: AudioDeviceObservation?
+    @ObservationIgnored var appliedGainSettings: [String] = []
+    @ObservationIgnored var appliedCrossfade = CrossfadePolicy()
+    @ObservationIgnored var appliedOutputUID: String?
+    @ObservationIgnored var routeMonitor: AudioRouteMonitor?
+    /// The audio route as last reported, for Diagnostics and to tell what changed.
+    @ObservationIgnored var route = AudioRoute()
+    @ObservationIgnored var callPolicy = CallPausePolicy()
+    /// Resuming after a call waits until the route has been quiet for a moment.
+    @ObservationIgnored var callResume: Task<Void, Never>?
+    @ObservationIgnored var watchdog = PlaybackWatchdog()
+    /// Restarts after output failures since playback last ran well.
+    @ObservationIgnored var outputRetries = 0
+    @ObservationIgnored var outputRecovery: Task<Void, Never>?
+    /// Where the current track was started (0, or a resume position), to tell when it plays well.
+    @ObservationIgnored var startPosition: TimeInterval = 0
 
     enum PlayerEvent {
         case trackChanged
@@ -82,50 +93,11 @@ final class PlayerController {
         proxy.onChange { [weak self] in self?.updateUpcoming() }
         appliedGainSettings = gainSettings
         appliedCrossfade = settings.crossfadePolicy
-        applyOutputDevice()
-        deviceObservation = AudioDevices.observeChanges { [weak self] in
-            Task { @MainActor in self?.applyOutputDevice() }
-        }
+        startFollowingRoute()
         NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: settings.defaults,
                                                queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.audioSettingsChanged() }
         }
-    }
-
-    // MARK: Audio settings
-
-    private var gainSettings: [String] {
-        [settings.replayGainMode.rawValue, String(settings.double(AppSettings.Key.replayGainPreamp)),
-         String(settings.double(AppSettings.Key.replayGainFallback))]
-    }
-
-    /// Re-applies ReplayGain, crossfading and the output device when their settings change (any writer).
-    private func audioSettingsChanged() {
-        if gainSettings != appliedGainSettings {
-            appliedGainSettings = gainSettings
-            if backend == .local, let item = currentItem { local.setTrackGain(gain(for: item)) }
-            updateUpcoming()
-        }
-        if settings.crossfadePolicy != appliedCrossfade {
-            appliedCrossfade = settings.crossfadePolicy
-            updateUpcoming()
-        }
-        if (settings.string(AppSettings.Key.outputDevice) ?? "") != appliedOutputUID { applyOutputDevice() }
-    }
-
-    /// Routes both engines to the chosen device, or to the system default when it is unset or gone.
-    func applyOutputDevice() {
-        let uid = settings.string(AppSettings.Key.outputDevice) ?? ""
-        appliedOutputUID = uid
-        let chosen = uid.isEmpty ? nil : AudioDevices.device(uid: uid)
-        if let target = chosen ?? AudioDevices.defaultOutputDevice(), target != local.outputDeviceID {
-            do {
-                try local.setOutputDevice(target)
-            } catch {
-                status.showMessage("Could not switch the output device: \(error.localizedDescription)")
-            }
-        }
-        stream.setOutputDevice(uid: chosen != nil ? uid : nil)
     }
 
     @discardableResult
@@ -170,7 +142,9 @@ final class PlayerController {
     /// Plays a specific playlist item (double-click, Return).
     func play(_ id: PlaylistItemID, startAt position: TimeInterval = 0) {
         guard let item = model.item(id) else { return }
+        userChangedPlayback()
         failedItems.remove(id)
+        consecutiveErrors = 0
         finishSession(reachedEnd: false)
         navigator.commitAdvance(to: id)
         start(item, at: position)
@@ -194,6 +168,11 @@ final class PlayerController {
     }
 
     func pause() {
+        userChangedPlayback()
+        pausePlayback()
+    }
+
+    func pausePlayback() {
         guard state == .playing || state == .buffering else { return }
         let fade = settings.bool(AppSettings.Key.fadeOutOnPause) && backend == .local
         if fade {
@@ -207,12 +186,19 @@ final class PlayerController {
     }
 
     func resume() {
+        userChangedPlayback()
+        resumePlayback()
+    }
+
+    func resumePlayback() {
         guard state == .paused else { return }
         backend == .local ? local.resume() : stream.resume()
+        watchdog.reset()
         setState(.playing)
     }
 
     func stop() {
+        userChangedPlayback()
         guard state != .stopped else { return }
         finishSession(reachedEnd: false)
         if settings.bool(AppSettings.Key.fadeOutOnStop) && backend == .local && state == .playing {
@@ -264,6 +250,7 @@ final class PlayerController {
             emit(.trackChanged)
             return
         }
+        userChangedPlayback()
         finishSession(reachedEnd: false)
         navigator.commitAdvance(to: id, backward: true)
         if let item = model.item(id) { start(item, at: 0) }
@@ -278,6 +265,7 @@ final class PlayerController {
         case .none: return
         }
         lastPosition = t
+        watchdog.reset()
         emit(.seeked)
     }
 
@@ -314,10 +302,15 @@ final class PlayerController {
 
     // MARK: Engine plumbing
 
+    /// Starts `item` on the right engine. Errors count towards `consecutiveErrors` until a track
+    /// plays well for a few seconds (see `checkPlayback`), so a run of broken files stops.
     func start(_ item: PlaylistItem, at position: TimeInterval) {
-        consecutiveErrors = item.id == currentItem?.id ? consecutiveErrors : 0
+        outputRecovery?.cancel()
+        outputRecovery = nil
         currentItem = item
         lastPosition = position
+        startPosition = position
+        watchdog.reset()
         sessionStart = Date()
         if item.url.isFileURL && !item.isStream {
             if backend == .stream { stream.stop() }
@@ -325,12 +318,7 @@ final class PlayerController {
             expectingStart = item.id
             do {
                 try local.play(url: item.url, itemID: item.id, gainDB: gain(for: item))
-                if position > 0 {
-                    Task { @MainActor in
-                        try? await Task.sleep(for: .milliseconds(150))
-                        self.local.seek(to: position)
-                    }
-                }
+                if position > 0 { seekWhenReady(item.id, to: position) }
                 setState(.playing)
             } catch {
                 expectingStart = nil
@@ -363,6 +351,7 @@ final class PlayerController {
             MainActor.assumeIsolated {
                 guard let self, self.state == .playing else { return }
                 self.lastPosition = self.currentTime
+                self.checkPlayback()
             }
         }
     }

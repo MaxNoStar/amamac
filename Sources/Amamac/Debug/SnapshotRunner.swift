@@ -208,6 +208,7 @@ final class SnapshotRunner {
         await captureInternetPages(win)
         await captureDialogs(tracks: tracks)
         await checkCrossfade()
+        await checkTransitions()
         if let layoutDump { Snapshotter.dumpLayout(of: win, to: layoutDump) }
         env.player.stop()
         print("snapshot: wrote \(output.path)")

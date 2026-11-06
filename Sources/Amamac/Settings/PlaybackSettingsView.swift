@@ -18,6 +18,7 @@ struct PlaybackSettingsView: View {
     @AppStorage private var seekLong: Int
     @AppStorage private var outputDevice: String
     @AppStorage private var resumePlayback: Bool
+    @AppStorage private var pauseDuringCalls: Bool
     @State private var devices = OutputDeviceList()
 
     init(env: AppEnvironment) {
@@ -38,11 +39,12 @@ struct PlaybackSettingsView: View {
         _seekLong = AppStorage(wrappedValue: 60, K.seekLong, store: d)
         _outputDevice = AppStorage(wrappedValue: "", K.outputDevice, store: d)
         _resumePlayback = AppStorage(wrappedValue: true, K.resumePlayback, store: d)
+        _pauseDuringCalls = AppStorage(wrappedValue: true, K.pauseDuringCalls, store: d)
     }
 
     var body: some View {
         Form {
-            Section("Output") {
+            Section {
                 Picker("Output device", selection: $outputDevice) {
                     Text("System Default").tag("")
                     if !outputDevice.isEmpty && !devices.devices.contains(where: { $0.uid == outputDevice }) {
@@ -52,9 +54,15 @@ struct PlaybackSettingsView: View {
                     ForEach(devices.devices) { Text($0.name).tag($0.uid) }
                 }
                 Toggle("Resume playback when Amamac starts", isOn: $resumePlayback)
+                Toggle("Pause during calls", isOn: $pauseDuringCalls)
                 LabeledContent("Equalizer") {
                     Button("Open Equalizer…") { EqualizerWindow.show(env: env) }
                 }
+            } header: {
+                Text("Output")
+            } footer: {
+                Text("Pauses while another app uses the microphone, as in a call, and resumes afterwards unless you pressed Play, Pause or Stop meanwhile. Dictation and voice recordings count too.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             Section {
                 Toggle("Fade out when stopping", isOn: $fadeOnStop)

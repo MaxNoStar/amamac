@@ -19,6 +19,8 @@ extension PlayerController {
             if let item = model.item(id) { currentItem = item }
             sessionStart = Date()
             lastPosition = 0
+            startPosition = 0
+            watchdog.reset()
             consecutiveErrors = 0
             updateUpcoming()
             emit(.trackChanged)
@@ -36,16 +38,20 @@ extension PlayerController {
             guard id == nil || id == currentItem?.id else { return }
             let name = currentItem?.track.displayTitle ?? "track"
             status.showMessage("“\(name)” stopped early: \(message)")
+            finishSession(reachedEnd: false)
             advanceAfterEnd()
         case .upcomingFailed(let id, let message):
             failedItems.insert(id)
             let name = model.item(id)?.track.displayTitle ?? "track"
             status.showMessage("Could not play “\(name)”: \(message)")
             updateUpcoming()
+        case .error(let message, let id?) where id != currentItem?.id:
+            // The next track, failing while the current one still plays out.
+            handle(.upcomingFailed(id, message), from: source)
         case .error(let message, let id):
             handlePlaybackError(message, item: id ?? currentItem?.id)
         case .outputFailed(let message):
-            handlePlaybackError(message, item: currentItem?.id)
+            recoverOutput(message)
         case .streamTitle(let title, let id):
             model.updateItem(id) { $0.streamTitle = title }
             if currentItem?.id == id { currentItem?.streamTitle = title }

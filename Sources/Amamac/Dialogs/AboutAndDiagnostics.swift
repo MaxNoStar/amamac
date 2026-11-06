@@ -54,8 +54,9 @@ enum AcknowledgementsWindow {
 
 // MARK: - Diagnostics
 
-/// A plain-text report for bug reports: versions, paths, collection size and audio state.
-/// Nothing in it identifies the user beyond the home-folder paths.
+/// A plain-text report for bug reports: versions, paths, collection size, audio state and recent
+/// playback events. Nothing in it identifies the user beyond the home-folder paths and the names
+/// of recently played files and of apps that used the microphone.
 @MainActor
 enum Diagnostics {
     static func report(env: AppEnvironment) -> String {
@@ -88,6 +89,8 @@ enum Diagnostics {
             "",
             "Playback: \(player.state), engine: \(player.backend)",
             "Output device: \(device)",
+            "Audio route: \(player.route.summary)",
+            "Pause during calls: \(settings.bool(AppSettings.Key.pauseDuringCalls) ? "on" : "off")",
             "Replay Gain: \(settings.replayGainMode.displayName), pre-amp \(settings.double(AppSettings.Key.replayGainPreamp)) dB",
             "Equalizer: \(env.equalizer.enabled ? "on, \(env.equalizer.presetName)" : "off")",
             "Volume: \(player.volume)%\(player.isMuted ? " (muted)" : "")",
@@ -97,6 +100,8 @@ enum Diagnostics {
             "Bundled frameworks (\(frameworks.count)): \(frameworks.sorted().joined(separator: ", "))",
         ]
         lines.append("User-Agent: \(Amamac.userAgent)")
+        let events = player.local.eventLog.report()
+        lines += ["", "Recent playback events:", events.isEmpty ? "(none)" : events]
         return lines.joined(separator: "\n")
     }
 }
@@ -108,7 +113,7 @@ struct DiagnosticsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Include this report when describing a problem. It lists versions, folders and settings, not your music.")
+            Text("Include this report when describing a problem. It lists versions, folders, settings and recent playback events (with the names of the files played), not your library.")
                 .font(.callout).foregroundStyle(.secondary)
             ScrollView {
                 Text(report)

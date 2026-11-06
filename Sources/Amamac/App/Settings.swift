@@ -30,6 +30,7 @@ final class AppSettings {
         Key.startPlayingOnAdd: false,
         Key.fadeOutOnStop: false,
         Key.fadeOutOnPause: false,
+        Key.pauseDuringCalls: true,
         Key.fadeOutDuration: 2000,
         Key.crossfade: false,
         Key.crossfadeDuration: 5000,
@@ -97,6 +98,7 @@ final class AppSettings {
         static let startPlayingOnAdd = "startPlayingOnAdd"
         static let fadeOutOnStop = "fadeOutOnStop"
         static let fadeOutOnPause = "fadeOutOnPause"
+        static let pauseDuringCalls = "pauseDuringCalls"
         static let fadeOutDuration = "fadeOutDuration"
         static let crossfade = "crossfade"
         static let crossfadeDuration = "crossfadeDuration"
