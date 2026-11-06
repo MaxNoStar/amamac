@@ -34,7 +34,7 @@ DerivedData lives in `~/Library/Developer/Xcode/DerivedData/Amamac-cli` (not ins
   | `AmamacLibrary` | scanner, watcher, tags, editing, Organize, covers, statistics (`StatisticsStore`) | Database, SFBAudioEngine |
   | `AmamacPlaylist` | model, proxy, navigator, layouts, playlist files, session, saved playlists, bookmarks | Library |
   | `AmamacDynamic` | biases, dynamic playlists, the generator, `GeneratorStore` | Query, Database |
-  | `AmamacPlayback` | local engine (two decks for crossfades) and stream engine, engine bridge, crossfader, ReplayGain, EQ, devices, spectrum tap, analyzer bar dynamics | Models, SFBAudioEngine |
+  | `AmamacPlayback` | local engine (two decks for crossfades), `PlaybackDecoder` (one format, ReplayGain in the samples), stream engine, engine bridge, crossfader, watchdog, event log, EQ, devices, route monitor, call pause policy, spectrum tap, analyzer bar dynamics | Models, SFBAudioEngine |
   | `AmamacWeb` | `HTTPClient`, Wikipedia, MusicBrainz and covers, radio-browser | Database |
   | `AmamacPodcasts` | feeds, OPML, `PodcastService`, directory | Web, FeedKit |
   | `AmamacTestSupport` | audio fixtures, synthetic library, `StubURLProtocol`, in-memory database; compiled only in Debug | Library |
@@ -78,6 +78,12 @@ DerivedData lives in `~/Library/Developer/Xcode/DerivedData/Amamac-cli` (not ins
   the main actor for gapless decisions. The main actor pushes `upcoming` after every playlist change.
 - The crossfader starts the next deck on its own queue from the same `upcoming` (whichever takes it
   first wins) — never hop to the main actor for crossfade timing either.
+- Every local track goes to a deck as a `PlaybackDecoder` in the deck's fixed playback format, so
+  SFBAudioEngine never rebuilds its graph between tracks. The next track's decoder is opened ahead
+  of time on the engine's prepare queue; `decodingComplete` only enqueues it.
+- `AudioRouteMonitor` listens on its own queue and delivers settled routes on the main queue;
+  playback reacts to routes, never to single Core Audio notifications. Output-format checks after
+  an engine configuration change run on the engine's output-check queue.
 
 ## Data / privacy
 - App data: `~/Library/Application Support/Amamac/` (override with `--data-dir`).

@@ -281,3 +281,41 @@ let outside data run code or read files, but these were fixed, each with a test:
   thread can hold the last reference and a player destroyed on its own event thread aborts
   (`make test-engine` crashed in about half of its runs; the app keeps one engine and wasn't hit).
 - **Repo**: `.gitignore` covers SwiftPM, editor and scratch files; a bug report issue form.
+
+## 0.1.7 — Clean joins, calls, auto-advance
+- **Joins between tracks** (the noise "sometimes, when one ends and another starts"): every track
+  now enters the player through `PlaybackDecoder`, which converts it to one fixed format (float
+  stereo at the output's rate, more channels kept) with mastering-quality sample-rate conversion
+  and applies ReplayGain in the samples. SFBAudioEngine therefore never stops, rebuilds and
+  restarts its engine between albums of different rates, and the gain changes on the exact
+  sample of the join instead of a few blocks late through the EQ. The next track's file is opened
+  ahead of time on a background queue, so nothing is read at the join. Crossfades under 0.5 s
+  join gaplessly instead.
+- **Auto-advance**: a decoding abort (a read error, a truncated last frame) now ends the track
+  like a normal end instead of leaving playback silent in "playing"; an error in the last half
+  second counts as the end. A next track that can't be opened is skipped (up to five in a row)
+  instead of stopping playback; a crossfade whose new track hasn't played after 2 s hands back to
+  the old one. `PlaybackWatchdog` notices playback that stopped without an event and moves on
+  (near the end) or restarts the track where it was. A run of broken files stops after five
+  (the error counter used to reset at every track). The playlist carries on when "Show Only
+  Matches" hides the playing track.
+- **Calls and output changes**: `AudioRouteMonitor` replaces the raw device listener, which
+  raced SFBAudioEngine's own handling of the same change. It follows devices, the default output
+  and input, the playing device's rate, channels and presence, and other apps recording (Core
+  Audio's per-process input state), and collapses each burst into one `AudioRoute`. After a
+  change both decks move together (a failed switch used to leave a deck on no device at all) and
+  each deck's mixer → output format is checked again, so audio doesn't stay mono or at a call's
+  low rate. Engine failures (`outputFailed`) restart the same track at the same place instead of
+  skipping it. **Settings › Playback › "Pause during calls"** (on) pauses while another app uses
+  the microphone and resumes once the route has settled, unless Play, Pause or Stop was pressed
+  meanwhile (`CallPausePolicy`).
+- **Help › Diagnostics** shows the audio route and the last 100 playback events
+  (`PlaybackEventLog`, also in the unified log as `local.amamac`/`engine`).
+- Tests: `PlaybackDecoderTests`; engine tests for the exact gain at the join, format changes
+  without engine restarts, LAME MP3 chains, seeking through conversion, unreadable next tracks
+  (gapless and crossfading), stale output formats and configuration changes mid-fade, output
+  failures, both decks following the device; unit tests for the watchdog, event log, call policy
+  and route monitor. `make snapshot` plays a 44.1/48/96 kHz FLAC + LAME MP3 chain through the
+  player, gapless and crossfading, and fails on any recovery or early end. `EngineEventRecorder`
+  keeps the event stream alive across waits that time out.
+- `PlayerController` is split into `+Events`, `+Output` and `+Statistics`.
