@@ -60,9 +60,10 @@ final class EngineBridge: NSObject, AudioPlayer.Delegate, @unchecked Sendable {
             let nextDecoder = try prepared ?? engine.makeDecoder(for: next)
             register(nextDecoder, item: next.itemID)
             try audioPlayer.enqueue(nextDecoder)
+            engine.eventLog.add("Queued \(next.url.lastPathComponent)\(prepared == nil ? ", opened at the join" : "")")
         } catch {
-            log.error("Gapless enqueue failed for \(next.url.path, privacy: .private): \(error.localizedDescription, privacy: .public)")
-            forward(.error(error.localizedDescription, next.itemID))
+            engine.eventLog.add("Could not queue \(next.url.lastPathComponent): \(error.localizedDescription)")
+            forward(.upcomingFailed(next.itemID, error.localizedDescription))
         }
     }
 
@@ -94,13 +95,17 @@ final class EngineBridge: NSObject, AudioPlayer.Delegate, @unchecked Sendable {
     }
 
     func audioPlayer(_ audioPlayer: AudioPlayer, encounteredError error: Error) {
-        log.error("Player error: \(error.localizedDescription, privacy: .public)")
+        engine?.eventLog.add("Player error: \(error.localizedDescription)")
         forward(.error(error.localizedDescription, nil))
     }
 
+    /// SFBAudioEngine stops without an end of audio after this, so without the event playback would
+    /// sit silent in "playing". (`PlaybackDecoder` already turns errors in a track's last half
+    /// second into a normal end.)
     func audioPlayer(_ audioPlayer: AudioPlayer, decodingAborted decoder: PCMDecoding, error: Error, framesRendered: AVAudioFramePosition) {
-        // Truncated final frames (common in MP3s) end up here; treat as a normal end of track.
-        log.notice("Decoding aborted after \(framesRendered) frames: \(error.localizedDescription, privacy: .public)")
+        let name = (decoder as? PlaybackDecoder)?.fileName ?? "a track"
+        engine?.eventLog.add("Decoding of \(name) stopped after \(framesRendered) frames: \(error.localizedDescription)")
+        forward(.endedEarly(item(for: decoder), error.localizedDescription))
     }
 
     func audioPlayer(_ audioPlayer: AudioPlayer, reconfigureProcessingGraph engine: AVAudioEngine, with format: AVAudioFormat) -> AVAudioNode {

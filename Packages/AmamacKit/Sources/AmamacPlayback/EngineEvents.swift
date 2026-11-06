@@ -34,6 +34,10 @@ public enum EngineEvent: Sendable, Equatable {
     /// Rendering finished and nothing else is queued.
     case endOfAudio
     case error(String, PlaylistItemID?)
+    /// A track stopped before its end (a decoding error); playback should move on as after an end.
+    case endedEarly(PlaylistItemID?, String)
+    /// The track meant to follow the current one could not be started; the controller skips it.
+    case upcomingFailed(PlaylistItemID, String)
     /// A stream reported a new title (ICY metadata).
     case streamTitle(String, PlaylistItemID)
     /// A stream is buffering / became ready.

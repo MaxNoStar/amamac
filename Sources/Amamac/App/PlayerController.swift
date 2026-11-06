@@ -15,28 +15,31 @@ final class PlayerController {
 
     private(set) var state: State = .stopped
     /// The item being played (may have been removed from the playlist).
-    private(set) var currentItem: PlaylistItem?
+    var currentItem: PlaylistItem?
     private(set) var volume: Int
     private(set) var isMuted = false
     /// Incremented when statistics of the current track change (rating, play count).
-    private(set) var statisticsRevision = 0
+    var statisticsRevision = 0
 
     @ObservationIgnored let model: PlaylistModel
     @ObservationIgnored let proxy: PlaylistProxy
     @ObservationIgnored let navigator: PlaylistNavigator
     @ObservationIgnored let database: LibraryDatabase
     @ObservationIgnored let settings: AppSettings
-    @ObservationIgnored private let status: StatusCenter
+    @ObservationIgnored let status: StatusCenter
     /// Called before statistics are written into a file, so the folder watcher ignores the change.
     @ObservationIgnored var willWriteFile: ((String) -> Void)?
     @ObservationIgnored let local = LocalAudioEngine()
     @ObservationIgnored let stream = StreamEngine()
-    @ObservationIgnored private(set) var backend: Backend = .none
-    @ObservationIgnored private var expectingStart: PlaylistItemID?
-    @ObservationIgnored private var sessionStart: Date?
-    @ObservationIgnored private var lastPosition: TimeInterval = 0
+    @ObservationIgnored var backend: Backend = .none
+    @ObservationIgnored var expectingStart: PlaylistItemID?
+    @ObservationIgnored var sessionStart: Date?
+    @ObservationIgnored var lastPosition: TimeInterval = 0
     @ObservationIgnored private var positionTimer: Timer?
-    @ObservationIgnored private var consecutiveErrors = 0
+    @ObservationIgnored var consecutiveErrors = 0
+    /// Items that failed to open as the next track this session; moving on skips them until they
+    /// are played on purpose.
+    @ObservationIgnored var failedItems: Set<PlaylistItemID> = []
     @ObservationIgnored private var listeners: [UUID: (PlayerEvent) -> Void] = [:]
     @ObservationIgnored private var appliedGainSettings: [String] = []
     @ObservationIgnored private var appliedCrossfade = CrossfadePolicy()
@@ -132,7 +135,7 @@ final class PlayerController {
         return id
     }
 
-    private func emit(_ event: PlayerEvent) { for l in listeners.values { l(event) } }
+    func emit(_ event: PlayerEvent) { for l in listeners.values { l(event) } }
 
     // MARK: Time
 
@@ -167,6 +170,7 @@ final class PlayerController {
     /// Plays a specific playlist item (double-click, Return).
     func play(_ id: PlaylistItemID, startAt position: TimeInterval = 0) {
         guard let item = model.item(id) else { return }
+        failedItems.remove(id)
         finishSession(reachedEnd: false)
         navigator.commitAdvance(to: id)
         start(item, at: position)
@@ -310,7 +314,7 @@ final class PlayerController {
 
     // MARK: Engine plumbing
 
-    private func start(_ item: PlaylistItem, at position: TimeInterval) {
+    func start(_ item: PlaylistItem, at position: TimeInterval) {
         consecutiveErrors = item.id == currentItem?.id ? consecutiveErrors : 0
         currentItem = item
         lastPosition = position
@@ -345,75 +349,7 @@ final class PlayerController {
         emit(.trackChanged)
     }
 
-    private func handle(_ event: EngineEvent, from source: Backend) {
-        guard source == backend else { return }
-        switch event {
-        case .nowPlayingChanged(let id):
-            guard let id else { return }
-            if id == expectingStart {
-                expectingStart = nil
-                return
-            }
-            // Gapless transition to a pre-enqueued track (or a repeat of the same one).
-            finishSession(reachedEnd: true)
-            navigator.commitAdvance(to: id)
-            if let item = model.item(id) { currentItem = item }
-            sessionStart = Date()
-            lastPosition = 0
-            consecutiveErrors = 0
-            updateUpcoming()
-            emit(.trackChanged)
-        case .stateChanged(let s):
-            switch s {
-            case .playing: if state != .playing { setState(.playing) }
-            case .paused: if state == .playing { setState(.paused) }
-            case .stopped: break
-            }
-        case .buffering(let b):
-            if b && state == .playing { setState(.buffering) } else if !b && state == .buffering { setState(.playing) }
-        case .endOfAudio:
-            finishSession(reachedEnd: true)
-            if let stopAfter = model.stopAfterID, stopAfter == currentItem?.id {
-                model.setStopAfter(nil)
-                halt(moveTo: navigator.nextIgnoringStopAfter())
-            } else if let next = navigator.peekNext(), let item = model.item(next) {
-                // The bridge could not pre-enqueue (format change, stream, very short track).
-                navigator.commitAdvance(to: next)
-                start(item, at: 0)
-            } else {
-                halt(moveTo: nil)
-            }
-        case .error(let message, let id):
-            handlePlaybackError(message, item: id ?? currentItem?.id)
-        case .streamTitle(let title, let id):
-            model.updateItem(id) { $0.streamTitle = title }
-            if currentItem?.id == id { currentItem?.streamTitle = title }
-            emit(.streamTitleChanged)
-        }
-    }
-
-    private func halt(moveTo next: PlaylistItemID?) {
-        local.stop()
-        stream.stop()
-        backend = .none
-        if let next { navigator.commitAdvance(to: next) }
-        setState(.stopped)
-        emit(.trackChanged)
-    }
-
-    private func handlePlaybackError(_ message: String, item: PlaylistItemID?) {
-        let name = item.flatMap { model.item($0)?.track.displayTitle } ?? "track"
-        status.showMessage("Could not play “\(name)”: \(message)")
-        consecutiveErrors += 1
-        guard consecutiveErrors < 5, let next = navigator.peekNext(), next != item, let nextItem = model.item(next) else {
-            halt(moveTo: nil)
-            return
-        }
-        navigator.commitAdvance(to: next)
-        start(nextItem, at: 0)
-    }
-
-    private func setState(_ new: State) {
+    func setState(_ new: State) {
         guard new != state else { return }
         state = new
         if new == .stopped { positionTimer?.invalidate(); positionTimer = nil }
@@ -434,7 +370,7 @@ final class PlayerController {
     /// Recomputes the track the engine should play next, and whether it crossfades.
     func updateUpcoming() {
         guard backend == .local, state != .stopped, let current = currentItem,
-              let nextID = navigator.peekNext(), let next = model.item(nextID),
+              let nextID = navigator.peekNext(), !failedItems.contains(nextID), let next = model.item(nextID),
               next.url.isFileURL, !next.isStream else {
             local.setUpcoming(nil)
             return
@@ -446,58 +382,6 @@ final class PlayerController {
     func gain(for item: PlaylistItem) -> Float {
         ReplayGain.gain(for: item.track, mode: settings.replayGainMode, preamp: settings.double(AppSettings.Key.replayGainPreamp),
                         fallback: settings.double(AppSettings.Key.replayGainFallback))
-    }
-
-    // MARK: Statistics
-
-    private func finishSession(reachedEnd: Bool) {
-        guard let item = currentItem, sessionStart != nil else { return }
-        sessionStart = nil
-        guard let trackId = item.track.id, item.source == .collection else { return }
-        let duration = item.duration > 0 ? item.duration : self.duration
-        let played = reachedEnd ? duration : lastPosition
-        let statistics = StatisticsStore(database: database)
-        Task {
-            let stats = try? await statistics.recordPlay(trackId: trackId, playedSeconds: played, duration: duration, reachedEnd: reachedEnd)
-            if let stats { self.statisticsUpdated(trackId: trackId, stats) }
-        }
-    }
-
-    func statisticsUpdated(trackId: Int64, _ stats: TrackStatistics) {
-        model.updateTrack(id: trackId) { $0.statistics = stats }
-        if currentItem?.track.id == trackId { currentItem?.statistics = stats }
-        statisticsRevision += 1
-        writeStatisticsToFile(trackId: trackId, stats)
-    }
-
-    /// Keeps the playing item's metadata in step with tag edits and moves.
-    func trackUpdated(_ track: Track) {
-        guard let current = currentItem, current.track.id == track.id else { return }
-        currentItem?.track = track
-        if current.url.isFileURL { currentItem?.url = track.url }
-        emit(.trackChanged)
-    }
-
-    /// Optional: mirrors rating and play count into the file's FMPS tags.
-    private func writeStatisticsToFile(trackId: Int64, _ stats: TrackStatistics) {
-        guard settings.bool(AppSettings.Key.writeStatisticsToFile),
-              let path = model.items.first(where: { $0.track.id == trackId })?.track.path ?? (currentItem?.track.id == trackId ? currentItem?.track.path : nil)
-        else { return }
-        willWriteFile?(path)
-        let rating = stats.rating, plays = stats.playCount
-        Task { await StatisticsTagWriter.write(rating: rating, playCount: plays, to: path) }
-    }
-
-    /// Sets the rating (0...10) of a track and updates every copy of it.
-    func setRating(_ rating: Int, trackId: Int64) {
-        let statistics = StatisticsStore(database: database)
-        Task {
-            let stats = try? await statistics.setRating(rating, trackIds: [trackId]).first?.statistics
-            if let stats {
-                self.statisticsUpdated(trackId: trackId, stats)
-                NotificationCenter.default.post(name: AppEnvironment.collectionChanged, object: nil)
-            }
-        }
     }
 
     // MARK: Remote commands

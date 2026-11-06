@@ -62,6 +62,9 @@ final class PlaybackDecoder: NSObject, PCMDecoding, @unchecked Sendable {
 
     override var description: String { "PlaybackDecoder(\(decoder))" }
 
+    /// The file's name, for the playback event log.
+    var fileName: String { decoder.inputSource.url?.lastPathComponent ?? "?" }
+
     // MARK: AudioDecoding
 
     var inputSource: InputSource { decoder.inputSource }

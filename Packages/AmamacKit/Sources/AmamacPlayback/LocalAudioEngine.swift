@@ -12,6 +12,8 @@ public final class LocalAudioEngine: @unchecked Sendable {
 
     public let events: AsyncStream<EngineEvent>
     private let continuation: AsyncStream<EngineEvent>.Continuation
+    /// What happened in playback lately, for Help › Diagnostics.
+    public let eventLog = PlaybackEventLog()
     let decks: [Deck]
     let crossfader = Crossfader()
     /// The track to play after the current one, with its decoder once it has been opened ahead of
@@ -101,12 +103,19 @@ public final class LocalAudioEngine: @unchecked Sendable {
         }
     }
 
-    /// A decoder for `track` in the current playback format.
+    /// A decoder for `track` in the current playback format, opened here, so a file that can't be read fails where the next track is started (and is
+    /// reported as `upcomingFailed`) instead of later on the player's decoding thread, where the
+    /// error would look like the current track's.
     func makeDecoder(for track: UpcomingTrack) throws -> PlaybackDecoder {
-        try PlaybackDecoder(url: track.url, sampleRate: playbackSampleRate, gainDB: track.gainDB)
+        let decoder = try PlaybackDecoder(url: track.url, sampleRate: playbackSampleRate, gainDB: track.gainDB)
+        try decoder.open()
+        return decoder
     }
 
     var playbackSampleRate: Double { sampleRate.withLock { $0 } }
+
+    /// Sends an event that doesn't come from a deck's player (the crossfader's).
+    func emit(_ event: EngineEvent) { continuation.yield(event) }
 
     /// The output device's own rate, so the mixer has nothing left to convert, but never below
     /// 44.1 kHz: a headset in call mode reports 16 or 24 kHz.
@@ -124,6 +133,7 @@ public final class LocalAudioEngine: @unchecked Sendable {
         let deck = activeDeck
         let rate = Self.playbackSampleRate(device: deck.player.outputDeviceID)
         sampleRate.withLock { $0 = rate }
+        eventLog.add("Play \(url.lastPathComponent) at \(Int(rate)) Hz")
         try deck.play(PlaybackDecoder(url: url, sampleRate: rate, gainDB: gainDB), itemID: itemID)
         crossfader.watch(true)
     }

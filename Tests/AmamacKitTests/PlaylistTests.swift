@@ -79,6 +79,24 @@ struct NavigatorTests {
         return (model, proxy, nav, items)
     }
 
+    @Test func playbackCarriesOnWhenAFilterHidesTheActiveTrack() {
+        let model = PlaylistModel()
+        let items = ["Keep 0", "Hide 1", "Hide 2", "Keep 3", "Keep 4"].enumerated().map { i, title in
+            makeItem(title, album: "Album", track: i + 1)
+        }
+        model.append(items)
+        let proxy = PlaylistProxy(model: model)
+        let nav = PlaylistNavigator(proxy: proxy, rng: SplitMix64(seed: 42))
+        nav.commitAdvance(to: items[1].id)
+        proxy.filter = PlaylistSearch(text: "Keep")
+        #expect(proxy.row(of: items[1].id) == nil, "the playing track is hidden")
+        #expect(nav.peekNext() == items[3].id)
+        nav.progression = .repeatPlaylist
+        nav.commitAdvance(to: items[2].id)
+        proxy.filter = PlaylistSearch(text: "Keep 0")
+        #expect(nav.peekNext() == items[0].id, "wraps to the first match")
+    }
+
     @Test func standardStopsAtEnd() {
         let (model, _, nav, items) = setup(3)
         #expect(nav.peekNext() == items[0].id)

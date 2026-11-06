@@ -90,15 +90,19 @@ public final class PlaylistNavigator {
         case .onlyQueue:
             return nil
         case .standard:
-            guard let row = activeRow else { return orphanFollower() ?? (model.activeID == nil ? visible.first : nil) }
+            guard let row = activeRow else {
+                return orphanFollower() ?? hiddenActiveFollower() ?? (model.activeID == nil ? visible.first : nil)
+            }
             return row + 1 < visible.count ? visible[row + 1] : nil
         case .repeatTrack:
             return model.activeID.flatMap { model.item($0) != nil ? $0 : nil } ?? visible.first
         case .repeatPlaylist:
-            guard let row = activeRow else { return orphanFollower() ?? visible.first }
+            guard let row = activeRow else { return orphanFollower() ?? hiddenActiveFollower() ?? visible.first }
             return row + 1 < visible.count ? visible[row + 1] : visible.first
         case .repeatAlbum:
-            guard let row = activeRow, let active = proxy.item(at: row) else { return orphanFollower() ?? visible.first }
+            guard let row = activeRow, let active = proxy.item(at: row) else {
+                return orphanFollower() ?? hiddenActiveFollower() ?? visible.first
+            }
             let range = albumRun(containing: row, key: active.albumKey)
             return row + 1 < range.upperBound ? visible[row + 1] : visible[range.lowerBound]
         case .randomTracks:
@@ -155,6 +159,14 @@ public final class PlaylistNavigator {
         guard former < model.count else { return progression == .repeatPlaylist ? proxy.visible.first : nil }
         let id = model.order[former]
         return proxy.row(of: id) != nil ? id : nil
+    }
+
+    /// For an active item a search filter hides: the first shown item after it in the full playlist,
+    /// so playback carries on through the matches instead of stopping.
+    private func hiddenActiveFollower() -> PlaylistItemID? {
+        guard let active = model.activeID, model.item(active) != nil,
+              let index = model.order.firstIndex(of: active) else { return nil }
+        return model.order[(index + 1)...].first { proxy.row(of: $0) != nil }
     }
 
     private func albumRun(containing row: Int, key: String) -> Range<Int> {
