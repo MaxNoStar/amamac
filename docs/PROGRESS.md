@@ -282,7 +282,7 @@ let outside data run code or read files, but these were fixed, each with a test:
   (`make test-engine` crashed in about half of its runs; the app keeps one engine and wasn't hit).
 - **Repo**: `.gitignore` covers SwiftPM, editor and scratch files; a bug report issue form.
 
-## 0.1.7 — Clean joins, calls, auto-advance
+## 0.1.7 — Clean joins, calls, auto-advance, a new tag editor
 - **Joins between tracks** (the noise "sometimes, when one ends and another starts"): every track
   now enters the player through `PlaybackDecoder`, which converts it to one fixed format (float
   stereo at the output's rate, more channels kept) with mastering-quality sample-rate conversion
@@ -319,3 +319,27 @@ let outside data run code or read files, but these were fixed, each with a test:
   player, gapless and crossfading, and fails on any recovery or early end. `EngineEventRecorder`
   keeps the event stream alive across waits that time out.
 - `PlayerController` is split into `+Events`, `+Output` and `+Statistics`.
+- **Tag editor** (`Dialogs/TagEditor/`, logic in `TagEditSession` in AmamacLibrary): track and
+  disc numbers with totals, release and original dates kept at the precision given
+  (`ReleaseDate`: `1998`, `1998-03`, `1998-03-12`, timestamps, `12/03/1998`), grouping, ISRC
+  and the four sort names under More; autocomplete for artist, album artist, album, composer and
+  genre (`LibraryDatabase.distinctValues`); Number Tracks (per disc, with "of N"; the disc total
+  is left alone); a cover well (drop, paste, Choose…, Remove; images up to 20 MB, anything but
+  JPEG and PNG stored as PNG); an editable play count on Summary (`StatisticsStore.setPlayCount`,
+  library only); ⌘S, a prompt before closing with unsaved changes, and a shout-out to anditron.
+  MusicBrainz lookups keep the full date and the track count. Tabs are a segmented control, and
+  Save & Close uses a darker orange so its label stays readable.
+- **Data loss fixed**: SFBAudioEngine drops an ID3 date (TDRC) unless it is a full timestamp, so
+  editing any field of an MP3, WAV or AIFF whose date was `1998` or `1998-03-12` erased the date.
+  `AmamacTagLib` (Objective-C++ over the TagLib SFBAudioEngine already links) now writes the
+  exact date back, plus TDOR, the MP4 date, `ORIGINALDATE` and the MP4 ISRC. Amamac's old
+  `yyyy-07-01T12:00:00Z` workaround is gone and such dates read as a year.
+- **Migration v3** adds release date, original date, grouping and ISRC, filling the release date
+  from the year. Libraries keep year-only dates until a file is read again (an edit or Tools ›
+  Full Rescan). `TagIO.swift` is split into `TagChanges`, `TagReader` and `TagWriter`; a NaN
+  rating or huge play count in a tag no longer crashes the reader.
+- Tests: tag round trips for flac, ogg, opus, m4a, mp3, wav and aiff (totals, dates at each
+  precision, original date, grouping, ISRC, sort names, a foreign date surviving a title edit,
+  the play count staying out of the file), `ReleaseDateTests`, `TagEditSessionTests`, migration
+  v3 in `PersistedFormatTests`. `make snapshot` edits and saves an MP3 through the editor and
+  captures it for one track, several tracks and Summary.

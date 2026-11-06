@@ -97,11 +97,16 @@ lot about them, and has no accounts, ads or subscriptions.
 
 - 📚 **Collection**: watched folders and fast incremental scans; Amarok's filter language
   (`artist:beatles year:>1990 -live`, `rating:>3.5`, `added:<2w`); configurable grouping, covers,
-  ratings, scores and play counts; Edit Track Details with MusicBrainz lookup; Organize Files;
-  Cover Manager; statistics import from Apple Music.
+  ratings, scores and play counts; Organize Files; Cover Manager; statistics import from Apple
+  Music.
+- 🏷️ **Tag editor**: one track or many at once; track and disc numbers with totals ("1 of 13"),
+  release and original dates as a year, a month or a day, grouping, ISRC and sort names;
+  autocomplete from the collection, Number Tracks, cover art by drop, paste or file, editable play
+  counts (kept in the library, never written to files), Guess from Filename and MusicBrainz lookup.
 - 🎧 **Playback**: gapless FLAC, ALAC, AAC, MP3, Ogg Vorbis, Opus, WavPack, Musepack, TTA, DSD,
   tracker modules and more (via SFBAudioEngine); a 10-band equalizer with presets; ReplayGain;
-  fades and crossfades (albums can stay gapless); output device choice; media keys and Now Playing.
+  fades and crossfades (albums can stay gapless); output device choice that follows headphones and
+  pauses during calls; media keys and Now Playing.
 - 📝 **Playlist**: album grouping and four layouts, multi-level sort, progressive search, queue,
   stop-after, undo, repeat and random modes (tracks or albums, with Favor), saved playlists,
   M3U/PLS/XSPF/ASX, dynamic playlists with biases and the Automated Playlist Generator.
@@ -195,6 +200,8 @@ It builds on [SFBAudioEngine](https://github.com/sbooth/SFBAudioEngine) and its 
 [FeedKit](https://github.com/nmdias/FeedKit) and
 [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts), and on the open data of
 Wikipedia, MusicBrainz, the Cover Art Archive and radio-browser.info.
+
+Shout-out to **anditron** 🤘, a friend of the project.
 
 ## License
 

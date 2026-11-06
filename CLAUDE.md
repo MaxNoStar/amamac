@@ -28,10 +28,11 @@ DerivedData lives in `~/Library/Developer/Xcode/DerivedData/Amamac-cli` (not ins
   | Module | Contents | Builds on |
   |---|---|---|
   | `AmamacBase` | text folding, time formatting, hashing, XML escaping, `SplitMix64`, `Amamac` (version, User-Agent) | — |
-  | `AmamacModels` | `Track`, `TagChanges`, `PlaylistItem`, file formats, `AmamacLink` | Base |
+  | `AmamacModels` | `Track`, `ReleaseDate`, `PlaylistItem`, file formats, `AmamacLink` | Base |
   | `AmamacQuery` | filter language: parser, AST, dates, in-memory matching | Base, Models |
-  | `AmamacDatabase` | `LibraryDatabase` (`writer` is package-only), migrations `"v1"` (as shipped) and `"v2"` (drops lyrics), records, collection queries, query → SQL | Query, GRDB |
-  | `AmamacLibrary` | scanner, watcher, tags, editing, Organize, covers, statistics (`StatisticsStore`) | Database, SFBAudioEngine |
+  | `AmamacDatabase` | `LibraryDatabase` (`writer` is package-only), migrations `"v1"` (as shipped), `"v2"` (drops lyrics) and `"v3"` (release and original dates, grouping, ISRC), records, collection queries, query → SQL | Query, GRDB |
+  | `AmamacTagLib` | Objective-C++ helper over TagLib: exact ID3v2 TDRC/TDOR/TSRC and MP4 ©day/ORIGINALDATE/ISRC, which SFBAudioEngine can't write as given | TagLib |
+  | `AmamacLibrary` | scanner, watcher, tags (`TagChanges`, `TagReader`, `TagWriter`), tag edit sessions, track numbering, editing, Organize, covers, statistics (`StatisticsStore`) | Database, TagLib helper, SFBAudioEngine |
   | `AmamacPlaylist` | model, proxy, navigator, layouts, playlist files, session, saved playlists, bookmarks | Library |
   | `AmamacDynamic` | biases, dynamic playlists, the generator, `GeneratorStore` | Query, Database |
   | `AmamacPlayback` | local engine (two decks for crossfades), `PlaybackDecoder` (one format, ReplayGain in the samples), stream engine, engine bridge, crossfader, watchdog, event log, EQ, devices, route monitor, call pause policy, spectrum tap, analyzer bar dynamics | Models, SFBAudioEngine |
