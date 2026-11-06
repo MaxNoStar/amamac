@@ -4,8 +4,8 @@ import Foundation
 @preconcurrency import SFBAudioEngine
 import Synchronization
 
-/// One SFBAudioEngine player with its own 10-band equalizer (whose global gain also carries
-/// ReplayGain) and volume stages. `LocalAudioEngine` owns two, so one track can fade out while the
+/// One SFBAudioEngine player with its own 10-band equalizer and volume stages (ReplayGain is applied
+/// in the samples by `PlaybackDecoder`). `LocalAudioEngine` owns two, so one track can fade out while the
 /// next fades in; both play to the same output device.
 final class Deck: @unchecked Sendable {
     let index: Int
@@ -18,7 +18,6 @@ final class Deck: @unchecked Sendable {
         var equalizerEnabled = false
         var preamp: Float = 0
         var bands = [Float](repeating: 0, count: LocalAudioEngine.equalizerFrequencies.count)
-        var trackGain: Float = 0
         /// Crossfade envelope, 0...1.
         var transitionGain: Float = 1
         /// Stop / pause fade, 0...1. The mixer plays at `transitionGain * fadeGain`.
@@ -71,11 +70,9 @@ final class Deck: @unchecked Sendable {
 
     // MARK: Transport
 
-    /// Starts `url` now on this deck, replacing whatever it was playing.
-    func play(url: URL, itemID: PlaylistItemID, gainDB: Float) throws {
-        let decoder = try AudioDecoder(url: url)
-        bridge.register(decoder, item: itemID, gain: gainDB)
-        applyGain(gainDB)
+    /// Starts `decoder` now on this deck, replacing whatever it was playing.
+    func play(_ decoder: PlaybackDecoder, itemID: PlaylistItemID) throws {
+        bridge.register(decoder, item: itemID)
         try player.play(decoder)
     }
 
@@ -97,19 +94,13 @@ final class Deck: @unchecked Sendable {
         applyEqualizer()
     }
 
-    /// ReplayGain for this deck's track (dB), applied immediately.
-    func applyGain(_ gain: Float) {
-        settings.withLock { $0.trackGain = gain }
-        applyEqualizer()
-    }
-
     private func applyEqualizer() {
         let s = settings.withLock { $0 }
         for (i, band) in eq.bands.enumerated() {
             band.gain = i < s.bands.count ? max(-12, min(12, s.bands[i])) : 0
             band.bypass = !s.equalizerEnabled
         }
-        eq.globalGain = max(-96, min(24, s.trackGain + (s.equalizerEnabled ? s.preamp : 0)))
+        eq.globalGain = s.equalizerEnabled ? max(-96, min(24, s.preamp)) : 0
     }
 
     func setTransitionGain(_ gain: Float) {

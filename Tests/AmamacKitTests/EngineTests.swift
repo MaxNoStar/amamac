@@ -11,28 +11,6 @@ import Testing
 struct EngineTests {
     struct Timeout: Error {}
 
-    /// Collects engine events until `stop` returns true or `seconds` pass.
-    func collect(_ engine: LocalAudioEngine, seconds: Double,
-                 until stop: @escaping @Sendable ([EngineEvent]) -> Bool) async throws -> [EngineEvent] {
-        try await withThrowingTaskGroup(of: [EngineEvent].self) { group in
-            group.addTask {
-                var events: [EngineEvent] = []
-                for await event in engine.events {
-                    events.append(event)
-                    if stop(events) { break }
-                }
-                return events
-            }
-            group.addTask {
-                try await Task.sleep(for: .seconds(seconds))
-                throw Timeout()
-            }
-            let result = try await group.next()!
-            group.cancelAll()
-            return result
-        }
-    }
-
     static func nowPlaying(_ events: [EngineEvent]) -> [PlaylistItemID] {
         events.compactMap { if case .nowPlayingChanged(let id?) = $0 { id } else { nil } }
     }
@@ -50,11 +28,12 @@ struct EngineTests {
         let a = try AudioFixtures.make(.init("a.flac", seconds: 1.5), in: dir)
         let b = try AudioFixtures.make(.init("b.flac", seconds: 1.5, frequency: 660), in: dir)
         let engine = LocalAudioEngine()
+        let recorder = EngineEventRecorder(engine)
         engine.setVolume(0)
         let idA = PlaylistItemID(), idB = PlaylistItemID()
         engine.setUpcoming(UpcomingTrack(itemID: idB, url: b, after: idA))
         try engine.play(url: a, itemID: idA)
-        let events = try await collect(engine, seconds: 10) { Self.hasEnd($0) }
+        let events = try await recorder.collect(seconds: 10) { Self.hasEnd($0) }
         engine.stop()
         #expect(Self.errors(events).isEmpty)
         #expect(Self.nowPlaying(events) == [idA, idB])
@@ -65,12 +44,13 @@ struct EngineTests {
         let a = try AudioFixtures.make(.init("a.flac", seconds: 1), in: dir)
         let b = try AudioFixtures.make(.init("b.flac", seconds: 1), in: dir)
         let engine = LocalAudioEngine()
+        let recorder = EngineEventRecorder(engine)
         engine.setVolume(0)
         let idA = PlaylistItemID(), idB = PlaylistItemID()
         // Pushed for a different current item (stale): must be ignored.
         engine.setUpcoming(UpcomingTrack(itemID: idB, url: b, after: PlaylistItemID()))
         try engine.play(url: a, itemID: idA)
-        let events = try await collect(engine, seconds: 8) { Self.hasEnd($0) }
+        let events = try await recorder.collect(seconds: 8) { Self.hasEnd($0) }
         engine.stop()
         #expect(Self.nowPlaying(events) == [idA])
     }
@@ -80,15 +60,16 @@ struct EngineTests {
         let a = try AudioFixtures.make(.init("a.flac", seconds: 1, sampleRate: 44_100), in: dir)
         let b = try AudioFixtures.make(.init("b.flac", seconds: 1, sampleRate: 48_000), in: dir)
         let engine = LocalAudioEngine()
+        let recorder = EngineEventRecorder(engine)
         engine.setVolume(0)
         let idA = PlaylistItemID(), idB = PlaylistItemID()
         engine.setUpcoming(UpcomingTrack(itemID: idB, url: b, after: idA))
         try engine.play(url: a, itemID: idA)
-        var events = try await collect(engine, seconds: 8) { Self.hasEnd($0) }
+        var events = try await recorder.collect(seconds: 8) { Self.hasEnd($0) }
         if !Self.nowPlaying(events).contains(idB) {
             // The engine could not chain a different format; the controller starts it explicitly.
             try engine.play(url: b, itemID: idB)
-            events += try await collect(engine, seconds: 8) { Self.hasEnd($0) }
+            events += try await recorder.collect(seconds: 8) { Self.hasEnd($0) }
         }
         engine.stop()
         #expect(Self.errors(events).isEmpty)

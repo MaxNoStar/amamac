@@ -46,12 +46,13 @@ extension EngineTests {
         let a = try AudioFixtures.make(.init("a.flac", seconds: 3), in: dir)
         let b = try AudioFixtures.make(.init("b.flac", seconds: 3, frequency: 880), in: dir)
         let engine = LocalAudioEngine()
+        let recorder = EngineEventRecorder(engine)
         engine.setVolume(0)
         let idA = PlaylistItemID(), idB = PlaylistItemID()
         engine.setUpcoming(UpcomingTrack(itemID: idB, url: b, after: idA, transition: .crossfade(seconds: 1)))
         async let sampled = Self.sample(engine, for: 4)
         try engine.play(url: a, itemID: idA)
-        let events = try await collect(engine, seconds: 10) { Self.hasEnd($0) }
+        let events = try await recorder.collect(seconds: 10) { Self.hasEnd($0) }
         let samples = await sampled
         engine.stop()
 
@@ -127,12 +128,13 @@ extension EngineTests {
         // A crossfade that can't fit (half of a 1.5 s track is under a second) falls back to gapless too.
         for transition in [TrackTransition.gapless, .crossfade(seconds: 1)] {
             let engine = LocalAudioEngine()
+            let recorder = EngineEventRecorder(engine)
             engine.setVolume(0)
             let idA = PlaylistItemID(), idB = PlaylistItemID()
             engine.setUpcoming(UpcomingTrack(itemID: idB, url: b, after: idA, transition: transition))
             async let sampled = Self.sample(engine, for: 3)
             try engine.play(url: a, itemID: idA)
-            let events = try await collect(engine, seconds: 8) { Self.hasEnd($0) }
+            let events = try await recorder.collect(seconds: 8) { Self.hasEnd($0) }
             let samples = await sampled
             engine.stop()
             #expect(Self.nowPlaying(events) == [idA, idB], "\(transition)")
@@ -145,12 +147,13 @@ extension EngineTests {
         let a = try AudioFixtures.make(.init("a.flac", seconds: 2.5), in: dir)
         let b = try AudioFixtures.make(.init("b.flac", seconds: 2.5), in: dir)
         let engine = LocalAudioEngine()
+        let recorder = EngineEventRecorder(engine)
         engine.setVolume(0)
         let idA = PlaylistItemID(), idB = PlaylistItemID()
         engine.setUpcoming(UpcomingTrack(itemID: idB, url: b, after: PlaylistItemID(), transition: .crossfade(seconds: 1)))
         async let sampled = Self.sample(engine, for: 3)
         try engine.play(url: a, itemID: idA)
-        let events = try await collect(engine, seconds: 8) { Self.hasEnd($0) }
+        let events = try await recorder.collect(seconds: 8) { Self.hasEnd($0) }
         let samples = await sampled
         engine.stop()
         #expect(Self.nowPlaying(events) == [idA])

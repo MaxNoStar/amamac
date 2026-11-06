@@ -14,8 +14,12 @@ public final class LocalAudioEngine: @unchecked Sendable {
     private let continuation: AsyncStream<EngineEvent>.Continuation
     let decks: [Deck]
     let crossfader = Crossfader()
-    /// The track to play after the current one; taken by the gapless path or the crossfader.
-    private let upcoming = Mutex<UpcomingTrack?>(nil)
+    /// The track to play after the current one, with its decoder once it has been opened ahead of
+    /// time; taken by the gapless path or the crossfader.
+    private let upcoming = Mutex<Queued?>(nil)
+    /// The sample rate every track is converted to (see `PlaybackDecoder`), chosen at each `play`.
+    private let sampleRate = Mutex<Double>(44_100)
+    private let prepareQueue = DispatchQueue(label: "amamac.engine.prepare", qos: .userInitiated)
     private let routing = Mutex(Routing())
     /// Bumped by every fade and cancellation; a fade step only acts while its generation is current.
     private let fadeGeneration = Mutex(0)
@@ -23,6 +27,11 @@ public final class LocalAudioEngine: @unchecked Sendable {
     struct Routing {
         var active = 0
         var tap: SpectrumTap?
+    }
+
+    struct Queued {
+        var track: UpcomingTrack
+        var prepared: PlaybackDecoder?
     }
 
     public init() {
@@ -58,21 +67,52 @@ public final class LocalAudioEngine: @unchecked Sendable {
 
     // MARK: Upcoming
 
-    /// Sets (or clears) the track to play when the current one ends.
+    /// Sets (or clears) the track to play when the current one ends, and opens its file in the
+    /// background so nothing has to be read at the join (opening an MP3 reads the whole file).
     public func setUpcoming(_ upcoming: UpcomingTrack?) {
-        self.upcoming.withLock { $0 = upcoming }
+        let changed = self.upcoming.withLock { q -> Bool in
+            guard q?.track != upcoming else { return false }
+            q = upcoming.map { Queued(track: $0) }
+            return true
+        }
+        guard changed, let upcoming else { return }
+        let rate = playbackSampleRate
+        prepareQueue.async { [weak self] in
+            // A file that can't be opened is reported when it is due, through the usual paths.
+            guard let decoder = try? PlaybackDecoder(url: upcoming.url, sampleRate: rate, gainDB: upcoming.gainDB),
+                  (try? decoder.open()) != nil else { return }
+            self?.upcoming.withLock { q in
+                if q?.track == upcoming, q?.prepared == nil { q?.prepared = decoder }
+            }
+        }
     }
 
-    func peekUpcoming() -> UpcomingTrack? { upcoming.withLock { $0 } }
+    func peekUpcoming() -> UpcomingTrack? { upcoming.withLock { $0?.track } }
 
     /// Takes the upcoming track if it follows `item`; with `crossfadeOnly`, only one meant to crossfade.
-    func takeUpcoming(after item: PlaylistItemID?, crossfadeOnly: Bool) -> UpcomingTrack? {
-        upcoming.withLock { u in
-            guard let next = u, next.after == item else { return nil }
-            if crossfadeOnly, case .gapless = next.transition { return nil }
-            u = nil
-            return next
+    /// The decoder is the one opened ahead of time, or nil if it wasn't ready (see `makeDecoder`).
+    func takeUpcoming(after item: PlaylistItemID?, crossfadeOnly: Bool) -> (track: UpcomingTrack, decoder: PlaybackDecoder?)? {
+        let rate = playbackSampleRate
+        return upcoming.withLock { q in
+            guard let next = q, next.track.after == item else { return nil }
+            if crossfadeOnly, case .gapless = next.track.transition { return nil }
+            q = nil
+            return (next.track, next.prepared?.sampleRate == rate ? next.prepared : nil)
         }
+    }
+
+    /// A decoder for `track` in the current playback format.
+    func makeDecoder(for track: UpcomingTrack) throws -> PlaybackDecoder {
+        try PlaybackDecoder(url: track.url, sampleRate: playbackSampleRate, gainDB: track.gainDB)
+    }
+
+    var playbackSampleRate: Double { sampleRate.withLock { $0 } }
+
+    /// The output device's own rate, so the mixer has nothing left to convert, but never below
+    /// 44.1 kHz: a headset in call mode reports 16 or 24 kHz.
+    static func playbackSampleRate(device: AudioObjectID) -> Double {
+        let rate = AudioDevices.nominalSampleRate(device) ?? 44_100
+        return rate >= 44_100 ? rate : 44_100
     }
 
     // MARK: Transport
@@ -81,7 +121,10 @@ public final class LocalAudioEngine: @unchecked Sendable {
     public func play(url: URL, itemID: PlaylistItemID, gainDB: Float = 0) throws {
         crossfader.finishNow()
         cancelFade()
-        try activeDeck.play(url: url, itemID: itemID, gainDB: gainDB)
+        let deck = activeDeck
+        let rate = Self.playbackSampleRate(device: deck.player.outputDeviceID)
+        sampleRate.withLock { $0 = rate }
+        try deck.play(PlaybackDecoder(url: url, sampleRate: rate, gainDB: gainDB), itemID: itemID)
         crossfader.watch(true)
     }
 
@@ -168,8 +211,10 @@ public final class LocalAudioEngine: @unchecked Sendable {
         for deck in decks { deck.setEqualizer(enabled: enabled, preamp: preamp, bands: bands) }
     }
 
-    /// ReplayGain for the current track (dB), applied immediately.
-    public func setTrackGain(_ gain: Float) { activeDeck.applyGain(gain) }
+    /// ReplayGain for the current track (dB), for the audio decoded from now on.
+    public func setTrackGain(_ gain: Float) {
+        (activeDeck.player.nowPlaying as? PlaybackDecoder)?.setGain(gain)
+    }
 
     // MARK: Analyzer
 

@@ -33,6 +33,17 @@ public enum AudioDevices {
         return status == noErr && id != 0 ? id : nil
     }
 
+    /// The device's current sample rate, if it reports one.
+    public static func nominalSampleRate(_ id: AudioObjectID) -> Double? {
+        var address = AudioObjectPropertyAddress(mSelector: kAudioDevicePropertyNominalSampleRate, mScope: kAudioObjectPropertyScopeGlobal,
+                                                 mElement: kAudioObjectPropertyElementMain)
+        var rate = Float64(0)
+        var size = UInt32(MemoryLayout<Float64>.size)
+        guard id != 0, AudioObjectGetPropertyData(id, &address, 0, nil, &size, &rate) == noErr,
+              rate.isFinite, rate > 0 else { return nil }
+        return rate
+    }
+
     public static func device(uid: String) -> AudioObjectID? {
         outputDevices().first { $0.uid == uid }?.id
     }

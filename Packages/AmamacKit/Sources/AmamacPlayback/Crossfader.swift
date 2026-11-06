@@ -67,10 +67,10 @@ final class Crossfader: @unchecked Sendable {
         else { return }
         let remaining = total - now
         guard remaining <= length, let taken = engine.takeUpcoming(after: current, crossfadeOnly: true) else { return }
-        begin(taken, from: deck, length: max(0.05, min(length, remaining)))
+        begin(taken.track, decoder: taken.decoder, from: deck, length: max(0.05, min(length, remaining)))
     }
 
-    private func begin(_ next: UpcomingTrack, from outgoing: Deck, length: TimeInterval) {
+    private func begin(_ next: UpcomingTrack, decoder prepared: PlaybackDecoder?, from outgoing: Deck, length: TimeInterval) {
         guard let engine else { return }
         let incoming = engine.deck(otherThan: outgoing)
         incoming.player.stop()
@@ -78,7 +78,7 @@ final class Crossfader: @unchecked Sendable {
         incoming.setFadeGain(outgoing.fadeGain)
         engine.makeActive(incoming)
         do {
-            try incoming.play(url: next.url, itemID: next.itemID, gainDB: next.gainDB)
+            try incoming.play(prepared ?? engine.makeDecoder(for: next), itemID: next.itemID)
         } catch {
             // Leave the old track to play out; the controller then starts the next one itself and
             // reports the error through its usual path.
