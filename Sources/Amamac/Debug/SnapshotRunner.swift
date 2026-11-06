@@ -404,9 +404,7 @@ final class SnapshotRunner {
             await Snapshotter.capture(view, to: output.appendingPathComponent(name))
             dialog.close()
         }
-        let album = tracks.filter { $0.track.album == "Dïscs" }
-        TagEditorWindow.show(tracks: album, env: env)
-        await capture("Edit Track Details", "dialog-tag-editor.png")
+        await captureTagEditor(tracks: tracks)
         OrganizeFilesWindow.show(tracks: tracks.map(\.track), env: env)
         await capture("Organize Files", "dialog-organize.png")
         EditFilterDialog.show(initial: "artist:björk year:>2000 -live", relativeTo: nil) { _ in }

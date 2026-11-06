@@ -207,10 +207,19 @@ public enum CollectionQueries {
         try TrackStatistics.fetchOne(db, key: trackId)
     }
 
-    /// Distinct values for completion in the tag editor.
-    public static func distinctValues(_ db: Database, column: String, limit: Int = 2000) throws -> [String] {
-        precondition(["artist", "albumArtist", "album", "genre", "composer"].contains(column))
-        return try String.fetchAll(db, sql: "SELECT DISTINCT \(column) FROM track WHERE \(column) <> '' ORDER BY \(column) COLLATE NOCASE LIMIT \(limit)")
+    /// Values of `field` that start with `prefix`, or have a word that does (case and diacritics
+    /// ignored), for completion in the tag editor. Whole-value matches come first, then the values
+    /// on the most tracks.
+    public static func distinctValues(_ db: Database, field: CompletionField, prefix: String, limit: Int) throws -> [String] {
+        let column = field.rawValue
+        let folded = TextFolding.likeEscaped(TextFolding.fold(prefix.trimmingCharacters(in: .whitespaces)))
+        return try String.fetchAll(db, sql: """
+            SELECT \(column) FROM track
+            WHERE \(column) <> '' AND (amamac_fold(\(column)) LIKE ?1 ESCAPE '\\' OR amamac_fold(\(column)) LIKE ?2 ESCAPE '\\')
+            GROUP BY \(column)
+            ORDER BY amamac_fold(\(column)) LIKE ?1 ESCAPE '\\' DESC, COUNT(*) DESC, \(column) COLLATE NOCASE
+            LIMIT ?3
+            """, arguments: [folded + "%", "% " + folded + "%", max(0, limit)])
     }
 
     /// Collection-wide totals for the status area.

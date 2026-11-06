@@ -24,6 +24,19 @@ struct PersistedFormatTests {
         }
     }
 
+    /// A track row as the v1 schema stores it (`Track` itself has columns added since).
+    static func insertV1Track(_ db: Database, title: String, year: Int) throws -> Int64 {
+        try db.execute(sql: """
+            INSERT INTO track (path, uniqueId, title, titleSort, artist, artistSort, albumArtist, albumArtistSort, album,
+                albumSort, albumKey, composer, genre, year, trackNumber, trackTotal, discNumber, discTotal, bpm, comment,
+                compilation, mbReleaseId, mbRecordingId, durationMs, format, bitrate, sampleRate, channels, fileSize, mtime,
+                dateAdded, hasEmbeddedArt, searchFolded, artistKey, albumArtistKey, genreKey, composerKey)
+            VALUES (?, '', ?, '', 'Band', 'band', '', 'band', '', '', '', '', '', ?, 1, 0, 0, 0, 0, '', 0, '', '', 0, 'flac',
+                0, 0, 0, 0, '2026-01-01 00:00:00.000', '2026-01-01 00:00:00.000', 0, '', 'band', 'band', '', '')
+            """, arguments: ["/m/\(title).flac", title, year])
+        return db.lastInsertedRowID
+    }
+
     /// `v1` is what 0.1 – 0.1.2 created; it must never change.
     @Test func v1SchemaIsUnchanged() throws {
         let queue = try DatabaseQueue(configuration: LibraryDatabase.configuration())
@@ -33,11 +46,13 @@ struct PersistedFormatTests {
         #expect(v1.digest == "7920a13fc5f0cf8ba28f41d33cbf17f2277da09af92fe48b302d5210910b74b6", "v1 schema changed:\n\(v1.text)")
     }
 
-    /// The current schema: v1 without the lyrics table (v2, 0.1.3).
+    /// The current schema: v1 without the lyrics table (v2, 0.1.3), with release dates, original
+    /// dates, grouping and ISRC on tracks (v3, 0.1.7).
     @Test func currentSchemaAndMigrationsAreUnchanged() throws {
         let current = try Self.schema(try LibraryDatabase.inMemory().writer)
-        #expect(current.migrations == ["v1", "v2"])
-        #expect(current.digest == "a71f6d6659a8a95004ce7bea5d6a181a02aac84ab17417d9d3b762f69db94a90", "schema changed:\n\(current.text)")
+        #expect(current.migrations == ["v1", "v2", "v3"])
+        #expect(current.digest == "1f40863084a5d53d7cb72f1026b594572c8262f883ff34fc0a5b36d7cc7ceb6b",
+                "schema changed (\(current.digest)):\n\(current.text)")
     }
 
     /// A library written by 0.1.2, lyrics included, keeps its tracks, statistics and labels.
@@ -45,13 +60,12 @@ struct PersistedFormatTests {
         let queue = try DatabaseQueue(configuration: LibraryDatabase.configuration())
         try LibraryDatabase.migrator.migrate(queue, upTo: "v1")
         try queue.write { db in
-            var track = makeTrack("Song", artist: "Band")
-            try track.insert(db)
-            var stats = TrackStatistics(trackId: track.id!)
+            let id = try Self.insertV1Track(db, title: "Song", year: 2000)
+            var stats = TrackStatistics(trackId: id)
             stats.rating = 8
             try stats.save(db)
-            try CollectionQueries.setLabels(db, trackId: track.id!, labels: ["mellow"])
-            try db.execute(sql: "INSERT INTO lyrics (trackId, text, synced, source) VALUES (?, 'words', 0, 'tag')", arguments: [track.id!])
+            try CollectionQueries.setLabels(db, trackId: id, labels: ["mellow"])
+            try db.execute(sql: "INSERT INTO lyrics (trackId, text, synced, source) VALUES (?, 'words', 0, 'tag')", arguments: [id])
         }
         try LibraryDatabase.migrator.migrate(queue)
         let (hasLyrics, tracks, rating, labels) = try queue.read { db in
@@ -62,6 +76,20 @@ struct PersistedFormatTests {
         #expect(tracks == 1)
         #expect(rating == 8)
         #expect(labels == ["mellow"])
+    }
+
+    /// A library written by 0.1.6 gets the new track columns, with each year as its release date.
+    @Test func v3AddsDatesAndKeepsYears() throws {
+        let queue = try DatabaseQueue(configuration: LibraryDatabase.configuration())
+        try LibraryDatabase.migrator.migrate(queue, upTo: "v2")
+        try queue.write { db in
+            for (title, year) in [("Dated", 1998), ("Undated", 0)] { _ = try Self.insertV1Track(db, title: title, year: year) }
+        }
+        try LibraryDatabase.migrator.migrate(queue)
+        let tracks = try queue.read { try Track.fetchAll($0, sql: "SELECT * FROM track ORDER BY title") }
+        #expect(tracks.map(\.releaseDate) == ["1998", ""])
+        #expect(tracks.map(\.year) == [1998, 0])
+        #expect(tracks.allSatisfy { $0.originalDate.isEmpty && $0.grouping.isEmpty && $0.isrc.isEmpty })
     }
 
     @Test func coverCacheNamesAreUnchanged() {

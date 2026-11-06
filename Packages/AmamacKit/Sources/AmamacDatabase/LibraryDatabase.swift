@@ -207,6 +207,17 @@ public final class LibraryDatabase: Sendable {
         migrator.registerMigration("v2") { db in
             try db.drop(table: "lyrics")
         }
+        // 0.1.7: full release dates, original date, grouping and ISRC. Until a file is read again
+        // its release date is the year the collection already knew.
+        migrator.registerMigration("v3") { db in
+            try db.alter(table: "track") { t in
+                t.add(column: "releaseDate", .text).notNull().defaults(to: "")
+                t.add(column: "originalDate", .text).notNull().defaults(to: "")
+                t.add(column: "grouping", .text).notNull().defaults(to: "")
+                t.add(column: "isrc", .text).notNull().defaults(to: "")
+            }
+            try db.execute(sql: "UPDATE track SET releaseDate = printf('%04d', year) WHERE year BETWEEN 1 AND 9999")
+        }
         return migrator
     }
 }

@@ -139,3 +139,12 @@ extension LibraryDatabase {
         }
     }
 }
+
+// MARK: Tag editor completion
+
+extension LibraryDatabase {
+    /// Collection values of `field` matching `prefix` (see `CollectionQueries.distinctValues`).
+    public func distinctValues(_ field: CompletionField, prefix: String, limit: Int = 12) async throws -> [String] {
+        try await writer.read { try CollectionQueries.distinctValues($0, field: field, prefix: prefix, limit: limit) }
+    }
+}

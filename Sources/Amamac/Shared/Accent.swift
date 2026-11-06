@@ -10,4 +10,7 @@ extension NSColor {
 
 extension Color {
     nonisolated static let amamacAccent = Color(nsColor: .amamacAccent)
+    /// A darker orange for fills behind white text (#C2410C, 5.2:1); the bright accent is only
+    /// 2.9:1 against white, so it never carries small text.
+    nonisolated static let amamacAccentFill = Color(.sRGB, red: 0xC2 / 255, green: 0x41 / 255, blue: 0x0C / 255)
 }

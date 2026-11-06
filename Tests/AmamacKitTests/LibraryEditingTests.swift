@@ -140,7 +140,7 @@ extension WebTests {
             ["id": "rec-1", "title": "Song", "length": 200_000, "score": 100,
              "artist-credit": [["name": "A", "joinphrase": " & "], ["name": "B"]],
              "releases": [["id": "rel-1", "title": "Album", "date": "1999-05-01",
-                           "media": [["position": 2, "track": [["number": "7", "position": 7]]]]]]],
+                           "media": [["position": 2, "track-count": 11, "track": [["number": "7", "position": 7]]]]]]],
             ["id": "rec-2", "title": "Song (live)", "length": 400_000, "score": 90, "releases": [["id": "rel-2", "title": "Live"]]],
         ]]])
         let candidates = try await MusicBrainzClient(http: http).recordings(title: "Song", artist: "A", album: "", durationMs: 201_000)
@@ -149,6 +149,7 @@ extension WebTests {
         #expect(c.artist == "A & B")
         #expect(c.albumArtist == "A & B")
         #expect(c.year == 1999 && c.trackNumber == 7 && c.discNumber == 2 && c.releaseId == "rel-1")
+        #expect(c.releaseDate == "1999-05-01" && c.trackTotal == 11)
     }
 
     @Test func coverCandidatesFromArchiveAndITunes() async throws {
